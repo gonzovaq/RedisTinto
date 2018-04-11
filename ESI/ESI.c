@@ -1,4 +1,4 @@
-	#include "Instancia.h"
+	#include "ESI.h"
 	#include <stdio.h>
     #include <stdlib.h>
     #include <unistd.h>
@@ -12,25 +12,32 @@
 
     int main(int argc, char *argv[])
     {
-        int sockfd, numbytes;
-        char buf[MAXDATASIZE];
+        int sockfd, bytes_enviados, longitud_mensaje;
         struct hostent *he;
         struct sockaddr_in their_addr; // información de la dirección de destino
+        char *mensaje = "Prueba mensaje para enviar";
+        int numbytes,tamanio_buffer=100;
+        char buf[tamanio_buffer]; //Seteo el maximo del buffer en 100 para probar. Debe ser variable.
+
 
         if (argc != 2) {
-            fprintf(stderr,"usage: client hostname\n");
+        	puts("Error al ejecutar, te faltan parametros.");
+            fprintf(stderr,"usage: client hostname \n");
             exit(1);
         }
 
         if ((he=gethostbyname(argv[1])) == NULL) {  // obtener información de máquina
-            perror("gethostbyname");
+        	puts("Error al obtener el hostname, te faltan parametros.");
+        	perror("gethostbyname");
             exit(1);
         }
 
         if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-            perror("socket");
+        	puts("Error al crear el socket");
+        	perror("socket");
             exit(1);
         }
+        puts("El socket se creo correctamente\n");
 
         their_addr.sin_family = AF_INET;    // Ordenación de bytes de la máquina
         their_addr.sin_port = htons(PORT);  // short, Ordenación de bytes de la red
@@ -39,21 +46,31 @@
 
         if (connect(sockfd, (struct sockaddr *)&their_addr,
                                               sizeof(struct sockaddr)) == -1) {
-            perror("connect");
+        	puts("Error al conectarme al servidor.");
+        	perror("connect");
             exit(1);
         }
+        puts("ESI conectado!\n");
 
-        if ((numbytes=recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
+        if ((numbytes=recv(sockfd, buf, tamanio_buffer-1, 0)) == -1) {
             perror("recv");
             exit(1);
         }
 
         buf[numbytes] = '\0';
-
         printf("Received: %s",buf);
 
 
-        close(sockfd);
+        longitud_mensaje = strlen(mensaje);
 
+        if ((bytes_enviados=send(sockfd, mensaje, longitud_mensaje , 0)) == -1) {
+        	puts("Error al enviar el mensaje.");
+        	perror("send");
+            exit(1);
+        }
+
+        printf("El mensaje: \"%s\", se ha enviado correctamente! \n\n",mensaje);
+
+        close(sockfd);
         return 0;
     }

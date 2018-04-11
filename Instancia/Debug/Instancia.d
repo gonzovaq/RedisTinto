@@ -1,1 +1,0 @@
-Instancia.o: ../Instancia.c

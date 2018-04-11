@@ -128,6 +128,16 @@
     	close(param->sockfd); // El hijo no necesita este descriptor
 		if (send(param->new_fd, "Hola papa!\n", 14, 0) == -1)
 			perror("send");
+        int numbytes,tamanio_buffer=100;
+        char buf[tamanio_buffer]; //Seteo el maximo del buffer en 100 para probar. Debe ser variable.
+
+        if ((numbytes=recv(param->new_fd, buf, tamanio_buffer-1, 0)) == -1) {
+            perror("recv");
+            exit(1);
+        }
+
+        buf[numbytes] = '\0';
+        printf("Received: %s\n",buf);
 		//close(new_fd);
 		exit(0);
     }
