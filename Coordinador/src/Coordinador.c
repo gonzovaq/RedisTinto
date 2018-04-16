@@ -6,17 +6,18 @@
  */
 
 #include "Coordinador.h"
-    #include <stdio.h>
-    #include <stdlib.h>
-    #include <unistd.h>
-    #include <errno.h>
-    #include <string.h>
-    #include <sys/types.h>
-    #include <sys/socket.h>
-    #include <netinet/in.h>
-    #include <arpa/inet.h>
-    #include <sys/wait.h>
-    #include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/wait.h>
+#include <signal.h>
+#include <pthread.h>
 
     void sigchld_handler(int s) // eliminar procesos muertos
     {
@@ -90,7 +91,7 @@
 		// 0 -> ok, -1 -> error
 
         puts("A trabajar");
-        // El coordinador va a disparar hilos!
+
         while(1) {  // main accept() loop
             sin_size = sizeof(struct sockaddr_in);
             if ((new_fd = accept(sockfd, (struct sockaddr *)&direccion_cliente,
@@ -100,16 +101,34 @@
             }
             printf("server: recibi una conexion de  %s\n",
                                                inet_ntoa(direccion_cliente.sin_addr));
-            if (!fork()) { // Este es el proceso hijo
-                close(sockfd); // El hijo no necesita este descriptor
-                if (send(new_fd, "Hola papa!\n", 14, 0) == -1)
-                    perror("send");
-                //close(new_fd);
-                exit(0);
-            }
+            //if (!fork()) { // Este es el proceso hijo
+            //Pruebo con hilos en vez de generar procesos hijos
+
+            //Para hilos debo crear una estructura de parametros de la funcion que quiera llamar
+			pthread_t tid;
+			struct parametrosConexion parametros = {sockfd,new_fd};//(&sockfd, &new_fd)
+
+			int stat = pthread_create(&tid, NULL, (void*)conexion, (void*)&parametros);//parametros contiene todos los parametros que usa conexion
+			if (stat != 0){
+				puts("error al generar el hilo");
+				perror("thread");
+				continue;
+			}
+            	//conexion(&sockfd, &new_fd);
+            	//pthread_join(tid, NULL); sinonimo de wait()
+            //}
             //close(new_fd);  // El proceso padre no lo necesita
         }
 
         return 0;
+    }
+
+    void *conexion(struct parametrosConexion *param){ //(int* sockfd, int* new_fd)
+        puts("Se disparo un hilo");
+    	close(param->sockfd); // El hijo no necesita este descriptor
+		if (send(param->new_fd, "Hola papa!\n", 14, 0) == -1)
+			perror("send");
+		//close(new_fd);
+		exit(0);
     }
 
