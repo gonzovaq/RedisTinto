@@ -97,10 +97,11 @@
             if ((new_fd = accept(sockfd, (struct sockaddr *)&direccion_cliente,
                                                            &sin_size)) == -1) {
                 perror("accept");
-                continue;
+                //continue;
             }
             printf("server: recibi una conexion de  %s\n",
                                                inet_ntoa(direccion_cliente.sin_addr));
+            //int copia_sockfd = sockfd;
             //if (!fork()) { // Este es el proceso hijo
             //Pruebo con hilos en vez de generar procesos hijos
 
@@ -112,7 +113,7 @@
 			if (stat != 0){
 				puts("error al generar el hilo");
 				perror("thread");
-				continue;
+				//continue;
 			}
             	//conexion(&sockfd, &new_fd);
             	//pthread_join(tid, NULL); sinonimo de wait()
@@ -125,7 +126,7 @@
 
     void *conexion(struct parametrosConexion *param){ //(int* sockfd, int* new_fd)
         puts("Se disparo un hilo");
-    	close(param->sockfd); // El hijo no necesita este descriptor
+    	//close(param->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
 		if (send(param->new_fd, "Hola papa!\n", 14, 0) == -1)
 			perror("send");
         int numbytes,tamanio_buffer=100;
@@ -138,7 +139,7 @@
 
         buf[numbytes] = '\0';
         printf("Received: %s\n",buf);
-		//close(new_fd);
-		exit(0);
+		close(param->new_fd);
+
     }
 
