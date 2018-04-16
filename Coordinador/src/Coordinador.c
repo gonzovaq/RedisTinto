@@ -101,7 +101,7 @@
             }
             printf("server: recibi una conexion de  %s\n",
                                                inet_ntoa(direccion_cliente.sin_addr));
-            //int copia_sockfd = sockfd;
+
             //if (!fork()) { // Este es el proceso hijo
             //Pruebo con hilos en vez de generar procesos hijos
 
@@ -115,6 +115,7 @@
 				perror("thread");
 				//continue;
 			}
+			free(stat);
             	//conexion(&sockfd, &new_fd);
             	//pthread_join(tid, NULL); sinonimo de wait()
             //}
@@ -139,7 +140,7 @@
 
         buf[numbytes] = '\0';
         printf("Received: %s\n",buf);
+        free(buf[numbytes]);
 		close(param->new_fd);
-
     }
 
