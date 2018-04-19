@@ -115,6 +115,7 @@
 				perror("thread");
 				//continue;
 			}
+			pthread_detach(tid); //Con esto decis que cuando el hilo termine libere sus recursos
 
             	//gestionarConexion(&sockfd, &new_fd);
             	//pthread_join(tid, NULL); sinonimo de wait()
