@@ -126,46 +126,45 @@
         return 0;
     }
 
-    void *gestionarConexion(int *new_fd){ //(int* sockfd, int* new_fd)
+    void *gestionarConexion(void *new_fd){ //(int* sockfd, int* new_fd)
         puts("Se disparo un hilo");
-
+        int sock = *(int*)new_fd;
         int bytesRecibidos,bytesIdentificador = sizeof(char);
         //Handshake --> El coordinador debe recibir el primer caracter del proceso que se conecte para manejar la comunicacion adecuandamente
         char identificador[bytesIdentificador];
-        if ((bytesRecibidos =recv(*new_fd,identificador,bytesIdentificador-1,NULL)) == -1){
+        if ((bytesRecibidos =recv(sock,identificador,bytesIdentificador-1,NULL)) == -1){
             perror("recv");
             exit(1);
         }
 
         puts(identificador);
-        puts(new_fd);
 
         switch (identificador[0])
         {
 			case 'e':
-				conexionESI(&new_fd);
+				conexionESI(&sock);
 				break;
 			case 'p':
-				conexionPlanificador(&new_fd);
+				conexionPlanificador(&sock);
 				break;
 			case 'i':
-				conexionInstancia(&new_fd);
+				conexionInstancia(&sock);
 				break;
 			default :
 				close(new_fd);
         }
-        free(identificador);
+        //free(identificador);
     }
 
     void *conexionESI(int *new_fd){
     	//close(new_fd->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
-        puts(new_fd);
-		if (send(new_fd, "Hola papa!\n", 14, 0) == -1)
+        puts("ESI conectandose");
+		if (send(*new_fd, "Hola papa!\n", 14, 0) == -1)
 			perror("send");
         int numbytes,tamanio_buffer=100;
         char buf[tamanio_buffer]; //Seteo el maximo del buffer en 100 para probar. Debe ser variable.
 
-        if ((numbytes=recv(new_fd, buf, tamanio_buffer-1, 0)) == -1) {
+        if ((numbytes=recv(*new_fd, buf, tamanio_buffer-1, 0)) == -1) {
             perror("recv");
             exit(1);
         }
@@ -178,7 +177,7 @@
 
     void *conexionPlanificador(int *new_fd){
     	//close(new_fd->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
-        puts(new_fd);
+        puts("Planificador conectandose");
 		if (send(new_fd, "Hola papa!\n", 14, 0) == -1)
 			perror("send");
         int numbytes,tamanio_buffer=100;
@@ -197,13 +196,13 @@
 
     void *conexionInstancia(int *new_fd){
     	//close(new_fd->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
-        puts(new_fd);
-		if (send(new_fd, "Hola papa!\n", 14, 0) == -1)
+        puts("Instancia conectandose");
+		if (send(*new_fd, "Hola papa!\n", 14, 0) == -1)
 			perror("send");
         int numbytes,tamanio_buffer=100;
         char buf[tamanio_buffer]; //Seteo el maximo del buffer en 100 para probar. Debe ser variable.
 
-        if ((numbytes=recv(new_fd, buf, tamanio_buffer-1, 0)) == -1) {
+        if ((numbytes=recv(*new_fd, buf, tamanio_buffer-1, 0)) == -1) {
             perror("recv");
             exit(1);
         }

@@ -17,7 +17,7 @@ struct parametrosConexion{
 void sigchld_handler(int s);
 int main(void);
 
-void *gestionarConexion(int *new_fd);
+void *gestionarConexion(void *new_fd);
 void *conexionESI(int *new_fd);
 void *conexionPlanificador(int *new_fd);
 void *conexionInstancia(int *new_fd);

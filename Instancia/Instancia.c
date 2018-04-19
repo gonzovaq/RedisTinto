@@ -44,7 +44,7 @@
         }
 
         //Me identifico con el coordinador
-        if (send(sockfd, 'i', sizeof(char) , 0) == -1) {
+        if (send(sockfd, 'i', sizeof(char)+1 , 0) == -1) {
         	puts("Error al enviar el mensaje.");
         	perror("send");
             exit(1);
