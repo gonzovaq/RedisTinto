@@ -107,33 +107,65 @@
 
             //Para hilos debo crear una estructura de parametros de la funcion que quiera llamar
 			pthread_t tid;
-			struct parametrosConexion parametros = {sockfd,new_fd};//(&sockfd, &new_fd)
+			//struct parametrosConexion parametros = {sockfd,new_fd};//(&sockfd, &new_fd) --> no lo utilizo porque sockfd ya no se requiere
 
-			int stat = pthread_create(&tid, NULL, (void*)conexion, (void*)&parametros);//parametros contiene todos los parametros que usa conexion
+			int stat = pthread_create(&tid, NULL, (void*)gestionarConexion, (void*)&new_fd);//(void*)&parametros -> parametros contendria todos los parametros que usa conexion
 			if (stat != 0){
 				puts("error al generar el hilo");
 				perror("thread");
 				//continue;
 			}
-			free(stat);
-            	//conexion(&sockfd, &new_fd);
+
+            	//gestionarConexion(&sockfd, &new_fd);
             	//pthread_join(tid, NULL); sinonimo de wait()
             //}
             //close(new_fd);  // El proceso padre no lo necesita
         }
+        close(sockfd);
 
         return 0;
     }
 
-    void *conexion(struct parametrosConexion *param){ //(int* sockfd, int* new_fd)
+    void *gestionarConexion(int *new_fd){ //(int* sockfd, int* new_fd)
         puts("Se disparo un hilo");
-    	//close(param->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
-		if (send(param->new_fd, "Hola papa!\n", 14, 0) == -1)
+
+        int bytesRecibidos,bytesIdentificador = sizeof(char);
+        //Handshake --> El coordinador debe recibir el primer caracter del proceso que se conecte para manejar la comunicacion adecuandamente
+        char identificador[bytesIdentificador];
+        if ((bytesRecibidos =recv(*new_fd,identificador,bytesIdentificador-1,NULL)) == -1){
+            perror("recv");
+            exit(1);
+        }
+
+        puts(identificador);
+        puts(new_fd);
+
+        switch (identificador[0])
+        {
+			case 'e':
+				conexionESI(&new_fd);
+				break;
+			case 'p':
+				conexionPlanificador(&new_fd);
+				break;
+			case 'i':
+				conexionInstancia(&new_fd);
+				break;
+			default :
+				close(new_fd);
+        }
+        free(identificador);
+    }
+
+    void *conexionESI(int *new_fd){
+    	//close(new_fd->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
+        puts(new_fd);
+		if (send(new_fd, "Hola papa!\n", 14, 0) == -1)
 			perror("send");
         int numbytes,tamanio_buffer=100;
         char buf[tamanio_buffer]; //Seteo el maximo del buffer en 100 para probar. Debe ser variable.
 
-        if ((numbytes=recv(param->new_fd, buf, tamanio_buffer-1, 0)) == -1) {
+        if ((numbytes=recv(new_fd, buf, tamanio_buffer-1, 0)) == -1) {
             perror("recv");
             exit(1);
         }
@@ -141,6 +173,44 @@
         buf[numbytes] = '\0';
         printf("Received: %s\n",buf);
         free(buf[numbytes]);
-		close(param->new_fd);
+		close(new_fd);
+    }
+
+    void *conexionPlanificador(int *new_fd){
+    	//close(new_fd->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
+        puts(new_fd);
+		if (send(new_fd, "Hola papa!\n", 14, 0) == -1)
+			perror("send");
+        int numbytes,tamanio_buffer=100;
+        char buf[tamanio_buffer]; //Seteo el maximo del buffer en 100 para probar. Debe ser variable.
+
+        if ((numbytes=recv(new_fd, buf, tamanio_buffer-1, 0)) == -1) {
+            perror("recv");
+            exit(1);
+        }
+
+        buf[numbytes] = '\0';
+        printf("Received: %s\n",buf);
+        free(buf[numbytes]);
+		close(new_fd);
+    }
+
+    void *conexionInstancia(int *new_fd){
+    	//close(new_fd->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
+        puts(new_fd);
+		if (send(new_fd, "Hola papa!\n", 14, 0) == -1)
+			perror("send");
+        int numbytes,tamanio_buffer=100;
+        char buf[tamanio_buffer]; //Seteo el maximo del buffer en 100 para probar. Debe ser variable.
+
+        if ((numbytes=recv(new_fd, buf, tamanio_buffer-1, 0)) == -1) {
+            perror("recv");
+            exit(1);
+        }
+
+        buf[numbytes] = '\0';
+        printf("Received: %s\n",buf);
+        free(buf[numbytes]);
+		close(new_fd);
     }
 

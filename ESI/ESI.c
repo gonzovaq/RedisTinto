@@ -52,6 +52,13 @@
         }
         puts("ESI conectado!\n");
 
+        //Me identifico con el coordinador
+        if ((bytes_enviados=send(sockfd, 'e', sizeof(char) , 0)) == -1) {
+        	puts("Error al enviar el mensaje.");
+        	perror("send");
+            exit(1);
+        }
+
         if ((numbytes=recv(sockfd, buf, tamanio_buffer-1, 0)) == -1) {
             perror("recv");
             exit(1);
