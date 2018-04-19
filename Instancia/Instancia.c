@@ -44,7 +44,9 @@
         }
 
         //Me identifico con el coordinador
-        if (send(sockfd, 'i', sizeof(char)+1 , 0) == -1) {
+        char *mensaje = "i";
+        int longitud_mensaje = strlen(mensaje);
+        if (send(sockfd, mensaje, longitud_mensaje, 0) == -1) {
         	puts("Error al enviar el mensaje.");
         	perror("send");
             exit(1);

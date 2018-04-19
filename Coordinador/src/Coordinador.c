@@ -107,9 +107,9 @@
 
             //Para hilos debo crear una estructura de parametros de la funcion que quiera llamar
 			pthread_t tid;
-			//struct parametrosConexion parametros = {sockfd,new_fd};//(&sockfd, &new_fd) --> no lo utilizo porque sockfd ya no se requiere
+			struct parametrosConexion parametros = {new_fd};//(&sockfd, &new_fd) --> no lo utilizo porque sockfd ya no se requiere
 
-			int stat = pthread_create(&tid, NULL, (void*)gestionarConexion, (void*)&new_fd);//(void*)&parametros -> parametros contendria todos los parametros que usa conexion
+			int stat = pthread_create(&tid, NULL, (void*)gestionarConexion, (void*)&parametros);//(void*)&parametros -> parametros contendria todos los parametros que usa conexion
 			if (stat != 0){
 				puts("error al generar el hilo");
 				perror("thread");
@@ -126,32 +126,33 @@
         return 0;
     }
 
-    void *gestionarConexion(void *new_fd){ //(int* sockfd, int* new_fd)
+    void *gestionarConexion(struct parametrosConexion *parametros){ //(int* sockfd, int* new_fd)
         puts("Se disparo un hilo");
-        int sock = *(int*)new_fd;
-        int bytesRecibidos,bytesIdentificador = sizeof(char);
+
+        int bytesRecibidos,bytesIdentificador = 50;
         //Handshake --> El coordinador debe recibir el primer caracter del proceso que se conecte para manejar la comunicacion adecuandamente
         char identificador[bytesIdentificador];
-        if ((bytesRecibidos =recv(sock,identificador,bytesIdentificador-1,NULL)) == -1){
+        if ((bytesRecibidos =recv(parametros->new_fd,identificador,bytesIdentificador-1,NULL)) == -1){
             perror("recv");
             exit(1);
         }
 
         puts(identificador);
 
+
         switch (identificador[0])
         {
 			case 'e':
-				conexionESI(&sock);
+				conexionESI(parametros->new_fd);
 				break;
 			case 'p':
-				conexionPlanificador(&sock);
+				conexionPlanificador(parametros->new_fd);
 				break;
 			case 'i':
-				conexionInstancia(&sock);
+				conexionInstancia(parametros->new_fd);
 				break;
 			default :
-				close(new_fd);
+				close(parametros->new_fd);
         }
         //free(identificador);
     }
@@ -159,12 +160,12 @@
     void *conexionESI(int *new_fd){
     	//close(new_fd->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
         puts("ESI conectandose");
-		if (send(*new_fd, "Hola papa!\n", 14, 0) == -1)
+		if (send(new_fd, "Hola papa!\n", 14, 0) == -1)
 			perror("send");
         int numbytes,tamanio_buffer=100;
         char buf[tamanio_buffer]; //Seteo el maximo del buffer en 100 para probar. Debe ser variable.
 
-        if ((numbytes=recv(*new_fd, buf, tamanio_buffer-1, 0)) == -1) {
+        if ((numbytes=recv(new_fd, buf, tamanio_buffer-1, 0)) == -1) {
             perror("recv");
             exit(1);
         }
@@ -197,12 +198,12 @@
     void *conexionInstancia(int *new_fd){
     	//close(new_fd->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
         puts("Instancia conectandose");
-		if (send(*new_fd, "Hola papa!\n", 14, 0) == -1)
+		if (send(new_fd, "Hola papa!\n", 14, 0) == -1)
 			perror("send");
         int numbytes,tamanio_buffer=100;
         char buf[tamanio_buffer]; //Seteo el maximo del buffer en 100 para probar. Debe ser variable.
 
-        if ((numbytes=recv(*new_fd, buf, tamanio_buffer-1, 0)) == -1) {
+        if ((numbytes=recv(new_fd, buf, tamanio_buffer-1, 0)) == -1) {
             perror("recv");
             exit(1);
         }

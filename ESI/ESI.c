@@ -53,7 +53,9 @@
         puts("ESI conectado!\n");
 
         //Me identifico con el coordinador
-        if ((bytes_enviados=send(sockfd, 'e', sizeof(char) , 0)) == -1) {
+        char *identificador = "e";
+        int longitud_identificador = strlen(identificador);
+        if (send(sockfd, identificador, longitud_identificador, 0) == -1) {
         	puts("Error al enviar el mensaje.");
         	perror("send");
             exit(1);

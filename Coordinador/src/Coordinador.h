@@ -10,14 +10,14 @@
 #define BACKLOG 10     // Cuántas conexiones pendientes se mantienen en cola
 
 struct parametrosConexion{
-	int sockfd;
+	//int sockfd; --> no se requiere para la conexion
 	int new_fd;
 };
 
 void sigchld_handler(int s);
 int main(void);
 
-void *gestionarConexion(void *new_fd);
+void *gestionarConexion(struct parametrosConexion *parametros);
 void *conexionESI(int *new_fd);
 void *conexionPlanificador(int *new_fd);
 void *conexionInstancia(int *new_fd);
