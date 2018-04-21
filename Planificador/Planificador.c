@@ -9,7 +9,7 @@
  */
 #include "Planificador.h"
 
-void ejecutarConsola();
+int ejecutarConsola();
 int main(void) {
 
 	int socketCoord;
@@ -45,17 +45,57 @@ int main(void) {
 	sin_size = sizeof(struct sockaddr_in);
 	new_fd = accept(sock_esi, (struct sockaddr *)&esi_addr, &sin_size);
 
-	ejecutarConsola();
+	int a=ejecutarConsola();
 
 	return EXIT_SUCCESS;
 }
-void ejecutarConsola()
+int ejecutarConsola()
 {
 /*
  * La consola debe ir haciendo readlines de pantalla
  * e ir haciendo un caso dependiendo lo que se lea,
  * usando manejo de strings.
  * */
-	puts("hola mundo");
-}
 
+
+
+	while(1)
+	{
+		//char * readline(const char * linea);
+		char * linea = readline(": ");
+
+
+		if(strncmp(linea,"pausar",7)==0)
+		{
+			puts("va a pausar");
+		}
+
+		if(strncmp(linea,"continuar",9)==0)
+		{
+			puts("va a continuar");
+			puts(linea);
+		}
+		if(strncmp(linea,"bloquear",8)==0)
+		{
+			char * clave = malloc(sizeof(char*));
+
+			char * id="vacio";
+			int flag=0;
+			int j=0;
+			int i=9;
+			while(linea[i]!=' ')
+			{	printf("%d \n",i);
+				clave[j]=linea[i];
+				j++;
+				i++;
+			}
+			puts("va a bloquear");
+			puts(clave);
+			free(clave);
+			puts(id);
+		}
+
+	}
+
+return 0;
+}

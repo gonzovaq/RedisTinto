@@ -43,6 +43,15 @@
             exit(1);
         }
 
+        //Me identifico con el coordinador
+        char *mensaje = "i";
+        int longitud_mensaje = strlen(mensaje);
+        if (send(sockfd, mensaje, longitud_mensaje, 0) == -1) {
+        	puts("Error al enviar el mensaje.");
+        	perror("send");
+            exit(1);
+        }
+
         if ((numbytes=recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
             perror("recv");
             exit(1);
