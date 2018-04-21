@@ -52,6 +52,10 @@
 
         printf("Received: %s",buf);
 
+        if((send(sockfd, "Holaaa\n", 15, 0)) == -1){
+        	perror("Send: ");
+        }
+
 
         close(sockfd);
 
