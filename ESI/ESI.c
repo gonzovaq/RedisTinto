@@ -12,6 +12,9 @@
 
     int main(int argc, char *argv[])
     {
+    	int pid = getpid();
+    	printf("Mi ID es %d \n",pid); //Los procesos podrian pasarle sus PID al coordinador para que los tenga identificados
+
         int sockfd, bytes_enviados, longitud_mensaje;
         struct hostent *he;
         struct sockaddr_in their_addr; // información de la dirección de destino

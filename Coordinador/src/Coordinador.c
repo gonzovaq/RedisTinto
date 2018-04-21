@@ -122,6 +122,7 @@
             //}
             //close(new_fd);  // El proceso padre no lo necesita
         }
+
         close(sockfd);
 
         return 0;
