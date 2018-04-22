@@ -12,7 +12,7 @@
 
     int main(int argc, char *argv[])
     {
-        int sockfd, numbytes;
+        int socketCoordinador, numbytes;
         char buf[MAXDATASIZE];
         struct hostent *he;
         struct sockaddr_in their_addr; // información de la dirección de destino
@@ -27,7 +27,7 @@
             exit(1);
         }
 
-        if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+        if ((socketCoordinador = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
             perror("socket");
             exit(1);
         }
@@ -37,22 +37,33 @@
         their_addr.sin_addr = *((struct in_addr *)he->h_addr);
         memset(&(their_addr.sin_zero),'\0', 8);  // poner a cero el resto de la estructura
 
-        if (connect(sockfd, (struct sockaddr *)&their_addr,
+        if (connect(socketCoordinador, (struct sockaddr *)&their_addr,
                                               sizeof(struct sockaddr)) == -1) {
             perror("connect");
             exit(1);
         }
 
-        //Me identifico con el coordinador
-        char *mensaje = "i";
-        int longitud_mensaje = strlen(mensaje);
-        if (send(sockfd, mensaje, longitud_mensaje, 0) == -1) {
-        	puts("Error al enviar el mensaje.");
-        	perror("send");
-            exit(1);
-        }
+//        //Me identifico con el coordinador
+//        char *mensaje = "i";
+//        int longitud_mensaje = strlen(mensaje);
+//        if (send(socketCoordinador, mensaje, longitud_mensaje, 0) == -1) {
+//        	puts("Error al enviar el mensaje.");
+//        	perror("send");
+//            exit(1);
+//        }
 
-        if ((numbytes=recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
+        tHeader *header = malloc(sizeof(tHeader));
+        header->tipoProceso = INSTANCIA;
+        header->tipoMensaje = CONECTARSE;
+            if (send(socketCoordinador, header, sizeof(tHeader), 0) == -1){
+           	   puts("Error al enviar mi identificador");
+           	   perror("Send");
+           	   exit(1);
+           	   free(header);
+              }
+
+
+        if ((numbytes=recv(socketCoordinador, buf, MAXDATASIZE-1, 0)) == -1) {
             perror("recv");
             exit(1);
         }
@@ -61,12 +72,8 @@
 
         printf("Received: %s",buf);
 
-        if((send(sockfd, "Holaaa\n", 15, 0)) == -1){
-        	perror("Send: ");
-        }
 
-
-        close(sockfd);
+        close(socketCoordinador);
 
         return 0;
     }

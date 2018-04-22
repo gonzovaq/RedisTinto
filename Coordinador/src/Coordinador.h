@@ -21,3 +21,25 @@ void *gestionarConexion(struct parametrosConexion *parametros);
 void *conexionESI(int *new_fd);
 void *conexionPlanificador(int *new_fd);
 void *conexionInstancia(int *new_fd);
+
+
+//ESTO DEBERIA ESTAR EN OTRO .H
+
+typedef enum{
+	ESI = 1,
+	PLANIFICADOR = 2,
+	COORDINADOR = 3,
+	INSTANCIA = 4
+
+}tTipoDeProceso;
+
+typedef enum{
+	CONECTARSE = 1
+}tTipoDeMensaje;
+
+
+typedef struct{
+	tTipoDeProceso tipoProceso;
+	tTipoDeMensaje tipoMensaje;
+
+}tHeader;

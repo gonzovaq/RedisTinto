@@ -131,32 +131,56 @@
     void *gestionarConexion(struct parametrosConexion *parametros){ //(int* sockfd, int* new_fd)
         puts("Se disparo un hilo");
 
-        int bytesRecibidos,bytesIdentificador = 50;
-        //Handshake --> El coordinador debe recibir el primer caracter del proceso que se conecte para manejar la comunicacion adecuandamente
-        char identificador[bytesIdentificador];
-        if ((bytesRecibidos =recv(parametros->new_fd,identificador,bytesIdentificador-1,NULL)) == -1){
-            perror("recv");
-            exit(1);
-        }
+//        int bytesRecibidos,bytesIdentificador = 50;
+//        //Handshake --> El coordinador debe recibir el primer caracter del proceso que se conecte para manejar la comunicacion adecuandamente
+//        char identificador[bytesIdentificador];
+//        if ((bytesRecibidos =recv(parametros->new_fd,identificador,bytesIdentificador-1,NULL)) == -1){
+//            perror("recv");
+//            exit(1);
+//        }
+//
+//        puts(identificador);
+//
+//
+//        switch (identificador[0])
+//        {
+//			case 'e':
+//				conexionESI(parametros->new_fd);
+//				break;
+//			case 'p':
+//				conexionPlanificador(parametros->new_fd);
+//				break;
+//			case 'i':
+//				conexionInstancia(parametros->new_fd);
+//				break;
+//			default :
+//				close(parametros->new_fd);
+//        }
+//        //free(identificador);
+        int bytesRecibidos;
+               tHeader *headerRecibido = malloc(sizeof(tHeader));
 
-        puts(identificador);
-
-
-        switch (identificador[0])
-        {
-			case 'e':
-				conexionESI(parametros->new_fd);
-				break;
-			case 'p':
-				conexionPlanificador(parametros->new_fd);
-				break;
-			case 'i':
-				conexionInstancia(parametros->new_fd);
-				break;
-			default :
-				close(parametros->new_fd);
-        }
-        //free(identificador);
+               if ((bytesRecibidos = recv(parametros->new_fd, headerRecibido, sizeof(tHeader), 0)) == -1){
+               	perror("recv");
+               	exit(1);
+               }
+               if (headerRecibido->tipoMensaje == CONECTARSE){
+               	switch(headerRecibido->tipoProceso){
+               				case ESI:
+               					conexionESI(parametros->new_fd);
+       							break;
+               				case PLANIFICADOR:
+               					conexionPlanificador(parametros->new_fd);
+               					break;
+               	        	case INSTANCIA:
+               	        		conexionInstancia(parametros->new_fd);
+               	        		break;
+               	        	default:
+               	        		puts("Error al intentar conectar un proceso");
+               	        		close(parametros->new_fd);
+               	        }
+               	free(headerRecibido);
+               }
     }
 
     void *conexionESI(int *new_fd){
@@ -215,4 +239,5 @@
         free(buf[numbytes]);
 		close(new_fd);
     }
+
 
