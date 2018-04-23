@@ -55,14 +55,23 @@
         }
         puts("ESI conectado!\n");
 
-        //Me identifico con el coordinador
+        /*Me identifico con el coordinador
         char *identificador = "e";
         int longitud_identificador = strlen(identificador);
         if (send(sockfd, identificador, longitud_identificador, 0) == -1) {
         	puts("Error al enviar el mensaje.");
         	perror("send");
             exit(1);
-        }
+        }*/
+        tHeader *header = malloc(sizeof(tHeader));
+               header->tipoProceso = ESI;
+               header->tipoMensaje = CONECTARSE;
+                   if (send(sockfd, header, sizeof(tHeader), 0) == -1){
+                  	   puts("Error al enviar mi identificador");
+                  	   perror("Send");
+                  	   exit(1);
+                  	   free(header);
+                     }
 
         if ((numbytes=recv(sockfd, buf, tamanio_buffer-1, 0)) == -1) {
             perror("recv");

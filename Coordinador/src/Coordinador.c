@@ -6,18 +6,7 @@
  */
 
 #include "Coordinador.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <sys/wait.h>
-#include <signal.h>
-#include <pthread.h>
+
 
     void sigchld_handler(int s) // eliminar procesos muertos
     {
@@ -26,6 +15,7 @@
 
     int main(void)
     {
+    	configure_logger();
         int sockfd, new_fd;  // Escuchar sobre sock_fd, nuevas conexiones sobre new_fd
         struct sockaddr_in mi_direccion;    // información sobre mi dirección
         struct sockaddr_in direccion_cliente; // información sobre la dirección del cliente
@@ -162,7 +152,9 @@
 
                if ((bytesRecibidos = recv(parametros->new_fd, headerRecibido, sizeof(tHeader), 0)) == -1){
                	perror("recv");
-               	exit(1);
+               	log_info(logger, "Mensaje: recv error");//process_get_thread_id()); //asienta error en logger y corta
+               	exit_gracefully(1);
+               	            //exit(1);
                }
                if (headerRecibido->tipoMensaje == CONECTARSE){
                	switch(headerRecibido->tipoProceso){
@@ -193,11 +185,13 @@
 
         if ((numbytes=recv(new_fd, buf, tamanio_buffer-1, 0)) == -1) {
             perror("recv");
-            exit(1);
+            log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
+            exit_gracefully(1);
         }
 
         buf[numbytes] = '\0';
         printf("Received: %s\n",buf);
+        log_info(logger, "TID %d  Mensaje:  %s",process_get_thread_id(),buf); // que onda con pthread_self()?
         free(buf[numbytes]);
 		close(new_fd);
     }
@@ -239,5 +233,19 @@
         free(buf[numbytes]);
 		close(new_fd);
     }
+
+    //logger
+
+    void exit_gracefully(int return_nr) {
+
+       log_destroy(logger);
+       exit(return_nr);
+     }
+
+    void configure_logger() {
+      logger = log_create("Coordinador.log", "CORD", true, LOG_LEVEL_INFO);
+     }
+
+
 
 

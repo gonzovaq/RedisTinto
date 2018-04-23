@@ -11,3 +11,21 @@
 
 int main(int argc, char *argv[]);
 
+typedef enum{
+	ESI = 1,
+	PLANIFICADOR = 2,
+	COORDINADOR = 3,
+	INSTANCIA = 4
+
+}tTipoDeProceso;
+
+typedef enum{
+	CONECTARSE = 1
+}tTipoDeMensaje;
+
+
+typedef struct{
+	tTipoDeProceso tipoProceso;
+	tTipoDeMensaje tipoMensaje;
+
+}tHeader;

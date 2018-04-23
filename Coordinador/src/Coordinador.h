@@ -4,6 +4,20 @@
  *  Created on: 4 abr. 2018
  *      Author: utnso
  */
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/wait.h>
+#include <signal.h>
+#include <pthread.h>
+#include <commons/log.h>
+#include <commons/collections/list.h>
 
 #define MYPORT 3490    // Puerto al que conectarán los usuarios
 
@@ -14,9 +28,16 @@ struct parametrosConexion{
 	int new_fd;
 };
 
+
+//var globales
+t_log * logger;
+
+
 void sigchld_handler(int s);
 int main(void);
 
+void configure_logger();
+void exit_gracefully(int return_nr);
 void *gestionarConexion(struct parametrosConexion *parametros);
 void *conexionESI(int *new_fd);
 void *conexionPlanificador(int *new_fd);
