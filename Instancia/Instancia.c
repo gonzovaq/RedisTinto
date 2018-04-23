@@ -12,6 +12,30 @@
 
     int main(int argc, char *argv[])
     {
+    	// Ejemplo para leer archivo de configuracion en formato clave=valor por linea
+    	char *token;
+    	char *search = "=";
+    	 static const char filename[] = "/home/utnso/workspace2/tp-2018-1c-Sistemas-Operactivos/Instancia/configuracion.config";
+    	FILE *file = fopen ( filename, "r" );
+    	if ( file != NULL )
+    	{
+    		puts("Leyendo archivo de configuracion");
+    	  char line [ 128 ]; /* or other suitable maximum line size */
+    	  while ( fgets ( line, sizeof line, file ) != NULL ) /* read a line */
+    	  {
+    	    // Token will point to the part before the =.
+    	    token = strtok(line, search);
+    	    puts(token);
+    	    // Token will point to the part after the =.
+    	    token = strtok(NULL, search);
+    	    puts(token);
+    	  }
+    	  fclose ( file );
+    	}
+    	else
+    		puts("Archivo de configuracion vacio");
+
+
         int socketCoordinador, numbytes;
         char buf[MAXDATASIZE];
         struct hostent *he;
@@ -52,9 +76,13 @@
 //            exit(1);
 //        }
 
+    	int pid = getpid();
+    	printf("Mi ID es %d \n",pid);
+
         tHeader *header = malloc(sizeof(tHeader));
         header->tipoProceso = INSTANCIA;
         header->tipoMensaje = CONECTARSE;
+        header->idProceso = pid;
             if (send(socketCoordinador, header, sizeof(tHeader), 0) == -1){
            	   puts("Error al enviar mi identificador");
            	   perror("Send");
@@ -72,7 +100,7 @@
 
         printf("Received: %s",buf);
 
-
+        free(header);
         close(socketCoordinador);
 
         return 0;

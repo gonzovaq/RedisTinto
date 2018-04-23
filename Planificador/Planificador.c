@@ -12,6 +12,30 @@
 int ejecutarConsola();
 int main(void) {
 
+	// Ejemplo para leer archivo de configuracion en formato clave=valor por linea
+	char *token;
+	char *search = "=";
+	 static const char filename[] = "/home/utnso/workspace2/tp-2018-1c-Sistemas-Operactivos/Planificador/configuracion.config";
+	FILE *file = fopen ( filename, "r" );
+	if ( file != NULL )
+	{
+		puts("Leyendo archivo de configuracion");
+	  char line [ 128 ]; /* or other suitable maximum line size */
+	  while ( fgets ( line, sizeof line, file ) != NULL ) /* read a line */
+	  {
+	    // Token will point to the part before the =.
+	    token = strtok(line, search);
+	    puts(token);
+	    // Token will point to the part after the =.
+	    token = strtok(NULL, search);
+	    puts(token);
+	  }
+	  fclose ( file );
+	}
+	else
+		puts("Archivo de configuracion vacio");
+
+
 	int socketCoord;
 	struct sockaddr_in coordAddr;//informacion del coordinador
 

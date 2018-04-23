@@ -15,6 +15,30 @@
 
     int main(void)
     {
+    	// Ejemplo para leer archivo de configuracion en formato clave=valor por linea
+    	char *token;
+    	char *search = "=";
+    	 static const char filename[] = "/home/utnso/workspace2/tp-2018-1c-Sistemas-Operactivos/Coordinador/src/configuracion.config";
+    	FILE *file = fopen ( filename, "r" );
+    	if ( file != NULL )
+    	{
+    		puts("Leyendo archivo de configuracion");
+    	  char line [ 128 ]; /* or other suitable maximum line size */
+    	  while ( fgets ( line, sizeof line, file ) != NULL ) /* read a line */
+    	  {
+    	    // Token will point to the part before the =.
+    	    token = strtok(line, search);
+    	    puts(token);
+    	    // Token will point to the part after the =.
+    	    token = strtok(NULL, search);
+    	    puts(token);
+    	  }
+    	  fclose ( file );
+    	}
+    	else
+    		puts("Archivo de configuracion vacio");
+
+
     	configure_logger();
         int sockfd, new_fd;  // Escuchar sobre sock_fd, nuevas conexiones sobre new_fd
         struct sockaddr_in mi_direccion;    // información sobre mi dirección
@@ -159,12 +183,15 @@
                if (headerRecibido->tipoMensaje == CONECTARSE){
                	switch(headerRecibido->tipoProceso){
                				case ESI:
+               					printf("Se conecto el proceso %d \n",headerRecibido->idProceso);
                					conexionESI(parametros->new_fd);
        							break;
                				case PLANIFICADOR:
+               					printf("Se conecto el proceso %d \n",headerRecibido->idProceso);
                					conexionPlanificador(parametros->new_fd);
                					break;
                	        	case INSTANCIA:
+               					printf("Se conecto el proceso %d \n",headerRecibido->idProceso);
                	        		conexionInstancia(parametros->new_fd);
                	        		break;
                	        	default:

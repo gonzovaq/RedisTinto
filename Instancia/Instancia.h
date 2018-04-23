@@ -30,5 +30,5 @@ typedef enum{
 typedef struct{
 	tTipoDeProceso tipoProceso;
 	tTipoDeMensaje tipoMensaje;
-
+	int idProceso;
 }tHeader;
