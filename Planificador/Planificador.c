@@ -11,7 +11,7 @@
 
 int ejecutarConsola();
 int main(void) {
-
+/*
 	// Ejemplo para leer archivo de configuracion en formato clave=valor por linea
 	char *token;
 	char *search = "=";
@@ -20,8 +20,8 @@ int main(void) {
 	if ( file != NULL )
 	{
 		puts("Leyendo archivo de configuracion");
-	  char line [ 128 ]; /* or other suitable maximum line size */
-	  while ( fgets ( line, sizeof line, file ) != NULL ) /* read a line */
+	  char line [ 128 ]; // or other suitable maximum line size
+	  while ( fgets ( line, sizeof line, file ) != NULL ) // read a line
 	  {
 	    // Token will point to the part before the =.
 	    token = strtok(line, search);
@@ -71,7 +71,8 @@ int main(void) {
 
 	int a=ejecutarConsola();
 
-	return EXIT_SUCCESS;
+	//return EXIT_SUCCESS;
+
 }
 int ejecutarConsola()
 {
@@ -101,25 +102,77 @@ int ejecutarConsola()
 		}
 		if(strncmp(linea,"bloquear",8)==0)
 		{
-			char * clave = malloc(sizeof(char*));
+			char* clave1;
 
 			char * id="vacio";
 			int flag=0;
 			int j=0;
 			int i=9;
 			while(linea[i]!=' ')
-			{	printf("%d \n",i);
-				clave[j]=linea[i];
+			{
 				j++;
 				i++;
 			}
-			puts("va a bloquear");
-			puts(clave);
-			free(clave);
+			i=9;
+			clave1=malloc(sizeof(char[j]));
+			puts(clave1);
+			j=0;
+			while(linea[i]!=' ')
+						{	//printf("%d \n",i);
+							clave1[j]=linea[i];
+							j++;
+							i++;
+						}
+
+			puts(clave1);
+
+			printf("nro estimado: %d \n",j);
+			printf("strlen real: %d \n",strlen(clave1));
+			printf("sizeof: %d \n",sizeof(char[j]));
+			free(clave1);
+
+
+			//printf("%d \n",clav);
+
 			puts(id);
+		}
+		if(strncmp(linea,"desbloquear",11)==0)
+		{
+			//obtener id
+			int id=obtenerId(11,linea);
+			printf("id: %d \n",id);
+		}
+		if(strncmp(linea,"kill",4)==0)
+		{
+			//obtener id
+			int id=obtenerId(4,linea);
+			printf("id: %d \n",id);
+		}
+		if(strncmp(linea,"status",6)==0)
+		{
+			int id=obtenerId(6,linea);
+			printf("id: %d \n",id);
+		}
+		if(strncmp(linea,"deadlocks",9)==0)
+		{
+			puts("Mostrar bloqueos mutuos");
 		}
 
 	}
 
 return 0;
+}
+int obtenerId(int size, char * linea)
+{
+	int id;
+	char * cid = malloc(sizeof(int));
+	int j=0;
+	int i=size;
+	while(linea[i]!='\0')
+	{
+		cid[j]=linea[i];
+		j++;i++;
+	}
+	id=atoi(cid);
+	return id;
 }
