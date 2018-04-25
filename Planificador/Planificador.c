@@ -102,8 +102,8 @@ int ejecutarConsola()
 		}
 		if(strncmp(linea,"bloquear",8)==0)
 		{
-			char* clave1;
 
+			char* clave1;
 			char * id="vacio";
 			int flag=0;
 			int j=0;
@@ -123,7 +123,7 @@ int ejecutarConsola()
 							j++;
 							i++;
 						}
-
+			clave1[strlen(clave1)+1]='\0'; //Agrega un /0 al final de la clave y descarta toda la basura
 			puts(clave1);
 
 			printf("nro estimado: %d \n",j);
