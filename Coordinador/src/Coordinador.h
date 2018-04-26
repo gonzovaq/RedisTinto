@@ -31,6 +31,28 @@ struct parametrosConexion{
 	struct node_t * colaProcesos;
 };
 
+typedef struct node {
+    struct tHeader * proceso;
+    struct node * next;
+} node_t;
+
+typedef enum{
+	ESI = 1,
+	PLANIFICADOR = 2,
+	COORDINADOR = 3,
+	INSTANCIA = 4
+
+}tTipoDeProceso;
+
+typedef enum{
+	CONECTARSE = 1
+}tTipoDeMensaje;
+
+typedef struct{
+	tTipoDeProceso tipoProceso;
+	tTipoDeMensaje tipoMensaje;
+	int idProceso;
+}tHeader;
 
 //var globales
 t_log * logger;
@@ -45,32 +67,11 @@ void *gestionarConexion(struct parametrosConexion *parametros);
 void *conexionESI(int *new_fd);
 void *conexionPlanificador(int *new_fd);
 void *conexionInstancia(int *new_fd);
+void push(node_t * head, tHeader * proceso);
+// tHeader pop(node_t ** head);
 
 
-//ESTO DEBERIA ESTAR EN OTRO .H
-
-typedef enum{
-	ESI = 1,
-	PLANIFICADOR = 2,
-	COORDINADOR = 3,
-	INSTANCIA = 4
-
-}tTipoDeProceso;
-
-typedef enum{
-	CONECTARSE = 1
-}tTipoDeMensaje;
 
 
-typedef struct{
-	tTipoDeProceso tipoProceso;
-	tTipoDeMensaje tipoMensaje;
-	int idProceso;
-}tHeader;
-
-typedef struct node {
-    struct tHeader * proceso;
-    struct node * next;
-} node_t;
 
 

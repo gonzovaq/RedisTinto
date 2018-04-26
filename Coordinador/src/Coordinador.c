@@ -40,10 +40,8 @@
 
 
     	configure_logger();
-        int sockfd, new_fd;  // Escuchar sobre sock_fd, nuevas conexiones sobre new_fd
+        int sockfd;  // Escuchar sobre sock_fd, nuevas conexiones sobre new_fd
         struct sockaddr_in mi_direccion;    // información sobre mi dirección
-        struct sockaddr_in direccion_cliente; // información sobre la dirección del cliente
-        int sin_size;
         struct sigaction sa;
         int yes=1;
 
@@ -63,7 +61,6 @@
         memset(&(mi_direccion.sin_zero), '\0', 8); // Poner a cero el resto de la estructura
 
         // si escucho (listen()) debo conocer los puertos y aceptar conexiones y bindearlas (bind())
-
         if (bind(sockfd, (struct sockaddr *)&mi_direccion, sizeof(struct sockaddr))
                                                                        == -1) {
             perror("bind");
@@ -106,77 +103,57 @@
 
         puts("A trabajar");
 
-        //Armo una cola para las instancias vacia
-        struct node_t * head = NULL;
-        head = malloc(sizeof(node_t));
-        if (head == NULL) {
-            return 1;
-        }
-
-        while(1) {  // main accept() loop
-            sin_size = sizeof(struct sockaddr_in);
-            if ((new_fd = accept(sockfd, (struct sockaddr *)&direccion_cliente,
-                                                           &sin_size)) == -1) {
-                perror("accept");
-                //continue;
-            }
-            printf("server: recibi una conexion de  %s\n",
-                                               inet_ntoa(direccion_cliente.sin_addr));
-
-            //Para hilos debo crear una estructura de parametros de la funcion que quiera llamar
-			pthread_t tid;
-			struct parametrosConexion parametros = {new_fd,head};//(&sockfd, &new_fd) --> no lo utilizo porque sockfd ya no se requiere
-
-            //Con Pooltread !
-			/* No se aplica porque pierde memoria
-            threadpool thpool = thpool_init(4);
-            thpool_add_work(thpool,(void*)gestionarConexion, (void*)&parametros);
-			*/
-
-			// Sin Poolthread !
-            int stat = pthread_create(&tid, NULL, (void*)gestionarConexion, (void*)&parametros);//(void*)&parametros -> parametros contendria todos los parametros que usa conexion
-			if (stat != 0){
-				puts("error al generar el hilo");
-				perror("thread");
-				//continue;
-			}
-			pthread_detach(tid); //Con esto decis que cuando el hilo termine libere sus recursos
-        }
+        EscucharConexiones(sockfd);
 
         close(sockfd);
 
         return 0;
     }
 
+    void EscucharConexiones(int sockfd){
+        int sin_size, new_fd;
+        struct sockaddr_in direccion_cliente; // información sobre la dirección del cliente
+
+        //Armo una cola para las instancias vacia
+        struct node_t * head = NULL;
+        head = malloc(sizeof(node_t));
+        if (head == NULL) {
+            return;
+        }
+
+    	while(1) {  // main accept() loop
+    	            sin_size = sizeof(struct sockaddr_in);
+    	            if ((new_fd = accept(sockfd, (struct sockaddr *)&direccion_cliente,
+    	                                                           &sin_size)) == -1) {
+    	                perror("accept");
+    	                //continue;
+    	            }
+    	            printf("server: recibi una conexion de  %s\n",
+    	                                               inet_ntoa(direccion_cliente.sin_addr));
+
+    	            //Para hilos debo crear una estructura de parametros de la funcion que quiera llamar
+    				pthread_t tid;
+    				struct parametrosConexion parametros = {new_fd,head};//(&sockfd, &new_fd) --> no lo utilizo porque sockfd ya no se requiere
+
+    	            //Con Pooltread !
+    				/* No se aplica porque pierde memoria
+    	            threadpool thpool = thpool_init(4);
+    	            thpool_add_work(thpool,(void*)gestionarConexion, (void*)&parametros);
+    				*/
+
+    				// Sin Poolthread !
+    	            int stat = pthread_create(&tid, NULL, (void*)gestionarConexion, (void*)&parametros);//(void*)&parametros -> parametros contendria todos los parametros que usa conexion
+    				if (stat != 0){
+    					puts("error al generar el hilo");
+    					perror("thread");
+    					//continue;
+    				}
+    				pthread_detach(tid); //Con esto decis que cuando el hilo termine libere sus recursos
+    	        }
+    }
+
     void *gestionarConexion(struct parametrosConexion *parametros){ //(int* sockfd, int* new_fd)
         puts("Se disparo un hilo");
-
-//        int bytesRecibidos,bytesIdentificador = 50;
-//        //Handshake --> El coordinador debe recibir el primer caracter del proceso que se conecte para manejar la comunicacion adecuandamente
-//        char identificador[bytesIdentificador];
-//        if ((bytesRecibidos =recv(parametros->new_fd,identificador,bytesIdentificador-1,NULL)) == -1){
-//            perror("recv");
-//            exit(1);
-//        }
-//
-//        puts(identificador);
-//
-//
-//        switch (identificador[0])
-//        {
-//			case 'e':
-//				conexionESI(parametros->new_fd);
-//				break;
-//			case 'p':
-//				conexionPlanificador(parametros->new_fd);
-//				break;
-//			case 'i':
-//				conexionInstancia(parametros->new_fd);
-//				break;
-//			default :
-//				close(parametros->new_fd);
-//        }
-//        //free(identificador);
         int bytesRecibidos;
                tHeader *headerRecibido = malloc(sizeof(tHeader));
 
@@ -198,7 +175,7 @@
                					break;
                	        	case INSTANCIA:
                					printf("Se conecto el proceso %d \n",headerRecibido->idProceso);
-               					push(&parametros->colaProcesos,&headerRecibido);
+               					//push(&parametros->colaProcesos,&headerRecibido); Hay que arreglar
                	        		conexionInstancia(parametros->new_fd);
                	        		break;
                	        	default:
@@ -297,6 +274,24 @@
         current->next->proceso = proceso;
         current->next->next = NULL;
     }
+
+    /* Tengo problemas con esto
+    tHeader pop(node_t ** head) {
+        node_t * next_node = NULL;
+
+        if (*head == NULL) {
+            log_error(logger,"No hay ningun elemento en la cola");
+            exit(-1);
+        }
+        struct tHeader retval;
+        next_node = (*head)->next;
+        retval = (*head)->proceso;
+        free(*head);
+        *head = next_node;
+
+        return retval;
+    }
+    */
 
 
 
