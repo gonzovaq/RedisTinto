@@ -116,25 +116,24 @@
             printf("server: recibi una conexion de  %s\n",
                                                inet_ntoa(direccion_cliente.sin_addr));
 
-            //if (!fork()) { // Este es el proceso hijo
-            //Pruebo con hilos en vez de generar procesos hijos
-
             //Para hilos debo crear una estructura de parametros de la funcion que quiera llamar
 			pthread_t tid;
 			struct parametrosConexion parametros = {new_fd};//(&sockfd, &new_fd) --> no lo utilizo porque sockfd ya no se requiere
 
-			int stat = pthread_create(&tid, NULL, (void*)gestionarConexion, (void*)&parametros);//(void*)&parametros -> parametros contendria todos los parametros que usa conexion
+            //Con Pooltread !
+			/* No se aplica porque pierde memoria
+            threadpool thpool = thpool_init(4);
+            thpool_add_work(thpool,(void*)gestionarConexion, (void*)&parametros);
+			*/
+
+			// Sin Poolthread !
+            int stat = pthread_create(&tid, NULL, (void*)gestionarConexion, (void*)&parametros);//(void*)&parametros -> parametros contendria todos los parametros que usa conexion
 			if (stat != 0){
 				puts("error al generar el hilo");
 				perror("thread");
 				//continue;
 			}
 			pthread_detach(tid); //Con esto decis que cuando el hilo termine libere sus recursos
-
-            	//gestionarConexion(&sockfd, &new_fd);
-            	//pthread_join(tid, NULL); sinonimo de wait()
-            //}
-            //close(new_fd);  // El proceso padre no lo necesita
         }
 
         close(sockfd);
