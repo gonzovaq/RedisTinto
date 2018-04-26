@@ -7,8 +7,3 @@
 [INFO] 18:21:02:977 CORD/(15672:15693): TID 15693  Mensaje:  Prueba mensaje para enviar
 [INFO] 18:22:30:369 CORD/(15672:15703): TID 15703  Mensaje:  Prueba mensaje para enviar
 [INFO] 18:23:29:58 CORD/(15672:15737): TID 15737  Mensaje:  Prueba mensaje para enviar
-[INFO] 18:31:47:821 CORD/(15864:15880): TID 15880  Mensaje:  Prueba mensaje para enviar
-[INFO] 10:46:55:711 CORD/(24441:24469): TID 24469  Mensaje:  Prueba mensaje para enviar
-[INFO] 10:46:56:418 CORD/(24441:24476): TID 24476  Mensaje:  Prueba mensaje para enviar
-[INFO] 11:05:02:498 CORD/(24830:24839): TID 24839  Mensaje:  Prueba mensaje para enviar
-[INFO] 11:05:04:862 CORD/(24830:24850): TID 24850  Mensaje:  Prueba mensaje para enviar
