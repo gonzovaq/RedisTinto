@@ -19,6 +19,7 @@
 #include <commons/log.h>
 #include <commons/collections/list.h>
 #include "thpool.h"
+#include <sys/queue.h>
 
 #define MYPORT 3490    // Puerto al que conectarán los usuarios
 
@@ -27,6 +28,7 @@
 struct parametrosConexion{
 	//int sockfd; --> no se requiere para la conexion
 	int new_fd;
+	struct node_t * colaProcesos;
 };
 
 
@@ -65,3 +67,10 @@ typedef struct{
 	tTipoDeMensaje tipoMensaje;
 	int idProceso;
 }tHeader;
+
+typedef struct node {
+    struct tHeader * proceso;
+    struct node * next;
+} node_t;
+
+

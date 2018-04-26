@@ -106,6 +106,13 @@
 
         puts("A trabajar");
 
+        //Armo una cola para las instancias vacia
+        struct node_t * head = NULL;
+        head = malloc(sizeof(node_t));
+        if (head == NULL) {
+            return 1;
+        }
+
         while(1) {  // main accept() loop
             sin_size = sizeof(struct sockaddr_in);
             if ((new_fd = accept(sockfd, (struct sockaddr *)&direccion_cliente,
@@ -118,7 +125,7 @@
 
             //Para hilos debo crear una estructura de parametros de la funcion que quiera llamar
 			pthread_t tid;
-			struct parametrosConexion parametros = {new_fd};//(&sockfd, &new_fd) --> no lo utilizo porque sockfd ya no se requiere
+			struct parametrosConexion parametros = {new_fd,head};//(&sockfd, &new_fd) --> no lo utilizo porque sockfd ya no se requiere
 
             //Con Pooltread !
 			/* No se aplica porque pierde memoria
@@ -191,6 +198,7 @@
                					break;
                	        	case INSTANCIA:
                					printf("Se conecto el proceso %d \n",headerRecibido->idProceso);
+               					push(&parametros->colaProcesos,&headerRecibido);
                	        		conexionInstancia(parametros->new_fd);
                	        		break;
                	        	default:
@@ -271,6 +279,24 @@
     void configure_logger() {
       logger = log_create("Coordinador.log", "CORD", true, LOG_LEVEL_INFO);
      }
+
+    void push(node_t * head, tHeader * proceso) {
+    	//Si la cola esta vacia agrego el primer proceso
+    	if (head->proceso == NULL){
+    		head->proceso = proceso;
+    		return;
+    	}
+
+        node_t * current = head;
+        while (current->next != NULL) {
+            current = current->next;
+        }
+
+        /* Agrego nuevo proceso a la cola */
+        current->next = malloc(sizeof(node_t));
+        current->next->proceso = proceso;
+        current->next->next = NULL;
+    }
 
 
 
