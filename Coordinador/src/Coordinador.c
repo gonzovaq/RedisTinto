@@ -16,29 +16,7 @@
     int main(void)
     {
     	// Ejemplo para leer archivo de configuracion en formato clave=valor por linea
-    	char *token;
-    	char *search = "=";
-    	 static const char filename[] = "/home/utnso/workspace2/tp-2018-1c-Sistemas-Operactivos/Coordinador/src/configuracion.config";
-    	FILE *file = fopen ( filename, "r" );
-    	if ( file != NULL )
-    	{
-    		puts("Leyendo archivo de configuracion");
-    	  char line [ 128 ]; /* or other suitable maximum line size */
-    	  while ( fgets ( line, sizeof line, file ) != NULL ) /* read a line */
-    	  {
-    	    // Token will point to the part before the =.
-    	    token = strtok(line, search);
-    	    puts(token);
-    	    // Token will point to the part after the =.
-    	    token = strtok(NULL, search);
-    	    puts(token);
-    	  }
-    	  fclose ( file );
-    	}
-    	else
-    		puts("Archivo de configuracion vacio");
-
-
+    	LeerArchivoDeConfiguracion();
     	configure_logger();
         int sockfd;  // Escuchar sobre sock_fd, nuevas conexiones sobre new_fd
         struct sockaddr_in mi_direccion;    // información sobre mi dirección
@@ -110,6 +88,31 @@
         return 0;
     }
 
+    void LeerArchivoDeConfiguracion() {
+    	// Ejemplo para leer archivo de configuracion en formato clave=valor por linea
+    	char* token;
+    	char* search = "=";
+    	static const char filename[] =
+    			"/home/utnso/workspace2/tp-2018-1c-Sistemas-Operactivos/Coordinador/src/configuracion.config";
+    	FILE* file = fopen(filename, "r");
+    	if (file != NULL) {
+    		puts("Leyendo archivo de configuracion");
+    		char line[128];
+    		/* or other suitable maximum line size */while (fgets(line, sizeof line,
+    				file) != NULL)/* read a line */
+    		{
+    			// Token will point to the part before the =.
+    			token = strtok(line, search);
+    			puts(token);
+    			// Token will point to the part after the =.
+    			token = strtok(NULL, search);
+    			puts(token);
+    		}
+    		fclose(file);
+    	} else
+    		puts("Archivo de configuracion vacio");
+    }
+
     void EscucharConexiones(int sockfd){
         int sin_size, new_fd;
         struct sockaddr_in direccion_cliente; // información sobre la dirección del cliente
@@ -157,34 +160,40 @@
         int bytesRecibidos;
                tHeader *headerRecibido = malloc(sizeof(tHeader));
 
-               if ((bytesRecibidos = recv(parametros->new_fd, headerRecibido, sizeof(tHeader), 0)) == -1){
-               	perror("recv");
-               	log_info(logger, "Mensaje: recv error");//process_get_thread_id()); //asienta error en logger y corta
-               	exit_gracefully(1);
-               	            //exit(1);
-               }
-               if (headerRecibido->tipoMensaje == CONECTARSE){
-               	switch(headerRecibido->tipoProceso){
-               				case ESI:
-               					printf("Se conecto el proceso %d \n",headerRecibido->idProceso);
-               					conexionESI(parametros->new_fd);
-       							break;
-               				case PLANIFICADOR:
-               					printf("Se conecto el proceso %d \n",headerRecibido->idProceso);
-               					conexionPlanificador(parametros->new_fd);
-               					break;
-               	        	case INSTANCIA:
-               					printf("Se conecto el proceso %d \n",headerRecibido->idProceso);
-               					//push(&parametros->colaProcesos,&headerRecibido); Hay que arreglar
-               	        		conexionInstancia(parametros->new_fd);
-               	        		break;
-               	        	default:
-               	        		puts("Error al intentar conectar un proceso");
-               	        		close(parametros->new_fd);
-               	        }
-               	free(headerRecibido);
-               }
+		   if ((bytesRecibidos = recv(parametros->new_fd, headerRecibido, sizeof(tHeader), 0)) == -1){
+			perror("recv");
+			log_info(logger, "Mensaje: recv error");//process_get_thread_id()); //asienta error en logger y corta
+			exit_gracefully(1);
+						//exit(1);
+		   }
+		   if (headerRecibido->tipoMensaje == CONECTARSE){
+			IdentificarProceso(headerRecibido, parametros);
+			free(headerRecibido);
+		   }
     }
+
+    void IdentificarProceso(tHeader* headerRecibido,
+    		struct parametrosConexion* parametros) {
+    	switch (headerRecibido->tipoProceso) {
+    	case ESI:
+    		printf("Se conecto el proceso %d \n", headerRecibido->idProceso);
+    		conexionESI(parametros->new_fd);
+    		break;
+    	case PLANIFICADOR:
+    		printf("Se conecto el proceso %d \n", headerRecibido->idProceso);
+    		conexionPlanificador(parametros->new_fd);
+    		break;
+    	case INSTANCIA:
+    		printf("Se conecto el proceso %d \n", headerRecibido->idProceso);
+    		//push(&parametros->colaProcesos,&headerRecibido); Hay que arreglar
+    		conexionInstancia(parametros->new_fd);
+    		break;
+    	default:
+    		puts("Error al intentar conectar un proceso");
+    		close(parametros->new_fd);
+    	}
+    }
+
 
     void *conexionESI(int *new_fd){
     	//close(new_fd->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
