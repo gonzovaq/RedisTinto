@@ -18,6 +18,7 @@
 #include <pthread.h>
 #include <commons/log.h>
 #include <commons/collections/list.h>
+#include <commons/collections/queue.h>
 #include "thpool.h"
 #include <sys/queue.h>
 
@@ -30,11 +31,6 @@ struct parametrosConexion{
 	int new_fd;
 	struct node_t * colaProcesos;
 };
-
-typedef struct node {
-    struct tHeader * proceso;
-    struct node * next;
-} node_t;
 
 typedef enum{
 	ESI = 1,

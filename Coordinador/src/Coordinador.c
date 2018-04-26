@@ -49,7 +49,6 @@
             perror("listen");
             exit(1);
         }
-        puts("Escuchamos");
 
         sa.sa_handler = sigchld_handler; // Eliminar procesos muertos
         puts("Se eliminaron los procesos muertos");
@@ -117,12 +116,7 @@
         int sin_size, new_fd;
         struct sockaddr_in direccion_cliente; // información sobre la dirección del cliente
 
-        //Armo una cola para las instancias vacia
-        struct node_t * head = NULL;
-        head = malloc(sizeof(node_t));
-        if (head == NULL) {
-            return;
-        }
+        //Todo crear cola!
 
     	while(1) {  // main accept() loop
     	            sin_size = sizeof(struct sockaddr_in);
@@ -136,7 +130,7 @@
 
     	            //Para hilos debo crear una estructura de parametros de la funcion que quiera llamar
     				pthread_t tid;
-    				struct parametrosConexion parametros = {new_fd,head};//(&sockfd, &new_fd) --> no lo utilizo porque sockfd ya no se requiere
+    				struct parametrosConexion parametros = {new_fd};//(&sockfd, &new_fd) --> no lo utilizo porque sockfd ya no se requiere
 
     	            //Con Pooltread !
     				/* No se aplica porque pierde memoria
@@ -185,7 +179,7 @@
     		break;
     	case INSTANCIA:
     		printf("Se conecto el proceso %d \n", headerRecibido->idProceso);
-    		//push(&parametros->colaProcesos,&headerRecibido); Hay que arreglar
+    		//Todo agregar esi a la cola
     		conexionInstancia(parametros->new_fd);
     		break;
     	default:
@@ -265,42 +259,6 @@
     void configure_logger() {
       logger = log_create("Coordinador.log", "CORD", true, LOG_LEVEL_INFO);
      }
-
-    void push(node_t * head, tHeader * proceso) {
-    	//Si la cola esta vacia agrego el primer proceso
-    	if (head->proceso == NULL){
-    		head->proceso = proceso;
-    		return;
-    	}
-
-        node_t * current = head;
-        while (current->next != NULL) {
-            current = current->next;
-        }
-
-        /* Agrego nuevo proceso a la cola */
-        current->next = malloc(sizeof(node_t));
-        current->next->proceso = proceso;
-        current->next->next = NULL;
-    }
-
-    /* Tengo problemas con esto
-    tHeader pop(node_t ** head) {
-        node_t * next_node = NULL;
-
-        if (*head == NULL) {
-            log_error(logger,"No hay ningun elemento en la cola");
-            exit(-1);
-        }
-        struct tHeader retval;
-        next_node = (*head)->next;
-        retval = (*head)->proceso;
-        free(*head);
-        *head = next_node;
-
-        return retval;
-    }
-    */
 
 
 
