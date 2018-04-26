@@ -116,7 +116,7 @@
         int sin_size, new_fd;
         struct sockaddr_in direccion_cliente; // información sobre la dirección del cliente
 
-        //Todo crear cola!
+        colaEsis = queue_create();
 
     	while(1) {  // main accept() loop
     	            sin_size = sizeof(struct sockaddr_in);
@@ -179,7 +179,7 @@
     		break;
     	case INSTANCIA:
     		printf("Se conecto el proceso %d \n", headerRecibido->idProceso);
-    		//Todo agregar esi a la cola
+    		queue_push(colaEsis,(void*)&parametros);
     		conexionInstancia(parametros->new_fd);
     		break;
     	default:

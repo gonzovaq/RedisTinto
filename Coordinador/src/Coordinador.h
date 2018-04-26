@@ -52,6 +52,7 @@ typedef struct{
 
 //var globales
 t_log * logger;
+t_queue *colaEsis;
 
 
 void sigchld_handler(int s);
@@ -63,11 +64,4 @@ void *gestionarConexion(struct parametrosConexion *parametros);
 void *conexionESI(int *new_fd);
 void *conexionPlanificador(int *new_fd);
 void *conexionInstancia(int *new_fd);
-void push(node_t * head, tHeader * proceso);
-// tHeader pop(node_t ** head);
-
-
-
-
-
 
