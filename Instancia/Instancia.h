@@ -10,6 +10,13 @@
 
 #define MAXDATASIZE 100 // máximo número de bytes que se pueden leer de una vez
 
+int main(int argc, char *argv[]);
+int leerConfiguracion();
+int verificarParametrosAlEjecutar(int argc, char *argv[]);
+int conectarSocket(int port);
+int enviarHeader(int sockfd);
+char* recibirMensaje(int sockfd);
+int enviarMensaje(int sockfd, char* mensaje);
 
 
 //ESTO DEBERIA ESTAR EN OTRO .H
