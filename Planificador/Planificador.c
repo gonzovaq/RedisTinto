@@ -1,90 +1,107 @@
-/*
- ============================================================================
- Name        : Planificador.c
- Author      : Operactivos - Martin Mendez
- Version     :
- Copyright   : Your copyright notice
- Description : Hello World in C, Ansi-style
- ============================================================================
- */
-#include "Planificador.h"
-
-int ejecutarConsola();
-int main(void) {
-/*
-	// Ejemplo para leer archivo de configuracion en formato clave=valor por linea
-	char *token;
-	char *search = "=";
-	 static const char filename[] = "/home/utnso/workspace2/tp-2018-1c-Sistemas-Operactivos/Planificador/configuracion.config";
-	FILE *file = fopen ( filename, "r" );
-	if ( file != NULL )
-	{
-		puts("Leyendo archivo de configuracion");
-	  char line [ 128 ]; // or other suitable maximum line size
-	  while ( fgets ( line, sizeof line, file ) != NULL ) // read a line
-	  {
-	    // Token will point to the part before the =.
-	    token = strtok(line, search);
-	    puts(token);
-	    // Token will point to the part after the =.
-	    token = strtok(NULL, search);
-	    puts(token);
-	  }
-	  fclose ( file );
-	}
-	else
-		puts("Archivo de configuracion vacio");
+	#include "Planificador.h"
 
 
-	int socketCoord;
-	struct sockaddr_in coordAddr;//informacion del coordinador
+    int ejecutarConsola();
+    int main(int argc, char *argv[])
+    {
+    	// Ejemplo para leer archivo de configuracion en formato clave=valor por linea
+    	char *token;
+    	char *search = "=";
+    	 static const char filename[] = "/home/utnso/workspace2/tp-2018-1c-Sistemas-Operactivos/Instancia/configuracion.config";
+    	FILE *file = fopen ( filename, "r" );
+    	if ( file != NULL )
+    	{
+    		puts("Leyendo archivo de configuracion");
+    	  char line [ 128 ]; /* or other suitable maximum line size */
+    	  while ( fgets ( line, sizeof line, file ) != NULL ) /* read a line */
+    	  {
+    	    // Token will point to the part before the =.
+    	    token = strtok(line, search);
+    	    puts(token);
+    	    // Token will point to the part after the =.
+    	    token = strtok(NULL, search);
+    	    puts(token);
+    	  }
+    	  fclose ( file );
+    	}
+    	else
+    		puts("Archivo de configuracion vacio");
 
 
-	coordAddr.sin_family = AF_INET;         // Ordenación de bytes de la máquina
-	coordAddr.sin_port = htons(PORT_COORD);
-	coordAddr.sin_addr.s_addr = INADDR_ANY; // Rellenar con mi dirección IP
-	memset(&(coordAddr.sin_zero), '\0', 8); // Poner a cero el resto de la estructura
+        int socketCoordinador, numbytes;
+        char buf[MAXDATASIZE];
+        struct hostent *he;
+        struct sockaddr_in their_addr; // información de la dirección de destino
+
+        if (argc != 2) {
+            fprintf(stderr,"usage: client hostname\n");
+            exit(1);
+        }
+
+        if ((he=gethostbyname(argv[1])) == NULL) {  // obtener información de máquina
+            perror("gethostbyname");
+            exit(1);
+        }
+
+        if ((socketCoordinador = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+            perror("socket");
+            exit(1);
+        }
+
+        their_addr.sin_family = AF_INET;    // Ordenación de bytes de la máquina
+        their_addr.sin_port = htons(PORT);  // short, Ordenación de bytes de la red
+        their_addr.sin_addr = *((struct in_addr *)he->h_addr);
+        memset(&(their_addr.sin_zero),'\0', 8);  // poner a cero el resto de la estructura
+
+        if (connect(socketCoordinador, (struct sockaddr *)&their_addr,
+                                              sizeof(struct sockaddr)) == -1) {
+            perror("connect");
+            exit(1);
+        }
+
+//        //Me identifico con el coordinador
+//        char *mensaje = "i";
+//        int longitud_mensaje = strlen(mensaje);
+//        if (send(socketCoordinador, mensaje, longitud_mensaje, 0) == -1) {
+//        	puts("Error al enviar el mensaje.");
+//        	perror("send");
+//            exit(1);
+//        }
+
+    	int pid = getpid();
+    	printf("Mi ID es %d \n",pid);
+
+        tHeader *header = malloc(sizeof(tHeader));
+        header->tipoProceso = INSTANCIA;
+        header->tipoMensaje = CONECTARSE;
+        header->idProceso = pid;
+            if (send(socketCoordinador, header, sizeof(tHeader), 0) == -1){
+           	   puts("Error al enviar mi identificador");
+           	   perror("Send");
+           	   exit(1);
+           	   free(header);
+              }
 
 
-	connect(socketCoord,(struct sockaddr*)&coordAddr,sizeof(struct sockaddr));
-	if(socketCoord<=0)
-	 puts("error conexion al coordinador");
-	//hasta ahora hice lo basico para comunicarme con el coordinador
-	//empieza la parte de escuchar al ESI
+        if ((numbytes=recv(socketCoordinador, buf, MAXDATASIZE-1, 0)) == -1) {
+            perror("recv");
+            exit(1);
+        }
 
-	int sock_esi, new_fd;
-	struct sockaddr_in my_addr;    // Información sobre mi dirección
-	struct sockaddr_in esi_addr; // Información sobre la dirección remota
-	int sin_size;
-	sock_esi = socket(AF_INET, SOCK_STREAM, 0);
-	if(sock_esi<=1)
-		puts("error de conexion esi");
-	my_addr.sin_family = AF_INET;         // Ordenación de máquina
-	my_addr.sin_port = htons(PORT);     // short, Ordenación de la red
-	my_addr.sin_addr.s_addr = INADDR_ANY; // Rellenar con mi dirección IP
-	memset(&(my_addr.sin_zero), '\0', 8); // Poner a cero el resto de la estructura
+        buf[numbytes] = '\0';
 
-	bind(sock_esi, (struct sockaddr *)&my_addr, sizeof(struct sockaddr));
-	listen(sock_esi, BACKLOG);
-	sin_size = sizeof(struct sockaddr_in);
-	new_fd = accept(sock_esi, (struct sockaddr *)&esi_addr, &sin_size);
+        printf("Received: %s",buf);
 
-	int a=ejecutarConsola();
+        free(header);
+        close(socketCoordinador);
 
-	//return EXIT_SUCCESS;
+        int a=ejecutarConsola();
+        return 0;
+    }
 
-}
-int ejecutarConsola()
+    int ejecutarConsola()
 {
-/*
- * La consola debe ir haciendo readlines de pantalla
- * e ir haciendo un caso dependiendo lo que se lea,
- * usando manejo de strings.
- * */
-
-
-
-	while(1)
+  while(1)
 	{
 		//char * readline(const char * linea);
 		char * linea = readline(": ");
@@ -104,7 +121,7 @@ int ejecutarConsola()
 		{
 
 			char* clave1;
-			char * id="vacio";
+			int id;
 			int flag=0;
 			int j=0;
 			int i=9;
@@ -115,26 +132,30 @@ int ejecutarConsola()
 			}
 			i=9;
 			clave1=malloc(sizeof(char[j]));
-			puts(clave1);
 			j=0;
 			while(linea[i]!=' ')
 						{	//printf("%d \n",i);
 							clave1[j]=linea[i];
 							j++;
 							i++;
+							if(linea[i]=='\0')
+								{
+									puts("Falta que ingrese el id");
+									flag=1;
+									break;
+								}
 						}
-			clave1[strlen(clave1)+1]='\0'; //Agrega un /0 al final de la clave y descarta toda la basura
-			puts(clave1);
-
-			printf("nro estimado: %d \n",j);
-			printf("strlen real: %d \n",strlen(clave1));
-			printf("sizeof: %d \n",sizeof(char[j]));
+			
+			clave1[j]='\0'; //Agrega un /0 al final de la clave y descarta toda la basura
+			printf("Clave: %s \n",clave1);
+			j=0;
+			i++;
+			if(flag==0)
+			{
+				id=obtenerId(i,linea);
+			}			
+			printf("id: %d \n",id);
 			free(clave1);
-
-
-			//printf("%d \n",clav);
-
-			puts(id);
 		}
 		if(strncmp(linea,"desbloquear",11)==0)
 		{
@@ -175,4 +196,5 @@ int obtenerId(int size, char * linea)
 	}
 	id=atoi(cid);
 	return id;
-}
+}  
+

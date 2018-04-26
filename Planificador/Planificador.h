@@ -1,22 +1,28 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <sys/wait.h>
-#include <signal.h>
-#include <pthread.h>
+	#include <stdio.h>
+    #include <stdlib.h>
+    #include <unistd.h>
+    #include <errno.h>
+    #include <string.h>
+    #include <netdb.h>
+    #include <sys/types.h>
+    #include <netinet/in.h>
+    #include <sys/socket.h>
+/*
+ * Coordinador.h
+ *
+ *  Created on: 4 abr. 2018
+ *      Author: utnso
+ */
 
-#define PORT_COORD "3490"
-#define BACKLOG 10
-#define PORT  "3491"
+
+#define PORT 3490 // puerto al que vamos a conectar
+
+#define MAXDATASIZE 100 // máximo número de bytes que se pueden leer de una vez
 
 
-// para usar cuando nos comuniquemos con el coord
+
+//ESTO DEBERIA ESTAR EN OTRO .H
+
 typedef enum{
 	ESI = 1,
 	PLANIFICADOR = 2,
