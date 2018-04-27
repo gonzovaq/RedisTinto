@@ -26,7 +26,7 @@
     	socket_coordinador = conectarSocket(PORT_COORDINADOR);
     	buffer_mensaje_recibido = recibirMensaje(socket_coordinador);
         printf("Received: %s \n",buffer_mensaje_recibido);
-        // TODO: Antes de hacer el return esta bien el mensaje, pero cuando la funcion devuelve el char*, devuelve (null). Hay que corregirlo
+
 
     	enviarMensaje(socket_coordinador, mensaje_coordinador);
 
@@ -130,7 +130,7 @@
     char* recibirMensaje(int sockfd){
     	int numbytes;
         int tamanio_buffer=100;
-        char buf[tamanio_buffer]; //Seteo el maximo del buffer en 100 para probar. Debe ser variable.
+        char* buf = malloc(tamanio_buffer); //Seteo el maximo del buffer en 100 para probar. Debe ser variable.
 
         if ((numbytes=recv(sockfd, buf, tamanio_buffer-1, 0)) == -1) {
             perror("recv");
