@@ -15,11 +15,12 @@
  */
 
 
-#define PORT 3490 // puerto al que vamos a conectar
-
+#define PORT 3491 // puerto al que vamos a conectar
+#define PORT_COORDINADOR 3490 // puerto del coordinador, donde nos vamos a conectar
 #define MAXDATASIZE 100 // máximo número de bytes que se pueden leer de una vez
 
-
+struct hostent *he;
+struct sockaddr_in cord_addr; // información de la dirección del Coordinador
 
 //ESTO DEBERIA ESTAR EN OTRO .H
 
@@ -41,3 +42,9 @@ typedef struct{
 	tTipoDeMensaje tipoMensaje;
 	int idProceso;
 }tHeader;
+
+void LeerArchivoDeConfiguracion();
+int verificarParametrosAlEjecutar(int argc, char *argv[]);
+void ConectarAlCoordinador(int * sockCord, struct sockaddr_in* cord_addr,
+		struct hostent* he);
+int ejecutarConsola();
