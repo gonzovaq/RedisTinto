@@ -47,4 +47,4 @@ void LeerArchivoDeConfiguracion();
 int verificarParametrosAlEjecutar(int argc, char *argv[]);
 void ConectarAlCoordinador(int * sockCord, struct sockaddr_in* cord_addr,
 		struct hostent* he);
-int ejecutarConsola();
+void *ejecutarConsola();

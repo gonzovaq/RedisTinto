@@ -61,6 +61,16 @@
 
     	        puts("Descripores bases añanidos");
 
+    	        // Iniciemos la consola
+				pthread_t tid;
+	            int stat = pthread_create(&tid, NULL, (void*)ejecutarConsola, NULL);
+				if (stat != 0){
+					puts("error al generar el hilo");
+					perror("thread");
+					//continue;
+				}
+				pthread_detach(tid); //Con esto decis que cuando el hilo termine libere sus recursos
+
     	        // seguir la pista del descriptor de fichero mayor
     	        fdmax = listener; // por ahora es éste
     	        // bucle principal
@@ -172,7 +182,7 @@
         return 1;
     }
 
-    int ejecutarConsola()
+    void *ejecutarConsola()
 	{
 	  while(1)
 		{

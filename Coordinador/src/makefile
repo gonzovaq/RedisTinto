@@ -1,5 +1,5 @@
 TARGET = Coordinador
-LIBS = -lcrypto -lcommons -lreadline -pthread
+LIBS = -lcrypto -lcommons -lreadline -pthread -lpthread
 CC = gcc
 CFLAGS = -g -Wall
 OBJECTS = $(patsubst %.c, %.o, $(wildcard *.c)) 
