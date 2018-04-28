@@ -15,9 +15,15 @@
 
     int main(void)
     {
-    	// Ejemplo para leer archivo de configuracion en formato clave=valor por linea
-    	LeerArchivoDeConfiguracion();
+    	// Leer archivo de configuracion con las commons
+    	t_config *configuracion;
+    	configuracion = config_create(ARCHIVO_CONFIGURACION);
+    	PUERTO =  config_get_int_value(configuracion, "port");
+    	IP = config_get_string_value(configuracion, "ip");
+    	printf("Mi ip es: %s \n",IP);
+
     	configure_logger();
+
         int sockfd;  // Escuchar sobre sock_fd, nuevas conexiones sobre new_fd
         struct sockaddr_in mi_direccion;    // información sobre mi dirección
         struct sigaction sa;
@@ -85,31 +91,6 @@
         close(sockfd);
 
         return 0;
-    }
-
-    void LeerArchivoDeConfiguracion() {
-    	// Ejemplo para leer archivo de configuracion en formato clave=valor por linea
-    	char* token;
-    	char* search = "=";
-    	static const char filename[] =
-    			"/home/utnso/workspace2/tp-2018-1c-Sistemas-Operactivos/Coordinador/src/configuracion.config";
-    	FILE* file = fopen(filename, "r");
-    	if (file != NULL) {
-    		puts("Leyendo archivo de configuracion");
-    		char line[128];
-    		/* or other suitable maximum line size */while (fgets(line, sizeof line,
-    				file) != NULL)/* read a line */
-    		{
-    			// Token will point to the part before the =.
-    			token = strtok(line, search);
-    			puts(token);
-    			// Token will point to the part after the =.
-    			token = strtok(NULL, search);
-    			puts(token);
-    		}
-    		fclose(file);
-    	} else
-    		puts("Archivo de configuracion vacio");
     }
 
     void EscucharConexiones(int sockfd){
