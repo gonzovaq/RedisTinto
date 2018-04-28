@@ -52,7 +52,7 @@ typedef struct{
 
 //var globales
 t_log * logger;
-t_queue *colaEsis;
+t_queue *colaInstancias;
 
 
 void sigchld_handler(int s);

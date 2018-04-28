@@ -71,6 +71,9 @@
 				}
 				pthread_detach(tid); //Con esto decis que cuando el hilo termine libere sus recursos
 
+				//Creemos la cola ready de los esis
+				colaESIS = queue_create();
+
     	        // seguir la pista del descriptor de fichero mayor
     	        fdmax = listener; // por ahora es éste
     	        // bucle principal
@@ -103,6 +106,7 @@
     	                            perror("accept");
     	                        } else {
     	                            FD_SET(newfd, &master); // añadir al conjunto maestro
+    	                            queue_push(colaESIS,newfd); //todo probablemente no debamos agregar al ESI de esta forma, sino con un mensaje que nos mande con cierto struct
     	                            if (newfd > fdmax) {    // actualizar el máximo
     	                                fdmax = newfd;
     	                            }

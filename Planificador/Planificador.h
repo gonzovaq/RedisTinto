@@ -7,6 +7,9 @@
     #include <sys/types.h>
     #include <netinet/in.h>
     #include <sys/socket.h>
+	#include <sys/queue.h>
+	#include <commons/collections/list.h>
+	#include <commons/collections/queue.h>
 /*
  * Coordinador.h
  *
@@ -21,6 +24,7 @@
 
 struct hostent *he;
 struct sockaddr_in cord_addr; // información de la dirección del Coordinador
+t_queue *colaESIS;
 
 //ESTO DEBERIA ESTAR EN OTRO .H
 

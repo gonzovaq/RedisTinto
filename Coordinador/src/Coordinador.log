@@ -7,3 +7,5 @@
 [INFO] 18:21:02:977 CORD/(15672:15693): TID 15693  Mensaje:  Prueba mensaje para enviar
 [INFO] 18:22:30:369 CORD/(15672:15703): TID 15703  Mensaje:  Prueba mensaje para enviar
 [INFO] 18:23:29:58 CORD/(15672:15737): TID 15737  Mensaje:  Prueba mensaje para enviar[INFO] 16:05:04:710 CORD/(31674:31679): TID 31679  Mensaje:  Hola Coordinador, como va?
+[INFO] 16:43:34:222 CORD/(14160:14361): TID 14361  Mensaje:  Hola Coordinador, como va?
+[INFO] 16:43:34:232 CORD/(14160:14391): TID 14391  Mensaje: ERROR en ESI
