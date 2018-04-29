@@ -1,4 +1,4 @@
-	#include "Instancia.h"
+	#include "Listas.h"
 	#include <stdio.h>
     #include <stdlib.h>
     #include <unistd.h>
@@ -15,9 +15,12 @@
     int main(int argc, char *argv[])
     {
 
-        int socketCoordinador;
+        t_list *tablaDeEntradas = list_create();
+    	int socketCoordinador;
         char *buffer_mensaje_recibido;
         char *mensaje_coordinador = "Hola Coordinador, como va?";
+        tMensaje *mensajeInstruccionRecibido = malloc(sizeof(tMensaje));
+
 
         verificarParametrosAlEjecutar(argc, argv);
         leerConfiguracion();
@@ -27,6 +30,12 @@
         printf("Received: %s \n",buffer_mensaje_recibido);
         free(buffer_mensaje_recibido);
         enviarMensaje(socketCoordinador, mensaje_coordinador);
+
+        mensajeInstruccionRecibido = recibirInstruccion(socketCoordinador);
+        procesarInstruccion(mensajeInstruccionRecibido, tablaDeEntradas);
+        mostrarTabla(tablaDeEntradas);
+
+
 
 
         close(socketCoordinador);
@@ -148,4 +157,47 @@
 
         printf("El mensaje: \"%s\", se ha enviado correctamente! \n\n",mensaje);
         return 1;
+    }
+
+    tMensaje *recibirInstruccion(int socketCoordinador){
+    	tMensaje *mensajeRecibido = malloc(sizeof(tMensaje));
+    	int numBytes;
+
+    	if ((numBytes = recv(socketCoordinador, mensajeRecibido, sizeof(tMensaje), 0)) == -1 ){
+    		perror("Recv");
+    		exit(1);
+    	}
+    	return mensajeRecibido;
+    }
+
+    void procesarInstruccion(tMensaje *unMensaje, t_list *tablaDeEntradas){
+    	tEntrada *buffer = malloc(sizeof(tEntrada));
+    	*buffer = unMensaje->entrada;
+    	if (unMensaje->encabezado.tipoProceso != COORDINADOR){
+    		puts("El mensaje no se recibio desde el tipo de proceso indicado");
+    	}
+
+    	switch(unMensaje->encabezado.tipoMensaje){
+    	case SET:
+    		list_add(tablaDeEntradas, buffer);
+    		break;
+    	default:
+    		puts("Nada para hacer");
+    	}
+
+    	free(buffer);
+    	return;
+    }
+
+    void mostrarTabla(t_list *tablaDeEntradas){
+
+    	while(tablaDeEntradas->head->next){
+    		puts("Clave:");
+    		puts(tablaDeEntradas->head->info.clave);
+    		puts("Valor:");
+    		puts(tablaDeEntradas->head->info.valor);
+    		tablaDeEntradas->head = tablaDeEntradas->head->next;
+    	}
+
+    	return;
     }
