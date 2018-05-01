@@ -1,35 +1,24 @@
 	#include "ESI.h"
-	#include <stdio.h>
-    #include <stdlib.h>
-    #include <unistd.h>
-    #include <errno.h>
-    #include <string.h>
-    #include <netdb.h>
-    #include <sys/types.h>
-    #include <netinet/in.h>
-    #include <sys/socket.h>
 
-	struct hostent *he;
-	struct sockaddr_in their_addr; // información de la dirección de destino
     int main(int argc, char *argv[])
     {
         int socket_coordinador, socket_planificador;
         char *mensaje_coordinador = "Hola Coordinador, como va?";
         char *mensaje_planificador = "Que onda Planificador?";
-
         char *buffer_mensaje_recibido;
 
-
+        //Before
     	verificarParametrosAlEjecutar(argc, argv);
     	leerConfiguracion();
+    	leerArchivoEImprimirloEnConsola(argv);
 
+    	//Comunicación con el Coordinador
     	socket_coordinador = conectarSocket(PORT_COORDINADOR);
     	buffer_mensaje_recibido = recibirMensaje(socket_coordinador);
         printf("Received: %s \n",buffer_mensaje_recibido);
-
-
     	enviarMensaje(socket_coordinador, mensaje_coordinador);
 
+    	//Comunicación con el Planificador
     	socket_planificador = conectarSocket(PORT_PLANIFICADOR);
     	enviarMensaje(socket_planificador, mensaje_planificador);
 
@@ -62,13 +51,13 @@
     		puts("Archivo de configuracion vacio");
     	}
 
-    	return 1;
+    	return EXIT_SUCCESS;
     }
 
     int verificarParametrosAlEjecutar(int argc, char *argv[]){
 
-        if (argc != 2) {
-        	puts("Error al ejecutar, te faltan parametros.");
+        if (argc != 3) {//argc es la cantidad de parametros que recibe el main.
+        	puts("Error al ejecutar, para correr este proceso deberias ejecutar: ./ESI ubuntu-server \"nombreArchivo\"");
             exit(1);
         }
 
@@ -78,7 +67,7 @@
         	perror("gethostbyname");
             exit(1);
         }
-        return 1;
+        return EXIT_SUCCESS;
     }
 
     int conectarSocket(int port){
@@ -124,7 +113,7 @@
 			   }
 			   puts("Se envió mi identificador");
 			   free(header);
-			   return 1;
+			   return EXIT_SUCCESS;
     }
 
     char* recibirMensaje(int sockfd){
@@ -152,5 +141,55 @@
         }
 
         printf("El mensaje: \"%s\", se ha enviado correctamente! \n\n",mensaje);
-        return 1;
+        return EXIT_SUCCESS;
+    }
+
+    int leerArchivoEImprimirloEnConsola(char **argv){
+
+    	//Esto lo copié literal del ejemplo del ParSI. A medida que avancemos, esto en vez de imprimir en pantalla,
+    	//va a tener que enviarle los scripts al coordinador (siempre y cuando el planificador me lo indique)
+
+    	FILE * file;
+        char * line = NULL;
+        size_t len = 0;
+        ssize_t read;
+
+        file = fopen(argv[2], "r");
+        if (file == NULL){
+            perror("Error al abrir el archivo: ");
+            exit(EXIT_FAILURE);
+        }
+
+        while ((read = getline(&line, &len, file)) != -1) {
+            t_esi_operacion parsed = parse(line);
+
+            if(parsed.valido){
+                switch(parsed.keyword){
+                    case GET:
+                        printf("GET\tclave: <%s>\n", parsed.argumentos.GET.clave);
+                        break;
+                    case SET:
+                        printf("SET\tclave: <%s>\tvalor: <%s>\n", parsed.argumentos.SET.clave, parsed.argumentos.SET.valor);
+                        break;
+                    case STORE:
+                        printf("STORE\tclave: <%s>\n", parsed.argumentos.STORE.clave);
+                        break;
+                    default:
+                        fprintf(stderr, "No pude interpretar <%s>\n", line);
+                        exit(EXIT_FAILURE);
+                }
+
+                destruir_operacion(parsed);
+            } else {
+                fprintf(stderr, "La linea <%s> no es valida\n", line);
+                exit(EXIT_FAILURE);
+            }
+        }
+
+        fclose(file);
+        if (line){
+            free(line);
+        }
+
+        return EXIT_SUCCESS;
     }
