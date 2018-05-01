@@ -24,7 +24,7 @@
 #include <sys/queue.h>
 
 #define MYPORT 3490    // Puerto al que conectarán los usuarios
-#define ARCHIVO_CONFIGURACION "/home/utnso/workspace2/tp-2018-1c-Sistemas-Operactivos/Coordinador/src/configuracion.config"
+#define ARCHIVO_CONFIGURACION "configuracion.config"
 #define BACKLOG 10     // Cuántas conexiones pendientes se mantienen en cola
 
 struct parametrosConexion{
