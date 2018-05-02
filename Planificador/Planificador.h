@@ -27,7 +27,10 @@ struct sockaddr_in cord_addr; // información de la dirección del Coordinador
 t_queue *colaESIS;
 
 //ESTO DEBERIA ESTAR EN OTRO .H
-
+struct parametrosConexion{
+	int new_fd;
+	struct node_t * colaProcesos;
+};
 typedef enum{
 	ESI = 1,
 	PLANIFICADOR = 2,
@@ -52,3 +55,7 @@ int verificarParametrosAlEjecutar(int argc, char *argv[]);
 void ConectarAlCoordinador(int * sockCord, struct sockaddr_in* cord_addr,
 		struct hostent* he);
 void *ejecutarConsola();
+
+
+void *gestionarConexion(int socket);
+void *conexionESI(int *new_fd);

@@ -55,9 +55,9 @@
     	        // añadir listener al conjunto maestro
     	        FD_SET(listener, &master);
 
-    	        puts("Añadimos la conexion al coordinador al conjunto maestro");
+    	        //puts("Añadimos la conexion al coordinador al conjunto maestro");
     	        // añadir conexion con coordinador al conjunto maestro
-    	        FD_SET(sockCord, &master);
+    	        //FD_SET(sockCord, &master);
 
     	        puts("Descripores bases añanidos");
 
@@ -112,6 +112,8 @@
     	                            }
     	                            printf("selectserver: new connection from %s on "
     	                                "socket %d\n", inet_ntoa(remoteaddr.sin_addr), newfd);
+    	                        	gestionarConexion(newfd);
+
     	                        }
     	                    } else {
     	                        // gestionar datos de un cliente
@@ -146,7 +148,6 @@
 
     	        return 0;
     }
-
     void ConectarAlCoordinador(int  * sockCord, struct sockaddr_in* cord_addr,
     		struct hostent* he) {
     	// obtener socket para coordinador
@@ -314,4 +315,54 @@
 	}
 
 
+	///////////////
+		void *gestionarConexion(int socket){ //(int* sockfd, int* new_fd)
 
+		        int bytesRecibidos;
+		               tHeader *headerRecibido = malloc(sizeof(tHeader));
+
+				   if ((bytesRecibidos = recv(socket, headerRecibido, sizeof(tHeader), 0)) == -1){
+					perror("recv");
+					exit(1);
+
+				   }
+				  // fprintf("Mensaje : %s",headerRecibido->tipoMensaje);
+				   if (headerRecibido->tipoMensaje == CONECTARSE){
+					IdentificarProceso(headerRecibido, socket);
+					free(headerRecibido);
+				   }
+		    }
+
+		 void IdentificarProceso(tHeader* headerRecibido,
+		    		int socket) {
+		    	switch (headerRecibido->tipoProceso) {
+		    	case ESI:
+		    		printf("Se conecto el proceso %d \n", headerRecibido->idProceso);
+		    		conexionESI(socket);
+		    		break;
+		    	default:
+		    		puts("Error al intentar conectar un proceso");
+		    		close(socket);
+		    	}
+		    }
+
+
+		    void *conexionESI(int *socket){
+		    	//close(new_fd->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
+		        puts("ESI conectandose");
+				if (send(socket, "Hola papa!\n", 14, 0) == -1)
+					perror("send");
+		        int numbytes,tamanio_buffer=100;
+		        char buf[tamanio_buffer]; //Seteo el maximo del buffer en 100 para probar. Debe ser variable.
+
+		        if ((numbytes=recv(socket, buf, tamanio_buffer-1, 0)) == -1) {
+		            perror("recv");
+		            exit(1);
+		        }
+
+		        buf[numbytes] = '\0';
+		        printf("Received: %s\n",buf);
+
+		        free(buf[numbytes]);
+				close(socket);
+		    }
