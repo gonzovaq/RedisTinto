@@ -193,6 +193,8 @@
 			//char * readline(const char * linea);
 			char * linea = readline(": ");
 
+   			 if(linea)
+      			add_history(linea);
 
 			if(strncmp(linea,"pausar",7)==0)
 			{
