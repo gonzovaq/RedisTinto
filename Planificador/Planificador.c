@@ -212,7 +212,7 @@
 				int flag=0;
 				int j=0;
 				int i=9;
-				while(linea[i]!=' ')
+				while(linea[i]!=' ' && linea[i]!='/0')
 				{
 					j++;
 					i++;
@@ -220,7 +220,7 @@
 				i=9;
 				clave1=malloc(sizeof(char[j]));
 				j=0;
-				while(linea[i]!=' ')
+				while(linea[i]!=' ' && linea[i]!='/0')
 							{	//printf("%d \n",i);
 								clave1[j]=linea[i];
 								j++;
