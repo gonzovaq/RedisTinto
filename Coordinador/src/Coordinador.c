@@ -78,7 +78,17 @@
         int sin_size, new_fd;
         struct sockaddr_in direccion_cliente; // información sobre la dirección del cliente
 
+        // Creamos una cola donde dejamos todas las instancias que se conectan con nosotros y otra para los mensajes recibidos de cualquier ESI
         colaInstancias = queue_create();
+        colaMensajes = 	queue_create();
+
+        //Inicializamos el mutex
+        pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+        if (pthread_mutex_init(&mutex, NULL) == -1){
+        	perror("error al crear mutex");
+        	exit(1);
+        }
 
     	while(1) {  // main accept() loop
     	            sin_size = sizeof(struct sockaddr_in);
@@ -92,15 +102,8 @@
 
     	            //Para hilos debo crear una estructura de parametros de la funcion que quiera llamar
     				pthread_t tid;
-    				struct parametrosConexion parametros = {new_fd};//(&sockfd, &new_fd) --> no lo utilizo porque sockfd ya no se requiere
+    				struct parametrosConexion parametros = {new_fd,sem_init(tid)};//(&sockfd, &new_fd) --> no lo utilizo porque sockfd ya no se requiere
 
-    	            //Con Pooltread !
-    				/* No se aplica porque pierde memoria
-    	            threadpool thpool = thpool_init(4);
-    	            thpool_add_work(thpool,(void*)gestionarConexion, (void*)&parametros);
-    				*/
-
-    				// Sin Poolthread !
     	            int stat = pthread_create(&tid, NULL, (void*)gestionarConexion, (void*)&parametros);//(void*)&parametros -> parametros contendria todos los parametros que usa conexion
     				if (stat != 0){
     					puts("error al generar el hilo");
@@ -109,6 +112,9 @@
     				}
     				pthread_detach(tid); //Con esto decis que cuando el hilo termine libere sus recursos
     	        }
+
+        //Tenemos que destruir el mutex
+        pthread_mutex_destroy(&mutex);
     }
 
     void *gestionarConexion(struct parametrosConexion *parametros){ //(int* sockfd, int* new_fd)
@@ -122,6 +128,7 @@
 			exit_gracefully(1);
 						//exit(1);
 		   }
+
 		   if (headerRecibido->tipoMensaje == CONECTARSE){
 			IdentificarProceso(headerRecibido, parametros);
 			free(headerRecibido);
@@ -170,23 +177,23 @@
         log_info(logger, "TID %d  Mensaje:  %s",process_get_thread_id(),buf); // que onda con pthread_self()?
         free(buf[numbytes]);
 
+        // todo RECIBIR UNA OPERACION DEL ESI APLICANDO EL PROTOCOLO
+	    // Debo avisar a una Instancia cuando recibo una operacion
 
-        // 1er paso, recibir operacion del ESI para ejecutar
-        int numbytes,tamanio_buffer=100;
-	    char buf[tamanio_buffer]; //Seteo el maximo del buffer en 100 para probar. Debe ser variable.
+        while(queue_is_empty(colaInstancias)) ; // mientras la cola este vacia no puedo continuar
 
-	    if ((numbytes=recv(new_fd, buf, tamanio_buffer-1, 0)) == -1) {
-		   perror("recv");
-		   log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
-		   exit_gracefully(1);
-	    }
-	    buf[numbytes] = '\0';
+        pthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
 
-	    /*
-	    // Debo avisar a una Instancia
-	     while(queue_is_empty(colaInstancias));
-	    // Semaforo por si llegaran a entrar mas de un ESI
-	    */
+        struct operacionParaInstancia operacion = {1,sizeof(buf),buf};
+        queue_push(colaMensajes,(void*)&operacion);
+
+        struct parametrosConexion * instancia = queue_pop(colaInstancias); //saco la primer instancia de la cola pero luego tengo que deolverla a la cola
+        sem_post(instancia->semaforo); // Le aviso al semaforo de la instancia de que puede operar (el semaforo es el tid)
+        queue_push(colaInstancias,(void*)&instancia);
+
+        pthread_mutex_unlock(&mutex);
+
+        // Semaforo por si llegaran a entrar mas de un ESI
 
 		close(new_fd);
     }
@@ -208,21 +215,6 @@
         printf("Received: %s\n",buf);
         free(buf[numbytes]);
 
-        /*
-        // Espero para recibir alguna instruccion de la consola
-        int numbytes,tamanio_buffer=100;
-        char buf[tamanio_buffer]; //Seteo el maximo del buffer en 100 para probar. Debe ser variable.
-
-        if ((numbytes=recv(new_fd, buf, tamanio_buffer-1, 0)) == -1) {
-            perror("recv");
-            exit(1);
-        }
-
-        buf[numbytes] = '\0';
-        printf("Received: %s\n",buf);
-        free(buf[numbytes]);
-        */
-
 		close(new_fd);
     }
 
@@ -243,25 +235,8 @@
         printf("Received: %s\n",buf);
         free(buf[numbytes]);
 
-        /*
-         // Espero que me llegue alguna operacion y se la envio (Debo ver como identifico a que instancia quiero enviarsela)
-          if (send(new_fd, "Hola papa!\n", 14, 0) == -1)
-			perror("send");
-
-			// Espero a recibir el resultado de la operacion
-			int numbytes,tamanio_buffer=100;
-			char buf[tamanio_buffer]; //Seteo el maximo del buffer en 100 para probar. Debe ser variable.
-
-			if ((numbytes=recv(new_fd, buf, tamanio_buffer-1, 0)) == -1) {
-				perror("recv");
-				exit(1);
-			}
-
-			buf[numbytes] = '\0';
-			printf("Received: %s\n",buf);
-			free(buf[numbytes]);
-         */
-
+        sem_wait(pthread_self()); // Caundo me avisen que hay una operacion para enviar, la voy a levantar de la cola
+        struct operacionParaInstancia * operacion = queue_pop(colaMensajes);
 
 		close(new_fd);
     }

@@ -9,5 +9,12 @@
 [INFO] 18:23:29:58 CORD/(15672:15737): TID 15737  Mensaje:  Prueba mensaje para enviar[INFO] 16:05:04:710 CORD/(31674:31679): TID 31679  Mensaje:  Hola Coordinador, como va?
 [INFO] 16:43:34:222 CORD/(14160:14361): TID 14361  Mensaje:  Hola Coordinador, como va?
 [INFO] 16:43:34:232 CORD/(14160:14391): TID 14391  Mensaje: ERROR en ESI
+<<<<<<< HEAD
 [INFO] 20:54:38:389 CORD/(26861:26863): TID 26863  Mensaje:  Hola Coordinador, como va?
 [INFO] 20:54:38:425 CORD/(26861:26893): TID 26893  Mensaje: ERROR en ESI
+=======
+[INFO] 15:37:39:345 CORD/(4187:4306): TID 4306  Mensaje:  Hola Coordinador, como va?
+>>>>>>> 217f44936c46e3499c4cc93cf4930a28fe27e0eb
+[INFO] 10:53:44:664 CORD/(2921:3330): TID 3330  Mensaje:  Hola Coordinador, como va?
+[INFO] 10:53:49:523 CORD/(2921:3332): TID 3332  Mensaje:  Hola Coordinador, como va?
+[INFO] 10:53:51:125 CORD/(2921:3334): TID 3334  Mensaje:  Hola Coordinador, como va?

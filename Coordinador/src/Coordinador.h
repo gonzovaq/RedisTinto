@@ -20,17 +20,23 @@
 #include <commons/config.h>
 #include <commons/collections/list.h>
 #include <commons/collections/queue.h>
-#include "thpool.h"
 #include <sys/queue.h>
 
 #define MYPORT 3490    // Puerto al que conectarán los usuarios
-#define ARCHIVO_CONFIGURACION "/home/utnso/workspace2/tp-2018-1c-Sistemas-Operactivos/Coordinador/src/configuracion.config"
+#define ARCHIVO_CONFIGURACION "configuracion.config"
 #define BACKLOG 10     // Cuántas conexiones pendientes se mantienen en cola
 
 struct parametrosConexion{
 	//int sockfd; --> no se requiere para la conexion
 	int new_fd;
+	int semaforo;
 	struct node_t * colaProcesos;
+};
+
+struct operacionParaInstancia{
+	int tipoOperacion;
+	int longitudMensaje;
+	char* mensaje;
 };
 
 int PUERTO;
@@ -57,7 +63,8 @@ typedef struct{
 //var globales
 t_log * logger;
 t_queue *colaInstancias;
-
+t_queue *colaMensajes;
+pthread_mutex_t mutex;
 
 void sigchld_handler(int s);
 int main(void);

@@ -1,5 +1,5 @@
 TARGET = ESI
-LIBS = -lcrypto -lcommons	-lreadline
+LIBS = -lcrypto -lcommons -lparsi -lreadline
 CC = gcc
 CFLAGS = -g -Wall
 OBJECTS = $(patsubst %.c, %.o, $(wildcard *.c))
