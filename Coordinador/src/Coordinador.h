@@ -54,11 +54,29 @@ typedef enum{
 	CONECTARSE = 1
 }tTipoDeMensaje;
 
+typedef enum{
+	GET = 1,
+	SET = 2,
+	STORE = 3
+}tTipoOperacion;
+
 typedef struct{
 	tTipoDeProceso tipoProceso;
 	tTipoDeMensaje tipoMensaje;
 	int idProceso;
 }tHeader;
+
+typedef struct {
+  tTipoOperacion tipo;
+  int tamaniooClave;
+  int tamaniooValor;
+}OperaciontHeader;
+
+typedef struct {
+	tTipoOperacion tipo;
+	char* clave;
+	char* valor;
+}OperacionAEnviar;
 
 //var globales
 t_log * logger;

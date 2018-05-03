@@ -177,7 +177,80 @@
         log_info(logger, "TID %d  Mensaje:  %s",process_get_thread_id(),buf); // que onda con pthread_self()?
         free(buf[numbytes]);
 
+
         // todo RECIBIR UNA OPERACION DEL ESI APLICANDO EL PROTOCOLO
+
+        int tamanioOperacionHeader = malloc(sizeof(struct OperacionHeader));
+        struct OperacionHeader * header = tamanioOperacionHeader;
+
+        if ((tamanioOperacionHeader=recv(new_fd, header, tamanioOperacionHeader, 0)) == -1) {
+            perror("recv");
+            log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
+            exit_gracefully(1);
+        }
+
+        // Podriamos recibir una estructura que nos indique el tipo y tamanio de los mensajes y despues recibir los mensajes por separado
+        switch(header->tipo){
+        case GET:
+
+        	int tamanioClave = header->tamanioClave;
+        	char clave[tamanioClave];
+            if (recv(new_fd, clave, tamanioClave-1, 0) == -1) {
+                perror("recv");
+                log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
+                exit_gracefully(1);
+            }
+            clave[tamanioClave] = '\0';
+            printf("Recibi la clave: %s\n",clave);
+            struct OperacionAEnviar operacionParaInstancia = malloc(sizeof(struct tTipoOperacion)+tamanioClave);
+        	operacionParaInstancia->tipo = GET;
+            operacionParaInstancia->clave = clave;
+            operacionParaInstancia->valor = NULL;
+            break;
+        case SET:
+
+        	int tamanioClave = header->tamanioClave;
+        	char clave[tamanioClave];
+            if (recv(new_fd, clave, tamanioClave-1, 0) == -1) {
+                perror("recv");
+                log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
+                exit_gracefully(1);
+            }
+            clave[tamanioClave] = '\0';
+            printf("Recibi la clave: %s\n",clave);
+
+        	int tamanioValor = header->tamanioValor;
+        	char valor[tamanioValor];
+            if (recv(new_fd, valor, tamanioValor-1, 0) == -1) {
+                perror("recv");
+                log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
+                exit_gracefully(1);
+            }
+            clave[tamanioValor] = '\0';
+            printf("Recibi la clave: %s\n",valor);
+            struct OperacionAEnviar operacionParaInstancia = malloc(sizeof(struct tTipoOperacion) +tamanioClave+tamanioValor);
+        	operacionParaInstancia->tipo = SET;
+            operacionParaInstancia->clave = clave;
+            operacionParaInstancia->valor = valor;
+
+            break;
+        case STORE:
+        	operacionParaInstancia->tipo = STORE;
+        	int tamanioClave = header->tamanioClave;
+        	char clave[tamanioClave];
+            if (recv(new_fd, clave, tamanioClave-1, 0) == -1) {
+                perror("recv");
+                log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
+                exit_gracefully(1);
+            }
+            clave[tamanioClave] = '\0';
+            printf("Recibi la clave: %s\n",clave);
+            struct OperacionAEnviar operacionParaInstancia = malloc(sizeof(struct tTipoOperacion)+tamanioClave);
+        	operacionParaInstancia->tipo = STORE;
+            operacionParaInstancia->clave = clave;
+            operacionParaInstancia->valor = NULL;
+            break;
+        }
 	    // Debo avisar a una Instancia cuando recibo una operacion
 
         while(queue_is_empty(colaInstancias)) ; // mientras la cola este vacia no puedo continuar
@@ -185,7 +258,7 @@
         pthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
 
         struct operacionParaInstancia operacion = {1,sizeof(buf),buf};
-        queue_push(colaMensajes,(void*)&operacion);
+        queue_push(colaMensajes,(void*)&operacionParaInstancia);
 
         struct parametrosConexion * instancia = queue_pop(colaInstancias); //saco la primer instancia de la cola pero luego tengo que deolverla a la cola
         sem_post(instancia->semaforo); // Le aviso al semaforo de la instancia de que puede operar (el semaforo es el tid)
@@ -194,6 +267,8 @@
         pthread_mutex_unlock(&mutex);
 
         // Semaforo por si llegaran a entrar mas de un ESI
+
+        free(tamanioOperacionHeader);
 
 		close(new_fd);
     }
