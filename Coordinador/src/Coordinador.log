@@ -18,3 +18,208 @@
 [INFO] 10:53:44:664 CORD/(2921:3330): TID 3330  Mensaje:  Hola Coordinador, como va?
 [INFO] 10:53:49:523 CORD/(2921:3332): TID 3332  Mensaje:  Hola Coordinador, como va?
 [INFO] 10:53:51:125 CORD/(2921:3334): TID 3334  Mensaje:  Hola Coordinador, como va?
+[INFO] 13:44:16:882 CORD/(4847:4894): TID 4894  Mensaje:  Hola Coordinador, como va?
+[INFO] 13:45:22:441 CORD/(4847:4902): TID 4902  Mensaje:  Hola Coordinador, como va?
+[INFO] 13:46:53:728 CORD/(4847:5264): TID 5264  Mensaje:  Hola Coordinador, como va?
+[INFO] 13:47:05:685 CORD/(4847:5267): TID 5267  Mensaje:  Hola Coordinador, como va?
+[INFO] 13:48:24:942 CORD/(4847:5314): TID 5314  Mensaje:  Hola Coordinador, como va?GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <ju
+[INFO] 14:29:26:914 CORD/(5722:5724): TID 5724  Mensaje:  Hola Coordinador, como va?
+[INFO] 14:30:03:48 CORD/(5742:5744): TID 5744  Mensaje:  Hola Coordinador, como va?GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:30:44:457 CORD/(5742:5777): TID 5777  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:30:46:554 CORD/(5742:5779): TID 5779  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:30:47:469 CORD/(5742:5781): TID 5781  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:30:48:129 CORD/(5742:5783): TID 5783  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:30:48:753 CORD/(5742:5785): TID 5785  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:30:49:358 CORD/(5742:5787): TID 5787  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:30:49:964 CORD/(5742:5789): TID 5789  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:30:50:547 CORD/(5742:5791): TID 5791  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:30:51:127 CORD/(5742:5793): TID 5793  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:30:51:710 CORD/(5742:5795): TID 5795  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:30:52:492 CORD/(5742:5797): TID 5797  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:30:52:825 CORD/(5742:5799): TID 5799  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:30:53:38 CORD/(5742:5801): TID 5801  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:30:53:286 CORD/(5742:5803): TID 5803  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:30:53:518 CORD/(5742:5805): TID 5805  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:30:53:720 CORD/(5742:5807): TID 5807  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:30:53:944 CORD/(5742:5809): TID 5809  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:31:00:567 CORD/(5742:5811): TID 5811  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:31:00:756 CORD/(5742:5813): TID 5813  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:31:00:916 CORD/(5742:5815): TID 5815  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:31:01:80 CORD/(5742:5817): TID 5817  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:31:01:226 CORD/(5742:5819): TID 5819  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:31:01:384 CORD/(5742:5821): TID 5821  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:31:01:540 CORD/(5742:5823): TID 5823  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:31:01:692 CORD/(5742:5825): TID 5825  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:31:01:856 CORD/(5742:5827): TID 5827  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:31:02:80 CORD/(5742:5829): TID 5829  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:31:02:201 CORD/(5742:5831): TID 5831  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:31:36:87 CORD/(5742:5848): TID 5848  Mensaje:  Hola Coordinador, como va?
+
+[INFO] 14:33:09:963 CORD/(5742:5866): TID 5866  Mensaje:  Hola Coordinador, como va?
+
+[INFO] 14:33:46:838 CORD/(5742:5889): TID 5889  Mensaje:  Hola Coordinador, como va?
+
+[INFO] 14:36:53:390 CORD/(5742:5945): TID 5945  Mensaje:  Hola Coordinador, como va?
+
+[INFO] 14:38:41:453 CORD/(5742:5986): TID 5986  Mensaje:  Hola Coordinador, como va?
+
+[INFO] 14:39:29:794 CORD/(5742:5990): TID 5990  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:39:36:856 CORD/(5742:5994): TID 5994  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:40:57:432 CORD/(5742:6027): TID 6027  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:45:04:452 CORD/(5742:6102): TID 6102  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+
+[INFO] 14:45:23:736 CORD/(5742:6105): TID 6105  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+
+[INFO] 14:46:09:253 CORD/(5742:6135): TID 6135  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:46:57:533 CORD/(5742:6139): TID 6139  Mensaje:  Hola Coordinador, como va?
+
+[INFO] 14:48:41:953 CORD/(5742:6170): TID 6170  Mensaje:  Hola Coordinador, como va?
+
+[INFO] 14:53:13:181 CORD/(6212:6214): TID 6214  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+

@@ -60,7 +60,7 @@ typedef struct link_element t_link_element;
 int main(int argc, char *argv[]);
 int leerConfiguracion();
 int verificarParametrosAlEjecutar(int argc, char *argv[]);
-int conectarSocket(int port);
+int conectarmeYPresentarme(int port);
 int enviarHeader(int sockfd);
 char* recibirMensaje(int sockfd);
 int enviarMensaje(int sockfd, char* mensaje);

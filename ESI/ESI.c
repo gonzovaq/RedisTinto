@@ -3,24 +3,33 @@
     int main(int argc, char *argv[])
     {
         int socket_coordinador, socket_planificador;
-        char *mensaje_coordinador = "Hola Coordinador, como va?";
-        char *mensaje_planificador = "Que onda Planificador?";
+        char *mensaje_coordinador = "Hola Coordinador, como va?\n";
+        char *mensaje_planificador = "Que onda Planificador? Quiero ejecutarme!\n";
         char *buffer_mensaje_recibido;
+        FILE * scriptsAEjecutar;
 
         //Before
     	verificarParametrosAlEjecutar(argc, argv);
     	leerConfiguracion();
-    	leerArchivoEImprimirloEnConsola(argv);
+    	scriptsAEjecutar = leerArchivo(argv);
+
 
     	//Comunicación con el Coordinador
-    	socket_coordinador = conectarSocket(PORT_COORDINADOR);
+    	socket_coordinador = conectarmeYPresentarme(PORT_COORDINADOR);
     	buffer_mensaje_recibido = recibirMensaje(socket_coordinador);
         printf("Received: %s \n",buffer_mensaje_recibido);
     	enviarMensaje(socket_coordinador, mensaje_coordinador);
 
+    	parsearPorLineaYEnviarAlCoordinador(scriptsAEjecutar,socket_coordinador);
+
     	//Comunicación con el Planificador
-    	socket_planificador = conectarSocket(PORT_PLANIFICADOR);
+    	socket_planificador = conectarmeYPresentarme(PORT_PLANIFICADOR);
     	enviarMensaje(socket_planificador, mensaje_planificador);
+    	/*if(recibirMensaje(socket_planificador)=="Ejecutate"){ //El "Ejecutate", simula que el planificador me esta habilitando para ejecutar.
+
+    	}*/
+
+
 
         close(socket_coordinador);
         close(socket_planificador);
@@ -70,7 +79,7 @@
         return EXIT_SUCCESS;
     }
 
-    int conectarSocket(int port){
+    int conectarmeYPresentarme(int port){
         int sockfd;
         if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
         	puts("Error al crear el socket");
@@ -92,7 +101,7 @@
         }
         puts("ESI conectado!\n");
 
-        enviarHeader(sockfd);
+        enviarHeader(sockfd); //Me presento
 
         return sockfd;
 
@@ -144,21 +153,28 @@
         return EXIT_SUCCESS;
     }
 
-    int leerArchivoEImprimirloEnConsola(char **argv){
+    FILE *leerArchivo(char **argv){
 
     	//Esto lo copié literal del ejemplo del ParSI. A medida que avancemos, esto en vez de imprimir en pantalla,
     	//va a tener que enviarle los scripts al coordinador (siempre y cuando el planificador me lo indique)
 
     	FILE * file;
-        char * line = NULL;
-        size_t len = 0;
-        ssize_t read;
-
         file = fopen(argv[2], "r");
         if (file == NULL){
             perror("Error al abrir el archivo: ");
             exit(EXIT_FAILURE);
         }
+
+
+        return file;
+    }
+
+    int parsearPorLineaYEnviarAlCoordinador(FILE * file, int socket_coordinador){
+        char * line = NULL;
+        size_t len = 0;
+        ssize_t read;
+        int tamanio_buffer=200;
+        char * lineaParseada = malloc(tamanio_buffer);
 
         while ((read = getline(&line, &len, file)) != -1) {
             t_esi_operacion parsed = parse(line);
@@ -166,30 +182,34 @@
             if(parsed.valido){
                 switch(parsed.keyword){
                     case GET:
-                        printf("GET\tclave: <%s>\n", parsed.argumentos.GET.clave);
+                        sprintf(lineaParseada, "GET\tclave: <%s>\n", parsed.argumentos.GET.clave);
+                        enviarMensaje(socket_coordinador,lineaParseada);
                         break;
                     case SET:
-                        printf("SET\tclave: <%s>\tvalor: <%s>\n", parsed.argumentos.SET.clave, parsed.argumentos.SET.valor);
-                        break;
+                    	sprintf(lineaParseada, "SET\tclave: <%s>\tvalor: <%s>\n", parsed.argumentos.SET.clave, parsed.argumentos.SET.valor);
+                    	enviarMensaje(socket_coordinador,lineaParseada);
+                    	break;
                     case STORE:
-                        printf("STORE\tclave: <%s>\n", parsed.argumentos.STORE.clave);
-                        break;
+                    	sprintf(lineaParseada, "STORE\tclave: <%s>\n", parsed.argumentos.STORE.clave);
+                    	enviarMensaje(socket_coordinador,lineaParseada);
+                    	break;
                     default:
                         fprintf(stderr, "No pude interpretar <%s>\n", line);
+                        free(lineaParseada);
                         exit(EXIT_FAILURE);
                 }
-
                 destruir_operacion(parsed);
             } else {
                 fprintf(stderr, "La linea <%s> no es valida\n", line);
+                free(lineaParseada);
                 exit(EXIT_FAILURE);
             }
         }
-
+        free(lineaParseada);
         fclose(file);
         if (line){
             free(line);
         }
-
         return EXIT_SUCCESS;
+
     }

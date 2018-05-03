@@ -163,7 +163,7 @@
         puts("ESI conectandose");
 		if (send(new_fd, "Hola papa!\n", 14, 0) == -1)
 			perror("send");
-        int numbytes,tamanio_buffer=100;
+        int numbytes,tamanio_buffer=200;
         char buf[tamanio_buffer]; //Seteo el maximo del buffer en 100 para probar. Debe ser variable.
 
         if ((numbytes=recv(new_fd, buf, tamanio_buffer-1, 0)) == -1) {

@@ -20,11 +20,13 @@ struct sockaddr_in their_addr; // información de la dirección de destino
 int main(int argc, char *argv[]);
 int leerConfiguracion();
 int verificarParametrosAlEjecutar(int argc, char *argv[]);
-int conectarSocket(int port);
+int conectarmeYPresentarme(int port);
 int enviarHeader(int sockfd);
 char* recibirMensaje(int sockfd);
 int enviarMensaje(int sockfd, char* mensaje);
-int leerArchivoEImprimirloEnConsola(char **argv);
+FILE *leerArchivo(char **argv);
+int parsearPorLineaYEnviarAlCoordinador(FILE * file, int socket_coordinador);
+
 
 
 typedef enum{
