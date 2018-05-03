@@ -25,7 +25,7 @@
         verificarParametrosAlEjecutar(argc, argv);
         leerConfiguracion();
 
-        socketCoordinador = conectarSocket(PORT);
+        socketCoordinador = conectarmeYPresentarme(PORT);
     	buffer_mensaje_recibido = recibirMensaje(socketCoordinador);
         printf("Received: %s \n",buffer_mensaje_recibido);
         free(buffer_mensaje_recibido);
@@ -83,7 +83,7 @@
         	return 1;
         }
 
-    int conectarSocket(int port){
+    int conectarmeYPresentarme(int port){
     	int socketCoordinador;
     	if ((socketCoordinador = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
     		puts("Error al crear el socket");
