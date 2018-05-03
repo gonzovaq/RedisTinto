@@ -65,25 +65,6 @@
             exit(1);
         }
 
-		// CERRAR CONEXIONES
-		// close() y shutdown()
-		// close(sockfd); -> cierra la conexion en ambos sentidos
-		// int shutdown(int sockfd, int how); -> permite mas control al cerrar la conexion
-		// how -> 0(no se permite recibir mas datos), 1(no se permite enviar mas datos), 2(no se permite ni recibir ni enviar mas datos, lo mismo que close())
-		// shutdown devuelve 0 si es un exito, -1 si da error
-
-		// getpeername()
-		// te dice quien esta del otro lado de un socket
-		// int getpeername(int sockfd, struct sockaddr *addr, int *addrlen);
-		// sockfd es el descriptor del socket de flujo conectado, addr es un puntero a una struct de sockadd que guarda la info acerca del otro lado de la conexion, y addrlen es un puntero a un int que se debe inicializar a sizeof(struct sockaddr)
-		// devuelve -1 en caso de error
-
-		// gethostname() -> devuelve el nombre del ordenador sobre el que esta corriendo el programa
-		// gethostbyname() -> obtiene la direccion ip de mi maquina local
-		// int gethostbyname(char *hostname, size_t size);
-		// hostname es un puntero a una cadena de caracteres donde se almacena el nombre de la maquina cuando la funcion retorne y size es la longitud de bytes de esa cadena de caracteres
-		// 0 -> ok, -1 -> error
-
         puts("A trabajar");
 
         EscucharConexiones(sockfd);
@@ -188,6 +169,25 @@
         printf("Received: %s\n",buf);
         log_info(logger, "TID %d  Mensaje:  %s",process_get_thread_id(),buf); // que onda con pthread_self()?
         free(buf[numbytes]);
+
+
+        // 1er paso, recibir operacion del ESI para ejecutar
+        int numbytes,tamanio_buffer=100;
+	    char buf[tamanio_buffer]; //Seteo el maximo del buffer en 100 para probar. Debe ser variable.
+
+	    if ((numbytes=recv(new_fd, buf, tamanio_buffer-1, 0)) == -1) {
+		   perror("recv");
+		   log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
+		   exit_gracefully(1);
+	    }
+	    buf[numbytes] = '\0';
+
+	    /*
+	    // Debo avisar a una Instancia
+	     while(queue_is_empty(colaInstancias));
+	    // Semaforo por si llegaran a entrar mas de un ESI
+	    */
+
 		close(new_fd);
     }
 
@@ -207,6 +207,22 @@
         buf[numbytes] = '\0';
         printf("Received: %s\n",buf);
         free(buf[numbytes]);
+
+        /*
+        // Espero para recibir alguna instruccion de la consola
+        int numbytes,tamanio_buffer=100;
+        char buf[tamanio_buffer]; //Seteo el maximo del buffer en 100 para probar. Debe ser variable.
+
+        if ((numbytes=recv(new_fd, buf, tamanio_buffer-1, 0)) == -1) {
+            perror("recv");
+            exit(1);
+        }
+
+        buf[numbytes] = '\0';
+        printf("Received: %s\n",buf);
+        free(buf[numbytes]);
+        */
+
 		close(new_fd);
     }
 
@@ -226,10 +242,29 @@
         buf[numbytes] = '\0';
         printf("Received: %s\n",buf);
         free(buf[numbytes]);
+
+        /*
+         // Espero que me llegue alguna operacion y se la envio (Debo ver como identifico a que instancia quiero enviarsela)
+          if (send(new_fd, "Hola papa!\n", 14, 0) == -1)
+			perror("send");
+
+			// Espero a recibir el resultado de la operacion
+			int numbytes,tamanio_buffer=100;
+			char buf[tamanio_buffer]; //Seteo el maximo del buffer en 100 para probar. Debe ser variable.
+
+			if ((numbytes=recv(new_fd, buf, tamanio_buffer-1, 0)) == -1) {
+				perror("recv");
+				exit(1);
+			}
+
+			buf[numbytes] = '\0';
+			printf("Received: %s\n",buf);
+			free(buf[numbytes]);
+         */
+
+
 		close(new_fd);
     }
-
-    //logger
 
     void exit_gracefully(int return_nr) {
 
@@ -240,6 +275,29 @@
     void configure_logger() {
       logger = log_create("Coordinador.log", "CORD", true, LOG_LEVEL_INFO);
      }
+
+
+
+
+	// CERRAR CONEXIONES
+	// close() y shutdown()
+	// close(sockfd); -> cierra la conexion en ambos sentidos
+	// int shutdown(int sockfd, int how); -> permite mas control al cerrar la conexion
+	// how -> 0(no se permite recibir mas datos), 1(no se permite enviar mas datos), 2(no se permite ni recibir ni enviar mas datos, lo mismo que close())
+	// shutdown devuelve 0 si es un exito, -1 si da error
+
+	// getpeername()
+	// te dice quien esta del otro lado de un socket
+	// int getpeername(int sockfd, struct sockaddr *addr, int *addrlen);
+	// sockfd es el descriptor del socket de flujo conectado, addr es un puntero a una struct de sockadd que guarda la info acerca del otro lado de la conexion, y addrlen es un puntero a un int que se debe inicializar a sizeof(struct sockaddr)
+	// devuelve -1 en caso de error
+
+	// gethostname() -> devuelve el nombre del ordenador sobre el que esta corriendo el programa
+	// gethostbyname() -> obtiene la direccion ip de mi maquina local
+	// int gethostbyname(char *hostname, size_t size);
+	// hostname es un puntero a una cadena de caracteres donde se almacena el nombre de la maquina cuando la funcion retorne y size es la longitud de bytes de esa cadena de caracteres
+	// 0 -> ok, -1 -> error
+
 
 
 
