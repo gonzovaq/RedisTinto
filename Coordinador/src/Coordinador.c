@@ -180,9 +180,9 @@
 
         // todo RECIBIR UNA OPERACION DEL ESI APLICANDO EL PROTOCOLO
 
-        int tamanioOperacionHeader = malloc(sizeof(struct OperacionHeader));
-        struct OperacionHeader * header = tamanioOperacionHeader;
-        struct OperacionAEnviar operacionParaInstancia;
+        int tamanioOperacionHeader = malloc(sizeof(OperaciontHeader));
+        OperaciontHeader * header = tamanioOperacionHeader;
+        OperacionAEnviar * operacionParaInstancia;
 
         if ((tamanioOperacionHeader=recv(new_fd, header, tamanioOperacionHeader, 0)) == -1) {
             perror("recv");
@@ -191,11 +191,13 @@
         }
 
         // Podriamos recibir una estructura que nos indique el tipo y tamanio de los mensajes y despues recibir los mensajes por separado
+        int tamanioClave = TAMANIO_CLAVE;
+        int tamanioValor = TAMANIO_VALOR;//Defini un 41 pero nose realmente de que tamanio va a ser el valor..
+        char clave[tamanioClave];
+        char valor[tamanioValor];
         switch(header->tipo){
         case GET:
 
-        	int tamanioClave = TAMANIO_CLAVE;
-        	char clave[tamanioClave];
             if (recv(new_fd, clave, tamanioClave-1, 0) == -1) {
                 perror("recv");
                 log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
@@ -203,15 +205,13 @@
             }
             clave[tamanioClave] = '\0';
             printf("Recibi la clave: %s\n",clave);
-            operacionParaInstancia = malloc(sizeof(struct tTipoOperacion)+tamanioClave);
+            operacionParaInstancia = malloc(sizeof(tTipoOperacion)+tamanioClave);
         	operacionParaInstancia->tipo = GET;
             operacionParaInstancia->clave = clave;
             operacionParaInstancia->valor = NULL;
             break;
         case SET:
 
-        	int tamanioClave = TAMANIO_CLAVE;
-        	char clave[tamanioClave];
             if (recv(new_fd, clave, tamanioClave-1, 0) == -1) {
                 perror("recv");
                 log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
@@ -221,7 +221,7 @@
             printf("Recibi la clave: %s\n",clave);
 
         	int tamanioValor = header->tamanioValor;
-        	char valor[tamanioValor];
+
             if (recv(new_fd, valor, tamanioValor-1, 0) == -1) {
                 perror("recv");
                 log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
@@ -229,7 +229,7 @@
             }
             clave[tamanioValor] = '\0';
             printf("Recibi la clave: %s\n",valor);
-            operacionParaInstancia = malloc(sizeof(struct tTipoOperacion) +tamanioClave+tamanioValor);
+          //  ParaInstancia = malloc(sizeof(tTipoOperacion) +tamanioClave+tamanioValor);
         	operacionParaInstancia->tipo = SET;
             operacionParaInstancia->clave = clave;
             operacionParaInstancia->valor = valor;
@@ -237,8 +237,7 @@
             break;
         case STORE:
         	operacionParaInstancia->tipo = STORE;
-        	int tamanioClave = TAMANIO_CLAVE;
-        	char clave[tamanioClave];
+
             if (recv(new_fd, clave, tamanioClave-1, 0) == -1) {
                 perror("recv");
                 log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
@@ -246,7 +245,7 @@
             }
             clave[tamanioClave] = '\0';
             printf("Recibi la clave: %s\n",clave);
-            operacionParaInstancia = malloc(sizeof(struct tTipoOperacion)+tamanioClave);
+            operacionParaInstancia = malloc(sizeof(tTipoOperacion)+tamanioClave);
         	operacionParaInstancia->tipo = STORE;
             operacionParaInstancia->clave = clave;
             operacionParaInstancia->valor = NULL;

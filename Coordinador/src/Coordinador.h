@@ -26,6 +26,7 @@
 #define ARCHIVO_CONFIGURACION "configuracion.config"
 #define BACKLOG 10     // Cuántas conexiones pendientes se mantienen en cola
 #define TAMANIO_CLAVE 41
+#define TAMANIO_VALOR 41
 
 struct parametrosConexion{
 	//int sockfd; --> no se requiere para la conexion
@@ -69,7 +70,7 @@ typedef struct{
 
 typedef struct {
   tTipoOperacion tipo;
-  int tamaniooValor;
+  int tamanioValor;
 }OperaciontHeader;
 
 typedef struct {

@@ -223,3 +223,9 @@ GET	clave: <jugador>
 SET	clave: <jugador>	valor: <messi>
 STORE	clave: <jugador>
 
+[INFO] 18:22:35:218 CORD/(6825:6883): TID 6883  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 18:22:35:230 CORD/(6825:6883): TID 6883  Mensaje: ERROR en ESI
