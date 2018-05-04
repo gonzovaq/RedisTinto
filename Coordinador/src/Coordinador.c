@@ -182,6 +182,7 @@
 
         int tamanioOperacionHeader = malloc(sizeof(struct OperacionHeader));
         struct OperacionHeader * header = tamanioOperacionHeader;
+        struct OperacionAEnviar operacionParaInstancia;
 
         if ((tamanioOperacionHeader=recv(new_fd, header, tamanioOperacionHeader, 0)) == -1) {
             perror("recv");
@@ -193,7 +194,7 @@
         switch(header->tipo){
         case GET:
 
-        	int tamanioClave = header->tamanioClave;
+        	int tamanioClave = TAMANIO_CLAVE;
         	char clave[tamanioClave];
             if (recv(new_fd, clave, tamanioClave-1, 0) == -1) {
                 perror("recv");
@@ -202,14 +203,14 @@
             }
             clave[tamanioClave] = '\0';
             printf("Recibi la clave: %s\n",clave);
-            struct OperacionAEnviar operacionParaInstancia = malloc(sizeof(struct tTipoOperacion)+tamanioClave);
+            operacionParaInstancia = malloc(sizeof(struct tTipoOperacion)+tamanioClave);
         	operacionParaInstancia->tipo = GET;
             operacionParaInstancia->clave = clave;
             operacionParaInstancia->valor = NULL;
             break;
         case SET:
 
-        	int tamanioClave = header->tamanioClave;
+        	int tamanioClave = TAMANIO_CLAVE;
         	char clave[tamanioClave];
             if (recv(new_fd, clave, tamanioClave-1, 0) == -1) {
                 perror("recv");
@@ -228,7 +229,7 @@
             }
             clave[tamanioValor] = '\0';
             printf("Recibi la clave: %s\n",valor);
-            struct OperacionAEnviar operacionParaInstancia = malloc(sizeof(struct tTipoOperacion) +tamanioClave+tamanioValor);
+            operacionParaInstancia = malloc(sizeof(struct tTipoOperacion) +tamanioClave+tamanioValor);
         	operacionParaInstancia->tipo = SET;
             operacionParaInstancia->clave = clave;
             operacionParaInstancia->valor = valor;
@@ -236,7 +237,7 @@
             break;
         case STORE:
         	operacionParaInstancia->tipo = STORE;
-        	int tamanioClave = header->tamanioClave;
+        	int tamanioClave = TAMANIO_CLAVE;
         	char clave[tamanioClave];
             if (recv(new_fd, clave, tamanioClave-1, 0) == -1) {
                 perror("recv");
@@ -245,7 +246,7 @@
             }
             clave[tamanioClave] = '\0';
             printf("Recibi la clave: %s\n",clave);
-            struct OperacionAEnviar operacionParaInstancia = malloc(sizeof(struct tTipoOperacion)+tamanioClave);
+            operacionParaInstancia = malloc(sizeof(struct tTipoOperacion)+tamanioClave);
         	operacionParaInstancia->tipo = STORE;
             operacionParaInstancia->clave = clave;
             operacionParaInstancia->valor = NULL;
@@ -267,7 +268,7 @@
         pthread_mutex_unlock(&mutex);
 
         // Semaforo por si llegaran a entrar mas de un ESI
-
+        free(operacionParaInstancia);
         free(tamanioOperacionHeader);
 
 		close(new_fd);
