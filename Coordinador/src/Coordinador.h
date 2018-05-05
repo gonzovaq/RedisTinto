@@ -22,27 +22,23 @@
 #include <commons/collections/queue.h>
 #include <sys/queue.h>
 
+///// DEFINES
+
 #define MYPORT 3490    // Puerto al que conectarán los usuarios
 #define ARCHIVO_CONFIGURACION "configuracion.config"
 #define BACKLOG 10     // Cuántas conexiones pendientes se mantienen en cola
 #define TAMANIO_CLAVE 41
 #define TAMANIO_VALOR 41
 
+
+// ESTRUCTURAS Y ENUMS
+
 struct parametrosConexion{
 	//int sockfd; --> no se requiere para la conexion
 	int new_fd;
 	int semaforo;
 	struct node_t * colaProcesos;
-};
-
-struct operacionParaInstancia{
-	int tipoOperacion;
-	int longitudMensaje;
-	char* mensaje;
-};
-
-int PUERTO;
-char* IP;
+};  // Aqui dejamos los descriptores y un semaforo para los hilos que lo necesiten
 
 typedef enum{
 	ESI = 1,
@@ -62,36 +58,50 @@ typedef enum{
 	STORE = 3
 }tTipoOperacion;
 
+typedef enum{
+	OK = 1,
+	BLOQUEO = 2,
+	ERROR = 3
+}tResultadoOperacion;
+
 typedef struct{
 	tTipoDeProceso tipoProceso;
 	tTipoDeMensaje tipoMensaje;
 	int idProceso;
-}tHeader;
+}tHeader; // Header que recibimos de los procesos para identificarlos
 
 typedef struct {
   tTipoOperacion tipo;
   int tamanioValor;
-}OperaciontHeader;
+}OperaciontHeader; // Header que vamos a recibir de parte del ESI para identificar la operacion
 
 typedef struct {
 	tTipoOperacion tipo;
 	char* clave;
 	char* valor;
-}OperacionAEnviar;
+}OperacionAEnviar; // Operacion que vamos a enviar a la instancia
 
-//var globales
+
+// VARIABLES GLOBALES
+
+int PUERTO;
+char* IP;
 t_log * logger;
 t_queue *colaInstancias;
+t_queue *colaESIS;
 t_queue *colaMensajes;
+t_queue *colaResultados;
 pthread_mutex_t mutex;
+
+
+// FUNCIONES
 
 void sigchld_handler(int s);
 int main(void);
-
 void configure_logger();
 void exit_gracefully(int return_nr);
 void *gestionarConexion(struct parametrosConexion *parametros);
-void *conexionESI(int *new_fd);
-void *conexionPlanificador(int *new_fd);
-void *conexionInstancia(int *new_fd);
+void *conexionESI(struct parametrosConexion* parametros);
+void *conexionPlanificador(struct parametrosConexion* parametros);
+void *conexionInstancia(struct parametrosConexion* parametros);
 

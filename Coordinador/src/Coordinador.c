@@ -81,6 +81,7 @@
         // Creamos una cola donde dejamos todas las instancias que se conectan con nosotros y otra para los mensajes recibidos de cualquier ESI
         colaInstancias = queue_create();
         colaMensajes = 	queue_create();
+        colaResultados = queue_create();
 
         //Inicializamos el mutex
         pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -102,7 +103,7 @@
 
     	            //Para hilos debo crear una estructura de parametros de la funcion que quiera llamar
     				pthread_t tid;
-    				struct parametrosConexion parametros = {new_fd,sem_init(tid)};//(&sockfd, &new_fd) --> no lo utilizo porque sockfd ya no se requiere
+    				struct parametrosConexion parametros = {new_fd,sem_init(0)};// Inicializo el semaforo en 0
 
     	            int stat = pthread_create(&tid, NULL, (void*)gestionarConexion, (void*)&parametros);//(void*)&parametros -> parametros contendria todos los parametros que usa conexion
     				if (stat != 0){
@@ -140,7 +141,7 @@
     	switch (headerRecibido->tipoProceso) {
     	case ESI:
     		printf("Se conecto el proceso %d \n", headerRecibido->idProceso);
-    		conexionESI(parametros->new_fd);
+    		conexionESI(parametros);
     		break;
     	case PLANIFICADOR:
     		printf("Se conecto el proceso %d \n", headerRecibido->idProceso);
@@ -149,7 +150,7 @@
     	case INSTANCIA:
     		printf("Se conecto el proceso %d \n", headerRecibido->idProceso);
     		queue_push(colaInstancias,(void*)&parametros);
-    		conexionInstancia(parametros->new_fd);
+    		conexionInstancia(parametros);
     		break;
     	default:
     		puts("Error al intentar conectar un proceso");
@@ -158,15 +159,15 @@
     }
 
 
-    void *conexionESI(int *new_fd){
+    void *conexionESI(struct parametrosConexion* parametros){
     	//close(new_fd->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
         puts("ESI conectandose");
-		if (send(new_fd, "Hola papa!\n", 14, 0) == -1)
+		if (send(parametros->new_fd, "Hola papa!\n", 14, 0) == -1)
 			perror("send");
         int numbytes,tamanio_buffer=200;
         char buf[tamanio_buffer]; //Seteo el maximo del buffer en 100 para probar. Debe ser variable.
 
-        if ((numbytes=recv(new_fd, buf, tamanio_buffer-1, 0)) == -1) {
+        if ((numbytes=recv(parametros->new_fd, buf, tamanio_buffer-1, 0)) == -1) {
             perror("recv");
             log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
             exit_gracefully(1);
@@ -178,13 +179,13 @@
         free(buf[numbytes]);
 
 
-        // todo RECIBIR UNA OPERACION DEL ESI APLICANDO EL PROTOCOLO
+        // todo RECIBIR UNA OPERACION DEL ESI APLICANDO EL PROTOCOLO (Esto deberia ir en un while para leer varias operaciones)
+        while(1){
 
         int tamanioOperacionHeader = malloc(sizeof(OperaciontHeader));
         OperaciontHeader * header = tamanioOperacionHeader;
-        OperacionAEnviar * operacionParaInstancia;
 
-        if ((tamanioOperacionHeader=recv(new_fd, header, tamanioOperacionHeader, 0)) == -1) {
+        if ((tamanioOperacionHeader=recv(parametros->new_fd, header, tamanioOperacionHeader, 0)) == -1) {
             perror("recv");
             log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
             exit_gracefully(1);
@@ -192,27 +193,27 @@
 
         // Podriamos recibir una estructura que nos indique el tipo y tamanio de los mensajes y despues recibir los mensajes por separado
         int tamanioClave = TAMANIO_CLAVE;
-        int tamanioValor = TAMANIO_VALOR;//Defini un 41 pero nose realmente de que tamanio va a ser el valor..
         char clave[tamanioClave];
-        char valor[tamanioValor];
+        int tamanioValor = header->tamanioValor;
+        OperacionAEnviar * operacion = malloc(sizeof(tTipoOperacion)+tamanioClave+tamanioValor);
+
+        // Segun el tipo de operacion que sea, cargamos el mensaje en una estructura
         switch(header->tipo){
         case GET:
-
-            if (recv(new_fd, clave, tamanioClave-1, 0) == -1) {
+            if (recv(parametros->new_fd, clave, tamanioClave-1, 0) == -1) {
                 perror("recv");
                 log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
                 exit_gracefully(1);
             }
             clave[tamanioClave] = '\0';
             printf("Recibi la clave: %s\n",clave);
-            operacionParaInstancia = malloc(sizeof(tTipoOperacion)+tamanioClave);
-        	operacionParaInstancia->tipo = GET;
-            operacionParaInstancia->clave = clave;
-            operacionParaInstancia->valor = NULL;
+            operacion->tipo = GET;
+            operacion->clave = clave;
+            operacion->valor = NULL;
+
             break;
         case SET:
-
-            if (recv(new_fd, clave, tamanioClave-1, 0) == -1) {
+            if (recv(parametros->new_fd, clave, tamanioClave-1, 0) == -1) {
                 perror("recv");
                 log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
                 exit_gracefully(1);
@@ -220,45 +221,46 @@
             clave[tamanioClave] = '\0';
             printf("Recibi la clave: %s\n",clave);
 
-        	int tamanioValor = header->tamanioValor;
-
-            if (recv(new_fd, valor, tamanioValor-1, 0) == -1) {
+        	char valor[tamanioValor];
+            if (recv(parametros->new_fd, valor, tamanioValor-1, 0) == -1) {
                 perror("recv");
                 log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
                 exit_gracefully(1);
             }
             clave[tamanioValor] = '\0';
             printf("Recibi la clave: %s\n",valor);
-          //  ParaInstancia = malloc(sizeof(tTipoOperacion) +tamanioClave+tamanioValor);
-        	operacionParaInstancia->tipo = SET;
-            operacionParaInstancia->clave = clave;
-            operacionParaInstancia->valor = valor;
+            operacion->tipo = SET;
+            operacion->clave = clave;
+            operacion->valor = valor;
 
             break;
         case STORE:
-        	operacionParaInstancia->tipo = STORE;
-
-            if (recv(new_fd, clave, tamanioClave-1, 0) == -1) {
+            if (recv(parametros->new_fd, clave, tamanioClave-1, 0) == -1) {
                 perror("recv");
                 log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
                 exit_gracefully(1);
             }
             clave[tamanioClave] = '\0';
             printf("Recibi la clave: %s\n",clave);
-            operacionParaInstancia = malloc(sizeof(tTipoOperacion)+tamanioClave);
-        	operacionParaInstancia->tipo = STORE;
-            operacionParaInstancia->clave = clave;
-            operacionParaInstancia->valor = NULL;
+
+            operacion->tipo = STORE;
+            operacion->clave = clave;
+            operacion->valor = NULL;
+
             break;
         }
+        
 	    // Debo avisar a una Instancia cuando recibo una operacion
+
+        //Agregamos el mensaje a una cola en memoria
+        pthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
+        queue_push(colaMensajes,(void*)&operacion);
+        pthread_mutex_unlock(&mutex);
+        free(operacion);
 
         while(queue_is_empty(colaInstancias)) ; // mientras la cola este vacia no puedo continuar
 
         pthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
-
-        struct operacionParaInstancia operacion = {1,sizeof(buf),buf};
-        queue_push(colaMensajes,(void*)&operacionParaInstancia);
 
         struct parametrosConexion * instancia = queue_pop(colaInstancias); //saco la primer instancia de la cola pero luego tengo que deolverla a la cola
         sem_post(instancia->semaforo); // Le aviso al semaforo de la instancia de que puede operar (el semaforo es el tid)
@@ -267,21 +269,28 @@
         pthread_mutex_unlock(&mutex);
 
         // Semaforo por si llegaran a entrar mas de un ESI
-        free(operacionParaInstancia);
         free(tamanioOperacionHeader);
 
-		close(new_fd);
+        //esperamos el resultado para devolver
+        while(queue_is_empty(colaResultados)) ; // mientras la cola este vacia no puedo continuar
+        struct tResultadoOperacion * resultado = queue_pop(colaResultados);
+
+		if (send(parametros->new_fd, resultado, sizeof(resultado), 0) == -1)
+			perror("send");
+
+        }
+		close(parametros->new_fd);
     }
 
-    void *conexionPlanificador(int *new_fd){
+    void *conexionPlanificador(struct parametrosConexion* parametros){
     	//close(new_fd->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
         puts("Planificador conectandose");
-		if (send(new_fd, "Hola papa!\n", 14, 0) == -1)
+		if (send(parametros->new_fd, "Hola papa!\n", 14, 0) == -1)
 			perror("send");
         int numbytes,tamanio_buffer=100;
         char buf[tamanio_buffer]; //Seteo el maximo del buffer en 100 para probar. Debe ser variable.
 
-        if ((numbytes=recv(new_fd, buf, tamanio_buffer-1, 0)) == -1) {
+        if ((numbytes=recv(parametros->new_fd, buf, tamanio_buffer-1, 0)) == -1) {
             perror("recv");
             exit(1);
         }
@@ -290,18 +299,18 @@
         printf("Received: %s\n",buf);
         free(buf[numbytes]);
 
-		close(new_fd);
+		close(parametros->new_fd);
     }
 
-    void *conexionInstancia(int *new_fd){
+    void *conexionInstancia(struct parametrosConexion* parametros){
     	//close(new_fd->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
         puts("Instancia conectandose");
-		if (send(new_fd, "Hola papa!\n", 14, 0) == -1)
+		if (send(parametros->new_fd, "Hola papa!\n", 14, 0) == -1)
 			perror("send");
         int numbytes,tamanio_buffer=100;
         char buf[tamanio_buffer]; //Seteo el maximo del buffer en 100 para probar. Debe ser variable.
 
-        if ((numbytes=recv(new_fd, buf, tamanio_buffer-1, 0)) == -1) {
+        if ((numbytes=recv(parametros->new_fd, buf, tamanio_buffer-1, 0)) == -1) {
             perror("recv");
             exit(1);
         }
@@ -310,10 +319,27 @@
         printf("Received: %s\n",buf);
         free(buf[numbytes]);
 
-        sem_wait(pthread_self()); // Caundo me avisen que hay una operacion para enviar, la voy a levantar de la cola
-        struct operacionParaInstancia * operacion = queue_pop(colaMensajes);
+        sem_wait(parametros->semaforo); // Caundo me avisen que hay una operacion para enviar, la voy a levantar de la cola
+        OperacionAEnviar * operacion = queue_pop(colaMensajes);
+        int tamanioValor = strlen(operacion->valor);
+        tTipoOperacion tipo = operacion->tipo;
+        OperaciontHeader * header;  // Creo el header que le voy a enviar a la instancia para que identifique la operacion
+        header->tipo = tipo;
+        header->tamanioValor = tamanioValor;
 
-		close(new_fd);
+		if (send(parametros->new_fd, header, sizeof(header), 0) == -1)
+			perror("send");
+
+		// Espero el resultado de la operacion
+		tResultadoOperacion * resultado;
+        if (recv(parametros->new_fd, resultado, sizeof(tResultadoOperacion), 0) == -1) {
+            perror("recv");
+            exit(1);
+        }
+        //Debo avisarle al ESI que me invoco el resultado
+        queue_push(colaResultados,(void*)&resultado);
+
+		close(parametros->new_fd);
     }
 
     void exit_gracefully(int return_nr) {
