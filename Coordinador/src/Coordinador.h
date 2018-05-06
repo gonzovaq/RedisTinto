@@ -65,6 +65,11 @@ typedef enum{
 }tResultadoOperacion;
 
 typedef struct{
+	tResultadoOperacion resultado;
+	char* clave;
+}tResultado;
+
+typedef struct{
 	tTipoDeProceso tipoProceso;
 	tTipoDeMensaje tipoMensaje;
 	int idProceso;
@@ -104,4 +109,11 @@ void *gestionarConexion(struct parametrosConexion *parametros);
 void *conexionESI(struct parametrosConexion* parametros);
 void *conexionPlanificador(struct parametrosConexion* parametros);
 void *conexionInstancia(struct parametrosConexion* parametros);
+void AnalizarOperacion(char clave[TAMANIO_CLAVE], int tamanioValor,
+		OperaciontHeader* header, struct parametrosConexion* parametros,
+		OperacionAEnviar* operacion);
+void ManejarOperacionGET(char clave[TAMANIO_CLAVE],
+		struct parametrosConexion* parametros, OperacionAEnviar* operacion);
+void ManejarOperacionSET(clave, tamanioValor, parametros, operacion);
+void ManejarOperacionSTORE(clave, parametros, operacion);
 

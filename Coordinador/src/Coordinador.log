@@ -229,3 +229,6 @@ SET	clave: <jugador>	valor: <messi>
 STORE	clave: <jugador>
 
 [INFO] 18:22:35:230 CORD/(6825:6883): TID 6883  Mensaje: ERROR en ESI
+[INFO] 15:22:02:248 CORD/(6065:6086): TID 6086  Mensaje:  Hola Coordinador, como va?
+
+[INFO] 15:22:02:307 CORD/(6065:6086): TID 6086  Mensaje: ERROR en ESI

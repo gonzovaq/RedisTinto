@@ -158,7 +158,6 @@
     	}
     }
 
-
     void *conexionESI(struct parametrosConexion* parametros){
     	//close(new_fd->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
         puts("ESI conectandose");
@@ -192,65 +191,14 @@
         }
 
         // Podriamos recibir una estructura que nos indique el tipo y tamanio de los mensajes y despues recibir los mensajes por separado
-        int tamanioClave = TAMANIO_CLAVE;
-        char clave[tamanioClave];
+        char clave[TAMANIO_CLAVE];
         int tamanioValor = header->tamanioValor;
-        OperacionAEnviar * operacion = malloc(sizeof(tTipoOperacion)+tamanioClave+tamanioValor);
+        OperacionAEnviar * operacion = malloc(sizeof(tTipoOperacion)+TAMANIO_CLAVE+tamanioValor);
 
         // Segun el tipo de operacion que sea, cargamos el mensaje en una estructura
-        switch(header->tipo){
-        case GET:
-            if (recv(parametros->new_fd, clave, tamanioClave-1, 0) == -1) {
-                perror("recv");
-                log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
-                exit_gracefully(1);
-            }
-            clave[tamanioClave] = '\0';
-            printf("Recibi la clave: %s\n",clave);
-            operacion->tipo = GET;
-            operacion->clave = clave;
-            operacion->valor = NULL;
-
-            break;
-        case SET:
-            if (recv(parametros->new_fd, clave, tamanioClave-1, 0) == -1) {
-                perror("recv");
-                log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
-                exit_gracefully(1);
-            }
-            clave[tamanioClave] = '\0';
-            printf("Recibi la clave: %s\n",clave);
-
-        	char valor[tamanioValor];
-            if (recv(parametros->new_fd, valor, tamanioValor-1, 0) == -1) {
-                perror("recv");
-                log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
-                exit_gracefully(1);
-            }
-            clave[tamanioValor] = '\0';
-            printf("Recibi la clave: %s\n",valor);
-            operacion->tipo = SET;
-            operacion->clave = clave;
-            operacion->valor = valor;
-
-            break;
-        case STORE:
-            if (recv(parametros->new_fd, clave, tamanioClave-1, 0) == -1) {
-                perror("recv");
-                log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
-                exit_gracefully(1);
-            }
-            clave[tamanioClave] = '\0';
-            printf("Recibi la clave: %s\n",clave);
-
-            operacion->tipo = STORE;
-            operacion->clave = clave;
-            operacion->valor = NULL;
-
-            break;
-        }
+		AnalizarOperacion(clave, tamanioValor, header, parametros, operacion);
         
-	    // Debo avisar a una Instancia cuando recibo una operacion
+	    // Debo avisar a una Instancia cuando recibo una operacion (QUE NO SEA UN GET)
 
         //Agregamos el mensaje a una cola en memoria
         pthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
@@ -273,9 +221,9 @@
 
         //esperamos el resultado para devolver
         while(queue_is_empty(colaResultados)) ; // mientras la cola este vacia no puedo continuar
-        struct tResultadoOperacion * resultado = queue_pop(colaResultados);
-
-		if (send(parametros->new_fd, resultado, sizeof(resultado), 0) == -1)
+        tResultado * resultado = queue_pop(colaResultados);
+        log_info(logger,resultado);
+		if (send(parametros->new_fd, (void*)resultado->resultado, sizeof(resultado), 0) == -1)
 			perror("send");
 
         }
@@ -298,6 +246,11 @@
         buf[numbytes] = '\0';
         printf("Received: %s\n",buf);
         free(buf[numbytes]);
+
+        // Le avisamos al planificador cada clave que se bloquee y desbloquee
+        while(1){
+
+        }
 
 		close(parametros->new_fd);
     }
@@ -327,8 +280,18 @@
         header->tipo = tipo;
         header->tamanioValor = tamanioValor;
 
+        // Envio el header a la instancia
 		if (send(parametros->new_fd, header, sizeof(header), 0) == -1)
 			perror("send");
+
+		// Envio la clave
+		if (send(parametros->new_fd, operacion->clave, TAMANIO_CLAVE, 0) == -1)
+			perror("send");
+
+		if(tipo == SET){
+			if (send(parametros->new_fd, operacion->valor, tamanioValor, 0) == -1)
+				perror("send");
+		}
 
 		// Espero el resultado de la operacion
 		tResultadoOperacion * resultado;
@@ -336,11 +299,101 @@
             perror("recv");
             exit(1);
         }
+
+        tResultado * resultadoCompleto = {resultado,operacion->clave};
+
         //Debo avisarle al ESI que me invoco el resultado
-        queue_push(colaResultados,(void*)&resultado);
+        queue_push(colaResultados,(void*)&resultadoCompleto);
 
 		close(parametros->new_fd);
     }
+
+    void AnalizarOperacion(char clave[TAMANIO_CLAVE], int tamanioValor,
+    			OperaciontHeader* header, struct parametrosConexion* parametros,
+    			OperacionAEnviar* operacion) {
+    		// Segun el tipo de operacion que sea, cargamos el mensaje en una estructura
+    		switch (header->tipo) {
+    		case GET: // PARA EL GET NO HAY QUE ACCEDER A NINGUNA INSTANCIA
+		ManejarOperacionGET(clave, parametros, operacion);
+    			break;
+    		case SET:
+		ManejarOperacionSET(clave, tamanioValor, parametros, operacion);
+    			break;
+    		case STORE:
+		ManejarOperacionSTORE(clave, parametros, operacion);
+    			break;
+    		}
+    	}
+
+	void ManejarOperacionGET(char clave[TAMANIO_CLAVE],
+			struct parametrosConexion* parametros, OperacionAEnviar* operacion) {
+		if (recv(parametros->new_fd, clave, TAMANIO_CLAVE - 1, 0) == -1) {
+			perror("recv");
+			log_info(logger, "TID %d  Mensaje: ERROR en ESI",
+					process_get_thread_id());
+			exit_gracefully(1);
+		}
+		clave[TAMANIO_CLAVE] = '\0';
+		printf("Recibi la clave: %s\n", clave);
+		operacion->tipo = GET;
+		operacion->clave = clave;
+		operacion->valor = NULL;
+		char* GetALoguear[sizeof(operacion)];
+		strncpy(GetALoguear, "GET ", 4);
+		puts(GetALoguear);
+		strncpy(GetALoguear, clave, strlen(clave));
+		puts(GetALoguear);
+		log_info(logger, GetALoguear);
+	}
+
+	void ManejarOperacionSET(char clave[TAMANIO_CLAVE], int tamanioValor,
+			struct parametrosConexion* parametros, OperacionAEnviar* operacion) {
+		if (recv(parametros->new_fd, clave, TAMANIO_CLAVE - 1, 0) == -1) {
+			perror("recv");
+			log_info(logger, "TID %d  Mensaje: ERROR en ESI",
+					process_get_thread_id());
+			exit_gracefully(1);
+		}
+		clave[TAMANIO_CLAVE] = '\0';
+		printf("Recibi la clave: %s\n", clave);
+		char valor[tamanioValor];
+		if (recv(parametros->new_fd, valor, tamanioValor - 1, 0) == -1) {
+			perror("recv");
+			log_info(logger, "TID %d  Mensaje: ERROR en ESI",
+					process_get_thread_id());
+			exit_gracefully(1);
+		}
+		clave[tamanioValor] = '\0';
+		printf("Recibi la clave: %s\n", valor);
+		operacion->tipo = SET;
+		operacion->clave = clave;
+		operacion->valor = valor;
+		char* SetALoguear[sizeof(operacion)];
+		strncpy(SetALoguear, "SET ", 4);
+		puts(SetALoguear);
+		strncpy(SetALoguear, clave, strlen(clave));
+		puts(SetALoguear);
+		strncpy(SetALoguear, valor, strlen(valor));
+		log_info(logger, SetALoguear);
+	}
+
+	void ManejarOperacionSTORE(char clave[TAMANIO_CLAVE],
+			struct parametrosConexion* parametros, OperacionAEnviar* operacion) {
+		if (recv(parametros->new_fd, clave, TAMANIO_CLAVE - 1, 0) == -1) {
+			perror("recv");
+			log_info(logger, "TID %d  Mensaje: ERROR en ESI",
+					process_get_thread_id());
+			exit_gracefully(1);
+		}
+		clave[TAMANIO_CLAVE] = '\0';
+		printf("Recibi la clave: %s\n", clave);
+		char* StoreALoguear[sizeof(operacion)];
+		strncpy(StoreALoguear, "STORE ", 6);
+		puts(StoreALoguear);
+		strncpy(StoreALoguear, clave, strlen(clave));
+		puts(StoreALoguear);
+		log_info(logger, StoreALoguear);
+	}
 
     void exit_gracefully(int return_nr) {
 
