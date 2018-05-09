@@ -232,3 +232,96 @@ STORE	clave: <jugador>
 [INFO] 15:22:02:248 CORD/(6065:6086): TID 6086  Mensaje:  Hola Coordinador, como va?
 
 [INFO] 15:22:02:307 CORD/(6065:6086): TID 6086  Mensaje: ERROR en ESI
+[INFO] 16:20:41:616 CORD/(4559:4684): TID 4684  Mensaje:  Hola Coordinador, como va?
+
+[INFO] 16:20:41:621 CORD/(4559:4684): TID 4684  Mensaje: ERROR en ESI
+[INFO] 17:08:18:616 CORD/(5170:5175): TID 5175  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 17:08:18:616 CORD/(5170:5175): TID 5175  Mensaje: ERROR en ESI
+[INFO] 17:12:20:153 CORD/(5227:5239): TID 5239  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 17:12:20:153 CORD/(5227:5239): TID 5239  Mensaje: ERROR en ESI
+[INFO] 17:12:55:993 CORD/(5266:5272): TID 5272  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 17:12:55:994 CORD/(5266:5272): TID 5272  Mensaje: ERROR en ESI
+[INFO] 20:40:30:557 CORD/(2746:2751): TID 2751  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 20:40:30:573 CORD/(2746:2751): TID 2751  Mensaje: ERROR en ESI
+[INFO] 20:58:57:948 CORD/(3193:3198): TID 3198  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 20:58:57:949 CORD/(3193:3198): TID 3198  Mensaje: ERROR en ESI
+[INFO] 21:00:37:791 CORD/(3218:3220): TID 3220  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 21:00:37:792 CORD/(3218:3220): TID 3220  Mensaje: ERROR en ESI
+[INFO] 21:03:14:392 CORD/(3230:3235): TID 3235  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 21:03:14:393 CORD/(3230:3235): TID 3235  Mensaje: ERROR en ESI
+[INFO] 21:31:18:821 CORD/(3863:3871): TID 3871  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 21:31:18:822 CORD/(3863:3871): TID 3871  Mensaje: ERROR en ESI
+[INFO] 14:21:40:737 CORD/(4118:4283): TID 4283  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:21:40:738 CORD/(4118:4283): TID 4283  Mensaje: ERROR en ESI
+[INFO] 14:22:40:992 CORD/(4305:4312): TID 4312  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:22:40:992 CORD/(4305:4312): TID 4312  Mensaje: ERROR en ESI
+[INFO] 14:23:25:230 CORD/(4333:4338): TID 4338  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:23:25:231 CORD/(4333:4338): TID 4338  Mensaje: ERROR en ESI
+[INFO] 14:24:44:495 CORD/(4356:4361): TID 4361  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:24:44:499 CORD/(4356:4361): TID 4361  Mensaje: ERROR en ESI
+[INFO] 14:30:31:883 CORD/(4432:4437): TID 4437  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:30:31:884 CORD/(4432:4437): TID 4437  Mensaje: ERROR en ESI
+[INFO] 14:30:39:790 CORD/(4438:4440): TID 4440  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:30:39:790 CORD/(4438:4440): TID 4440  Mensaje: ERROR en ESI
+[INFO] 14:57:57:870 CORD/(5003:5011): TID 5011  Mensaje:  Hola Coordinador, como va?
+GET	clave: <jugador>
+SET	clave: <jugador>	valor: <messi>
+STORE	clave: <jugador>
+
+[INFO] 14:57:57:870 CORD/(5003:5011): TID 5011  Mensaje: ERROR en ESI

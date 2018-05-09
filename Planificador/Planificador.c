@@ -4,8 +4,13 @@
     {
     	LeerArchivoDeConfiguracion();
     	verificarParametrosAlEjecutar(argc, argv);
-
-    	fd_set master;   // conjunto maestro de descriptores de fichero
+    			//FIFO
+    		  	Fifo *primero = malloc(sizeof(Fifo));
+    		  	Fifo *ultimo = malloc(sizeof(Fifo));
+    	        primero = NULL;
+    	        ultimo = NULL;
+    	        //
+    	        fd_set master;   // conjunto maestro de descriptores de fichero
     	        fd_set read_fds; // conjunto temporal de descriptores de fichero para select()
     	        struct sockaddr_in myaddr;     // dirección del servidor
     	        struct sockaddr_in remoteaddr; // dirección del cliente
@@ -24,6 +29,14 @@
     	        // obtener socket para coordinador
     	        ConectarAlCoordinador(&sockCord, &cord_addr, he);
 
+
+    	        /*Inicializar cola
+    	        Fifo *nodo;
+    	        nodo->pid = pid;
+    	        nodo->sgt = NULL;
+    	        primero=nodo;
+     	 	 	ultimo=nodo;
+    	        */
     	        puts("Obtenemos listener");
     	        // obtener socket a la escucha
     	        if ((listener = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
@@ -55,9 +68,9 @@
     	        // añadir listener al conjunto maestro
     	        FD_SET(listener, &master);
 
-    	        //puts("Añadimos la conexion al coordinador al conjunto maestro");
+    	        puts("Añadimos la conexion al coordinador al conjunto maestro");
     	        // añadir conexion con coordinador al conjunto maestro
-    	        //FD_SET(sockCord, &master);
+    	        FD_SET(sockCord, &master);
 
     	        puts("Descripores bases añanidos");
 
@@ -113,6 +126,8 @@
     	                            printf("selectserver: new connection from %s on "
     	                                "socket %d\n", inet_ntoa(remoteaddr.sin_addr), newfd);
     	                        	gestionarConexion(newfd);
+    	                        	//printf("tst2");
+    	                        	//FD_CLR(i, &master); no hace falta aca
 
     	                        }
     	                    } else {
@@ -326,7 +341,7 @@
 					exit(1);
 
 				   }
-				  // fprintf("Mensaje : %s",headerRecibido->tipoMensaje);
+				   //fprintf("Mensaje : %s",headerRecibido->tipoMensaje);
 				   if (headerRecibido->tipoMensaje == CONECTARSE){
 					IdentificarProceso(headerRecibido, socket);
 					free(headerRecibido);
@@ -348,10 +363,7 @@
 
 
 		    void *conexionESI(int *socket){
-		    	//close(new_fd->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
 		        puts("ESI conectandose");
-				if (send(socket, "Hola papa!\n", 14, 0) == -1)
-					perror("send");
 		        int numbytes,tamanio_buffer=100;
 		        char buf[tamanio_buffer]; //Seteo el maximo del buffer en 100 para probar. Debe ser variable.
 
@@ -364,5 +376,23 @@
 		        printf("Received: %s\n",buf);
 
 		        free(buf[numbytes]);
-				close(socket);
+				//close(socket); lo cierra despues el select
+				//printf("tst1");
+		    }
+
+		    void Encolar(Fifo*ultimo,int EsiId){  //agrega al final de la cola
+		    	while(ultimo->sgt != NULL)
+		    	         ultimo=ultimo->sgt;
+
+
+		        Fifo *nodo;
+		        nodo->pid=EsiId;
+		        nodo->sgt=NULL;
+
+		        ultimo->sgt = nodo;
+
+		        ultimo = nodo;
+		    }
+		    void DesEncolar(){
+
 		    }

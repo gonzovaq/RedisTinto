@@ -31,6 +31,12 @@ struct parametrosConexion{
 	int new_fd;
 	struct node_t * colaProcesos;
 };
+
+typedef struct Fifo {
+      int pid;
+      struct Fifo *sgt;
+}Fifo;
+
 typedef enum{
 	ESI = 1,
 	PLANIFICADOR = 2,
@@ -49,6 +55,7 @@ typedef struct{
 	tTipoDeMensaje tipoMensaje;
 	int idProceso;
 }tHeader;
+
 
 void LeerArchivoDeConfiguracion();
 int verificarParametrosAlEjecutar(int argc, char *argv[]);
