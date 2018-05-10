@@ -67,6 +67,8 @@
 
         puts("A trabajar");
 
+    	InicializarListasYColas();
+
         EscucharConexiones(sockfd);
 
         close(sockfd);
@@ -78,17 +80,12 @@
         int sin_size, new_fd;
         struct sockaddr_in direccion_cliente; // información sobre la dirección del cliente
 
-        // Creamos una cola donde dejamos todas las instancias que se conectan con nosotros y otra para los mensajes recibidos de cualquier ESI
-        colaInstancias = queue_create();
-        colaMensajes = 	queue_create();
-        colaResultados = queue_create();
-
         //Inicializamos el mutex
         pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
         if (pthread_mutex_init(&mutex, NULL) == -1){
         	perror("error al crear mutex");
-        	exit(1);
+        	exit_gracefully(1);
         }
 
     	while(1) {  // main accept() loop
@@ -141,15 +138,18 @@
     	switch (headerRecibido->tipoProceso) {
     	case ESI:
     		printf("Se conecto el proceso %d \n", headerRecibido->idProceso);
+    		list_add(colaESIS,(void*)&parametros);
     		conexionESI(parametros);
     		break;
     	case PLANIFICADOR:
     		printf("Se conecto el proceso %d \n", headerRecibido->idProceso);
     		conexionPlanificador(parametros->new_fd);
+    		parametros->semaforo = 0;
+    		planificador = parametros;
     		break;
     	case INSTANCIA:
     		printf("Se conecto el proceso %d \n", headerRecibido->idProceso);
-    		queue_push(colaInstancias,(void*)&parametros);
+    		list_add(colaInstancias,(void*)&parametros);
     		conexionInstancia(parametros);
     		break;
     	default:
@@ -181,51 +181,52 @@
         // todo RECIBIR UNA OPERACION DEL ESI APLICANDO EL PROTOCOLO (Esto deberia ir en un while para leer varias operaciones)
         while(1){
 
-        int tamanioOperacionHeader = malloc(sizeof(OperaciontHeader));
-        OperaciontHeader * header = tamanioOperacionHeader;
+			int tamanioOperacionHeader = malloc(sizeof(OperaciontHeader));
+			OperaciontHeader * header = tamanioOperacionHeader;
 
-        if ((tamanioOperacionHeader=recv(parametros->new_fd, header, tamanioOperacionHeader, 0)) == -1) {
-            perror("recv");
-            log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
-            exit_gracefully(1);
-        }
+			if ((tamanioOperacionHeader=recv(parametros->new_fd, header, tamanioOperacionHeader, 0)) == -1) {
+				perror("recv");
+				log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
+				exit_gracefully(1);
+			}
 
-        // Podriamos recibir una estructura que nos indique el tipo y tamanio de los mensajes y despues recibir los mensajes por separado
-        char clave[TAMANIO_CLAVE];
-        int tamanioValor = header->tamanioValor;
-        OperacionAEnviar * operacion = malloc(sizeof(tTipoOperacion)+TAMANIO_CLAVE+tamanioValor);
+			// Podriamos recibir una estructura que nos indique el tipo y tamanio de los mensajes y despues recibir los mensajes por separado
+			char clave[TAMANIO_CLAVE];
+			int tamanioValor = header->tamanioValor;
+			OperacionAEnviar * operacion = malloc(sizeof(tTipoOperacion)+TAMANIO_CLAVE+tamanioValor);
 
-        // Segun el tipo de operacion que sea, cargamos el mensaje en una estructura
-		AnalizarOperacion(clave, tamanioValor, header, parametros, operacion);
-        
-	    // Debo avisar a una Instancia cuando recibo una operacion (QUE NO SEA UN GET)
+			// Segun el tipo de operacion que sea, cargamos el mensaje en una estructura
+			AnalizarOperacion(clave, tamanioValor, header, parametros, operacion);
 
-        //Agregamos el mensaje a una cola en memoria
-        pthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
-        queue_push(colaMensajes,(void*)&operacion);
-        pthread_mutex_unlock(&mutex);
-        free(operacion);
+			// Debo avisar a una Instancia cuando recibo una operacion (QUE NO SEA UN GET)
 
-        while(queue_is_empty(colaInstancias)) ; // mientras la cola este vacia no puedo continuar
+			//Agregamos el mensaje a una cola en memoria
+			pthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
+			list_add(colaMensajes,(void*)&operacion);
+			pthread_mutex_unlock(&mutex);
+			free(operacion);
 
-        pthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
+			while(queue_is_empty(colaInstancias)) ; // mientras la cola este vacia no puedo continuar
 
-        struct parametrosConexion * instancia = queue_pop(colaInstancias); //saco la primer instancia de la cola pero luego tengo que deolverla a la cola
-        sem_post(instancia->semaforo); // Le aviso al semaforo de la instancia de que puede operar (el semaforo es el tid)
-        queue_push(colaInstancias,(void*)&instancia);
+			pthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
 
-        pthread_mutex_unlock(&mutex);
+			struct parametrosConexion * instancia = list_take(colaInstancias,1); //saco la primer instancia de la cola pero luego tengo que deolverla a la cola
+			sem_post(instancia->semaforo); // Le aviso al semaforo de la instancia de que puede operar (el semaforo es el tid)
+			list_add(colaInstancias,(void*)&instancia);
 
-        // Semaforo por si llegaran a entrar mas de un ESI
-        free(tamanioOperacionHeader);
+			pthread_mutex_unlock(&mutex);
 
-        //esperamos el resultado para devolver
-        while(queue_is_empty(colaResultados)) ; // mientras la cola este vacia no puedo continuar
-        tResultado * resultado = queue_pop(colaResultados);
-        log_info(logger,resultado);
-		if (send(parametros->new_fd, (void*)resultado->resultado, sizeof(resultado), 0) == -1)
-			perror("send");
+			// Semaforo por si llegaran a entrar mas de un ESI
+			free(tamanioOperacionHeader);
 
+			//esperamos el resultado para devolver
+			while(queue_is_empty(colaResultados)) ; // mientras la cola este vacia no puedo continuar
+			tResultado * resultado = list_take(colaResultados,1);
+			log_info(logger,resultado);
+			if (send(parametros->new_fd, (void*)resultado->resultado, sizeof(resultado), 0) == -1){
+				perror("send");
+				exit_gracefully(1);
+			}
         }
 		close(parametros->new_fd);
     }
@@ -240,7 +241,7 @@
 
         if ((numbytes=recv(parametros->new_fd, buf, tamanio_buffer-1, 0)) == -1) {
             perror("recv");
-            exit(1);
+            exit_gracefully(1);
         }
 
         buf[numbytes] = '\0';
@@ -249,6 +250,7 @@
 
         // Le avisamos al planificador cada clave que se bloquee y desbloquee
         while(1){
+        	sem_wait(planificador->semaforo); // Me van a avisar si se produce algun bloqueo
 
         }
 
@@ -265,7 +267,7 @@
 
         if ((numbytes=recv(parametros->new_fd, buf, tamanio_buffer-1, 0)) == -1) {
             perror("recv");
-            exit(1);
+            exit_gracefully(1);
         }
 
         buf[numbytes] = '\0';
@@ -273,7 +275,7 @@
         free(buf[numbytes]);
 
         sem_wait(parametros->semaforo); // Caundo me avisen que hay una operacion para enviar, la voy a levantar de la cola
-        OperacionAEnviar * operacion = queue_pop(colaMensajes);
+        OperacionAEnviar * operacion = list_take(colaMensajes,1);
         int tamanioValor = strlen(operacion->valor);
         tTipoOperacion tipo = operacion->tipo;
         OperaciontHeader * header;  // Creo el header que le voy a enviar a la instancia para que identifique la operacion
@@ -281,29 +283,41 @@
         header->tamanioValor = tamanioValor;
 
         // Envio el header a la instancia
-		if (send(parametros->new_fd, header, sizeof(header), 0) == -1)
+		if (send(parametros->new_fd, header, sizeof(header), 0) == -1){
 			perror("send");
+			exit_gracefully(1);
+		}
 
 		// Envio la clave
-		if (send(parametros->new_fd, operacion->clave, TAMANIO_CLAVE, 0) == -1)
+		if (send(parametros->new_fd, operacion->clave, TAMANIO_CLAVE, 0) == -1){
 			perror("send");
+			exit_gracefully(1);
+		}
+
 
 		if(tipo == SET){
 			if (send(parametros->new_fd, operacion->valor, tamanioValor, 0) == -1)
 				perror("send");
+			exit_gracefully(1);
 		}
 
 		// Espero el resultado de la operacion
 		tResultadoOperacion * resultado;
         if (recv(parametros->new_fd, resultado, sizeof(tResultadoOperacion), 0) == -1) {
             perror("recv");
-            exit(1);
+            exit_gracefully(1);
+        }
+
+        if (resultado == BLOQUEO){
+        	tBloqueo esiBloqueado = {1,operacion->clave};
+        	list_add(colaBloqueos,(void*)&esiBloqueado);
+        	sem_post(planificador->semaforo);
         }
 
         tResultado * resultadoCompleto = {resultado,operacion->clave};
 
         //Debo avisarle al ESI que me invoco el resultado
-        queue_push(colaResultados,(void*)&resultadoCompleto);
+        list_add(colaResultados,(void*)&resultadoCompleto);
 
 		close(parametros->new_fd);
     }
@@ -393,6 +407,15 @@
 		strncpy(StoreALoguear, clave, strlen(clave));
 		puts(StoreALoguear);
 		log_info(logger, StoreALoguear);
+	}
+
+	void InicializarListasYColas() {
+		// Creamos una cola donde dejamos todas las instancias que se conectan con nosotros y otra para los mensajes recibidos de cualquier ESI
+		colaInstancias = list_create();
+		colaMensajes = list_create();
+		colaResultados = list_create();
+		colaESIS = list_create();
+		colaBloqueos = list_create();
 	}
 
     void exit_gracefully(int return_nr) {

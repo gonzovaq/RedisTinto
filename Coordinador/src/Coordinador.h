@@ -28,17 +28,16 @@
 #define ARCHIVO_CONFIGURACION "configuracion.config"
 #define BACKLOG 10     // Cuántas conexiones pendientes se mantienen en cola
 #define TAMANIO_CLAVE 41
-#define TAMANIO_VALOR 41
 
 
 // ESTRUCTURAS Y ENUMS
 
 struct parametrosConexion{
-	//int sockfd; --> no se requiere para la conexion
 	int new_fd;
 	int semaforo;
 	struct node_t * colaProcesos;
 };  // Aqui dejamos los descriptores y un semaforo para los hilos que lo necesiten
+
 
 typedef enum{
 	ESI = 1,
@@ -64,6 +63,8 @@ typedef enum{
 	ERROR = 3
 }tResultadoOperacion;
 
+
+
 typedef struct{
 	tResultadoOperacion resultado;
 	char* clave;
@@ -86,16 +87,25 @@ typedef struct {
 	char* valor;
 }OperacionAEnviar; // Operacion que vamos a enviar a la instancia
 
+typedef struct {
+	int ESIPID;
+	char* clave;
+}tBloqueo;
+
 
 // VARIABLES GLOBALES
 
 int PUERTO;
 char* IP;
 t_log * logger;
-t_queue *colaInstancias;
-t_queue *colaESIS;
-t_queue *colaMensajes;
-t_queue *colaResultados;
+
+struct parametrosConexion * planificador;
+t_list *colaInstancias;
+t_list *colaESIS;
+t_list *colaMensajes;
+t_list *colaResultados;
+t_list *colaBloqueos;
+
 pthread_mutex_t mutex;
 
 
@@ -116,4 +126,5 @@ void ManejarOperacionGET(char clave[TAMANIO_CLAVE],
 		struct parametrosConexion* parametros, OperacionAEnviar* operacion);
 void ManejarOperacionSET(clave, tamanioValor, parametros, operacion);
 void ManejarOperacionSTORE(clave, parametros, operacion);
+void InicializarListasYColas();
 
