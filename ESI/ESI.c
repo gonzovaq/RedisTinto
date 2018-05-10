@@ -175,6 +175,10 @@
         ssize_t read;
         int tamanio_buffer=200;
         char * lineaParseada = malloc(tamanio_buffer);
+        OperacionAEnviar * operacion;
+        OperaciontHeader * header;
+        int tamanioValor;
+
 
         while ((read = getline(&line, &len, file)) != -1) {
             t_esi_operacion parsed = parse(line);
@@ -182,16 +186,13 @@
             if(parsed.valido){
                 switch(parsed.keyword){
                     case GET:
-                        sprintf(lineaParseada, "GET\tclave: <%s>\n", parsed.argumentos.GET.clave);
-                        enviarMensaje(socket_coordinador,lineaParseada);
+                    	manejarOperacionGET(socket_coordinador, parsed.argumentos.GET.clave, operacion, header);
                         break;
                     case SET:
-                    	sprintf(lineaParseada, "SET\tclave: <%s>\tvalor: <%s>\n", parsed.argumentos.SET.clave, parsed.argumentos.SET.valor);
-                    	enviarMensaje(socket_coordinador,lineaParseada);
+                    	manejarOperacionSET(socket_coordinador, parsed.argumentos.SET.clave, parsed.argumentos.SET.valor, operacion, header);
                     	break;
                     case STORE:
-                    	sprintf(lineaParseada, "STORE\tclave: <%s>\n", parsed.argumentos.STORE.clave);
-                    	enviarMensaje(socket_coordinador,lineaParseada);
+                    	manejarOperacionSTORE(socket_coordinador, parsed.argumentos.STORE.clave, operacion, header);
                     	break;
                     default:
                         fprintf(stderr, "No pude interpretar <%s>\n", line);
@@ -213,3 +214,88 @@
         return EXIT_SUCCESS;
 
     }
+
+
+	int manejarOperacionGET(int socket_coordinador, char clave[TAMANIO_CLAVE], OperacionAEnviar* operacion, OperaciontHeader * header) {
+
+        	header->tipo = GET;
+        	if(send(socket_coordinador, header,sizeof(header->tipo),0)==-1){ //Envio el header al Coordinador.
+            	puts("Error al enviar el header.");
+            	perror("send");
+                exit(1);
+        	}
+
+        	puts("Header de la Operacion GET enviado correctamente");
+
+        	clave[TAMANIO_CLAVE] = '\0';
+        	printf("Recibi la clave: %s\n", clave);
+			operacion->tipo = header->tipo;
+			operacion->clave = clave;
+			operacion->valor = NULL;
+
+        	if(send(socket_coordinador, operacion,sizeof(operacion),0)==-1){ //Envio la operacion al Coordinador.
+            	puts("Error al enviar la operacion.");
+            	perror("send");
+                exit(1);
+        	}
+
+        	puts("Operacion GET enviada correctamente");
+
+        	return EXIT_SUCCESS;
+		}
+
+		int manejarOperacionSET(int socket_coordinador, char clave[TAMANIO_CLAVE], char *valor, OperacionAEnviar* operacion, OperaciontHeader header) {
+
+        	header->tipo = SET;
+        	header->tamanioValor = sizeof(valor);
+        	if(send(socket_coordinador, header,sizeof(header),0)==-1){ //Envio el header al Coordinador.
+            	puts("Error al enviar el header.");
+            	perror("send");
+                exit(1);
+        	}
+        	puts("Header de la Operacion SET enviado correctamente");
+
+        	clave[TAMANIO_CLAVE] = '\0';
+        	printf("Recibi la clave: %s\n", clave);
+			operacion->tipo = header->tipo;
+			operacion->clave = clave;
+			operacion->valor = valor;
+
+        	if(send(socket_coordinador, operacion,sizeof(operacion),0)==-1){ //Envio la operacion al Coordinador.
+            	puts("Error al enviar la operacion.");
+            	perror("send");
+                exit(1);
+        	}
+
+        	puts("Operacion SET enviada correctamente");
+        	return EXIT_SUCCESS;
+		}
+
+		int manejarOperacionSTORE(int socket_coordinador, char clave[TAMANIO_CLAVE], OperacionAEnviar* operacion, OperaciontHeader header) {
+
+        	header->tipo = STORE;
+        	if(send(socket_coordinador, header,sizeof(header->tipo),0)==-1){ //Envio el header al Coordinador.
+            	puts("Error al enviar el header.");
+            	perror("send");
+                exit(1);
+        	}
+
+        	puts("Header de la Operacion STORE enviado correctamente");
+
+        	clave[TAMANIO_CLAVE] = '\0';
+        	printf("Recibi la clave: %s\n", clave);
+			operacion->tipo = header->tipo;
+			operacion->clave = clave;
+			operacion->valor = NULL;
+
+        	if(send(socket_coordinador, operacion,sizeof(operacion),0)==-1){ //Envio la operacion al Coordinador.
+            	puts("Error al enviar la operacion.");
+            	perror("send");
+                exit(1);
+        	}
+
+        	puts("Operacion STORE enviada correctamente");
+        	return EXIT_SUCCESS;
+
+		}
+

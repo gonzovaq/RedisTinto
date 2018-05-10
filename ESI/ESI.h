@@ -12,6 +12,8 @@
 
 #define PORT_COORDINADOR 3490 // puerto del coordinador, donde nos vamos a conectar
 #define PORT_PLANIFICADOR 3491 // puerto del planificador, donde nos vamos a conectar
+#define TAMANIO_CLAVE 41 //Por enunciado la clave sera de 40 caracteres.
+
 
 static const char filename[] = "/home/utnso/workspace2/tp-2018-1c-Sistemas-Operactivos/ESI/configuracion.config";
 struct hostent *he;
@@ -47,3 +49,20 @@ typedef struct{
 	tTipoDeMensaje tipoMensaje;
 	int idProceso;
 }tHeader;
+
+typedef enum{
+	GET = 1,
+	SET = 2,
+	STORE = 3
+}tTipoOperacion;
+
+typedef struct {
+	tTipoOperacion tipo;
+	int tamanioValor;
+}OperaciontHeader; // Header que vamos a recibir de parte del ESI para identificar la operacion
+
+typedef struct {
+	tTipoOperacion tipo;
+	char* clave;
+	char* valor;
+}OperacionAEnviar; // Operacion que vamos a enviar a la instancia
