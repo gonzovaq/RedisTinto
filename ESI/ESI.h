@@ -19,17 +19,6 @@ static const char filename[] = "/home/utnso/workspace2/tp-2018-1c-Sistemas-Opera
 struct hostent *he;
 struct sockaddr_in their_addr; // información de la dirección de destino
 
-int main(int argc, char *argv[]);
-int leerConfiguracion();
-int verificarParametrosAlEjecutar(int argc, char *argv[]);
-int conectarmeYPresentarme(int port);
-int enviarHeader(int sockfd);
-char* recibirMensaje(int sockfd);
-int enviarMensaje(int sockfd, char* mensaje);
-FILE *leerArchivo(char **argv);
-int parsearPorLineaYEnviarAlCoordinador(FILE * file, int socket_coordinador);
-
-
 
 typedef enum{
 	ESI = 1,
@@ -51,9 +40,9 @@ typedef struct{
 }tHeader;
 
 typedef enum{
-	GET = 1,
-	SET = 2,
-	STORE = 3
+	OPERACION_GET = 1,
+	OPERACION_SET = 2,
+	OPERACION_STORE = 3
 }tTipoOperacion;
 
 typedef struct {
@@ -66,3 +55,34 @@ typedef struct {
 	char* clave;
 	char* valor;
 }OperacionAEnviar; // Operacion que vamos a enviar a la instancia
+
+typedef enum{
+	OK = 1,
+	BLOQUEO = 2,
+	ERROR = 3
+}tResultadoOperacion;
+
+
+
+typedef struct{
+	tResultadoOperacion resultado;
+	char* clave;
+}tResultado;
+
+
+
+int main(int argc, char *argv[]);
+int leerConfiguracion();
+int verificarParametrosAlEjecutar(int argc, char *argv[]);
+int conectarmeYPresentarme(int port);
+int enviarHeader(int sockfd);
+int recibirMensaje(int sockfd);
+int enviarMensaje(int sockfd, void* mensaje);
+FILE *leerArchivo(char **argv);
+int manejarArchivoConScripts(FILE * file, int socket_coordinador, int socket_planificador);
+int recibirOrdenDeEjecucion(socket_planificador);
+int recibirResultado(int socket_coordinador);
+int manejarOperacionGET(int socket_coordinador, char clave[TAMANIO_CLAVE], OperacionAEnviar* operacion, OperaciontHeader * header);
+int manejarOperacionSET(int socket_coordinador, char clave[TAMANIO_CLAVE], char *valor, OperacionAEnviar* operacion, OperaciontHeader *header);
+int manejarOperacionSTORE(int socket_coordinador, char clave[TAMANIO_CLAVE], OperacionAEnviar* operacion, OperaciontHeader *header);
+

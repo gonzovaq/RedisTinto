@@ -3,33 +3,18 @@
     int main(int argc, char *argv[])
     {
         int socket_coordinador, socket_planificador;
-        char *mensaje_coordinador = "Hola Coordinador, como va?\n";
-        char *mensaje_planificador = "Que onda Planificador? Quiero ejecutarme!\n";
-        char *buffer_mensaje_recibido;
-        FILE * scriptsAEjecutar;
+        FILE * archivoConScripts;
 
         //Before
     	verificarParametrosAlEjecutar(argc, argv);
     	leerConfiguracion();
-    	scriptsAEjecutar = leerArchivo(argv);
+    	archivoConScripts = leerArchivo(argv);
 
 
     	//Comunicación con el Coordinador
     	socket_coordinador = conectarmeYPresentarme(PORT_COORDINADOR);
-    	buffer_mensaje_recibido = recibirMensaje(socket_coordinador);
-        printf("Received: %s \n",buffer_mensaje_recibido);
-    	enviarMensaje(socket_coordinador, mensaje_coordinador);
 
-    	parsearPorLineaYEnviarAlCoordinador(scriptsAEjecutar,socket_coordinador);
-
-    	//Comunicación con el Planificador
-    	socket_planificador = conectarmeYPresentarme(PORT_PLANIFICADOR);
-    	enviarMensaje(socket_planificador, mensaje_planificador);
-    	/*if(recibirMensaje(socket_planificador)=="Ejecutate"){ //El "Ejecutate", simula que el planificador me esta habilitando para ejecutar.
-
-    	}*/
-
-
+    	manejarArchivoConScripts(archivoConScripts,socket_coordinador,socket_planificador);
 
         close(socket_coordinador);
         close(socket_planificador);
@@ -125,21 +110,18 @@
 			   return EXIT_SUCCESS;
     }
 
-    char* recibirMensaje(int sockfd){
+    int recibirMensaje(int sockfd){
     	int numbytes;
-        int tamanio_buffer=100;
-        char* buf = malloc(tamanio_buffer); //Seteo el maximo del buffer en 100 para probar. Debe ser variable.
+        int buf;
 
-        if ((numbytes=recv(sockfd, buf, tamanio_buffer-1, 0)) == -1) {
+        if ((numbytes=recv(sockfd, buf, sizeof(int), 0)) == -1) {
             perror("recv");
             exit(1);
         }
-
-        buf[numbytes] = '\0';
         return buf;
     }
 
-    int enviarMensaje(int sockfd, char* mensaje){
+    int enviarMensaje(int sockfd, void* mensaje){
     	int longitud_mensaje, bytes_enviados;
 
         longitud_mensaje = strlen(mensaje);
@@ -169,44 +151,42 @@
         return file;
     }
 
-    int parsearPorLineaYEnviarAlCoordinador(FILE * file, int socket_coordinador){
+    int manejarArchivoConScripts(FILE * file, int socket_coordinador, int socket_planificador){
         char * line = NULL;
         size_t len = 0;
         ssize_t read;
-        int tamanio_buffer=200;
-        char * lineaParseada = malloc(tamanio_buffer);
+
         OperacionAEnviar * operacion;
         OperaciontHeader * header;
         int tamanioValor;
 
+        while(getline(&line, &len, file) != -1){ //aca habia un read = getline
+            while (recibirOrdenDeEjecucion(socket_planificador)) {
+                t_esi_operacion parsed = parse(line);
 
-        while ((read = getline(&line, &len, file)) != -1) {
-            t_esi_operacion parsed = parse(line);
-
-            if(parsed.valido){
-                switch(parsed.keyword){
-                    case GET:
-                    	manejarOperacionGET(socket_coordinador, parsed.argumentos.GET.clave, operacion, header);
-                        break;
-                    case SET:
-                    	manejarOperacionSET(socket_coordinador, parsed.argumentos.SET.clave, parsed.argumentos.SET.valor, operacion, header);
-                    	break;
-                    case STORE:
-                    	manejarOperacionSTORE(socket_coordinador, parsed.argumentos.STORE.clave, operacion, header);
-                    	break;
-                    default:
-                        fprintf(stderr, "No pude interpretar <%s>\n", line);
-                        free(lineaParseada);
-                        exit(EXIT_FAILURE);
+                if(parsed.valido){
+                    switch(parsed.keyword){
+                        case GET:
+                        	manejarOperacionGET(socket_coordinador, parsed.argumentos.GET.clave, operacion, header);
+                            break;
+                        case SET:
+                        	manejarOperacionSET(socket_coordinador, parsed.argumentos.SET.clave, parsed.argumentos.SET.valor, operacion, header);
+                        	break;
+                        case STORE:
+                        	manejarOperacionSTORE(socket_coordinador, parsed.argumentos.STORE.clave, operacion, header);
+                        	break;
+                        default:
+                            fprintf(stderr, "No pude interpretar <%s>\n", line);
+                            exit(EXIT_FAILURE);
+                    }
+                    recibirResultado(socket_coordinador);
+                    destruir_operacion(parsed);
+                } else {
+                    fprintf(stderr, "La linea <%s> no es valida\n", line);
+                    exit(EXIT_FAILURE);
                 }
-                destruir_operacion(parsed);
-            } else {
-                fprintf(stderr, "La linea <%s> no es valida\n", line);
-                free(lineaParseada);
-                exit(EXIT_FAILURE);
             }
         }
-        free(lineaParseada);
         fclose(file);
         if (line){
             free(line);
@@ -215,87 +195,68 @@
 
     }
 
+    int recibirOrdenDeEjecucion(socket_planificador){
+    	return recibirMensaje(socket_planificador)==1;
+    }
+
+    int recibirResultado(int socket_coordinador){
+    	switch(recibirMensaje(socket_coordinador)){
+    		case 1:
+    			puts("La operación salio OK"); //EN ESTOS CASE DEBERIA LOGGEAR O ALGO ASI, PREGUNTAR MAS ADELANTE
+    			break;
+    		case 2:
+				puts("La operación se BLOQUEO");
+				break;
+    		case 3:
+				puts("La operación tiro ERROR");
+				break;
+    		default:
+    			puts("ERROR AL RECIBIR EL RESULTADO");
+    			EXIT_FAILURE;
+    			break;
+    	}
+    	EXIT_SUCCESS;
+    }
 
 	int manejarOperacionGET(int socket_coordinador, char clave[TAMANIO_CLAVE], OperacionAEnviar* operacion, OperaciontHeader * header) {
 
-        	header->tipo = GET;
-        	if(send(socket_coordinador, header,sizeof(header->tipo),0)==-1){ //Envio el header al Coordinador.
-            	puts("Error al enviar el header.");
-            	perror("send");
-                exit(1);
-        	}
+		header->tipo = OPERACION_GET;
+		enviarMensaje(socket_coordinador, header);
+		puts("Header de la Operacion GET enviado correctamente");
 
-        	puts("Header de la Operacion GET enviado correctamente");
+		enviarMensaje(socket_coordinador, clave);
 
-        	clave[TAMANIO_CLAVE] = '\0';
-        	printf("Recibi la clave: %s\n", clave);
-			operacion->tipo = header->tipo;
-			operacion->clave = clave;
-			operacion->valor = NULL;
+		printf("Operacion GET con la clave: {0}, enviada correctamente" ,clave);
 
-        	if(send(socket_coordinador, operacion,sizeof(operacion),0)==-1){ //Envio la operacion al Coordinador.
-            	puts("Error al enviar la operacion.");
-            	perror("send");
-                exit(1);
-        	}
+		return EXIT_SUCCESS;
+	}
 
-        	puts("Operacion GET enviada correctamente");
+	int manejarOperacionSET(int socket_coordinador, char clave[TAMANIO_CLAVE], char *valor, OperacionAEnviar* operacion, OperaciontHeader *header) {
 
-        	return EXIT_SUCCESS;
-		}
+		header->tipo = OPERACION_SET;
+		header->tamanioValor = sizeof(valor);
 
-		int manejarOperacionSET(int socket_coordinador, char clave[TAMANIO_CLAVE], char *valor, OperacionAEnviar* operacion, OperaciontHeader header) {
+		enviarMensaje(socket_coordinador, header);
+		puts("Header de la Operacion SET enviado correctamente");
 
-        	header->tipo = SET;
-        	header->tamanioValor = sizeof(valor);
-        	if(send(socket_coordinador, header,sizeof(header),0)==-1){ //Envio el header al Coordinador.
-            	puts("Error al enviar el header.");
-            	perror("send");
-                exit(1);
-        	}
-        	puts("Header de la Operacion SET enviado correctamente");
+		enviarMensaje(socket_coordinador, clave);
+		enviarMensaje(socket_coordinador, valor);
 
-        	clave[TAMANIO_CLAVE] = '\0';
-        	printf("Recibi la clave: %s\n", clave);
-			operacion->tipo = header->tipo;
-			operacion->clave = clave;
-			operacion->valor = valor;
+		printf("Operacion SET con clave: {0}, y valor {1}, enviada correctamente" ,clave,valor);
+		return EXIT_SUCCESS;
+	}
 
-        	if(send(socket_coordinador, operacion,sizeof(operacion),0)==-1){ //Envio la operacion al Coordinador.
-            	puts("Error al enviar la operacion.");
-            	perror("send");
-                exit(1);
-        	}
+	int manejarOperacionSTORE(int socket_coordinador, char clave[TAMANIO_CLAVE], OperacionAEnviar* operacion, OperaciontHeader *header) {
 
-        	puts("Operacion SET enviada correctamente");
-        	return EXIT_SUCCESS;
-		}
+		header->tipo = OPERACION_STORE;
+		enviarMensaje(socket_coordinador, header);
+		puts("Header de la Operacion STORE enviado correctamente");
 
-		int manejarOperacionSTORE(int socket_coordinador, char clave[TAMANIO_CLAVE], OperacionAEnviar* operacion, OperaciontHeader header) {
+		enviarMensaje(socket_coordinador, clave);
 
-        	header->tipo = STORE;
-        	if(send(socket_coordinador, header,sizeof(header->tipo),0)==-1){ //Envio el header al Coordinador.
-            	puts("Error al enviar el header.");
-            	perror("send");
-                exit(1);
-        	}
+		printf("Operacion STORE con la clave: {0}, enviada correctamente" ,clave);
 
-        	puts("Header de la Operacion STORE enviado correctamente");
+		return EXIT_SUCCESS;
 
-        	clave[TAMANIO_CLAVE] = '\0';
-        	printf("Recibi la clave: %s\n", clave);
-			operacion->tipo = header->tipo;
-			operacion->clave = clave;
-			operacion->valor = NULL;
-
-        	if(send(socket_coordinador, operacion,sizeof(operacion),0)==-1){ //Envio la operacion al Coordinador.
-            	puts("Error al enviar la operacion.");
-            	perror("send");
-                exit(1);
-        	}
-
-        	puts("Operacion STORE enviada correctamente");
-        	return EXIT_SUCCESS;
-
-		}
+	}
 

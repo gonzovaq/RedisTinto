@@ -52,9 +52,9 @@ typedef enum{
 }tTipoDeMensaje;
 
 typedef enum{
-	GET = 1,
-	SET = 2,
-	STORE = 3
+	OPERACION_GET = 1,
+	OPERACION_SET = 2,
+	OPERACION_STORE = 3
 }tTipoOperacion;
 
 typedef enum{

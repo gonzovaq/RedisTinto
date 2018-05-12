@@ -161,30 +161,12 @@
     void *conexionESI(struct parametrosConexion* parametros){
     	//close(new_fd->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
         puts("ESI conectandose");
-		if (send(parametros->new_fd, "Hola papa!\n", 14, 0) == -1)
-			perror("send");
-        int numbytes,tamanio_buffer=200;
-        char buf[tamanio_buffer]; //Seteo el maximo del buffer en 100 para probar. Debe ser variable.
-
-        if ((numbytes=recv(parametros->new_fd, buf, tamanio_buffer-1, 0)) == -1) {
-            perror("recv");
-            log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
-            exit_gracefully(1);
-        }
-
-        buf[numbytes] = '\0';
-        printf("Received: %s\n",buf);
-        log_info(logger, "TID %d  Mensaje:  %s",process_get_thread_id(),buf); // que onda con pthread_self()?
-        free(buf[numbytes]);
-
-
         // todo RECIBIR UNA OPERACION DEL ESI APLICANDO EL PROTOCOLO (Esto deberia ir en un while para leer varias operaciones)
         while(1){
 
-			int tamanioOperacionHeader = malloc(sizeof(OperaciontHeader));
-			OperaciontHeader * header = tamanioOperacionHeader;
+			OperaciontHeader * header = malloc(sizeof(OperaciontHeader));
 
-			if ((tamanioOperacionHeader=recv(parametros->new_fd, header, tamanioOperacionHeader, 0)) == -1) {
+			if ((recv(parametros->new_fd, header, sizeof(header), 0)) == -1) {
 				perror("recv");
 				log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
 				exit_gracefully(1);
@@ -217,7 +199,8 @@
 			pthread_mutex_unlock(&mutex);
 
 			// Semaforo por si llegaran a entrar mas de un ESI
-			free(tamanioOperacionHeader);
+
+			free(header);
 
 			//esperamos el resultado para devolver
 			while(queue_is_empty(colaResultados)) ; // mientras la cola este vacia no puedo continuar
@@ -295,7 +278,7 @@
 		}
 
 
-		if(tipo == SET){
+		if(tipo == OPERACION_SET){
 			if (send(parametros->new_fd, operacion->valor, tamanioValor, 0) == -1)
 				perror("send");
 			exit_gracefully(1);
@@ -327,13 +310,13 @@
     			OperacionAEnviar* operacion) {
     		// Segun el tipo de operacion que sea, cargamos el mensaje en una estructura
     		switch (header->tipo) {
-    		case GET: // PARA EL GET NO HAY QUE ACCEDER A NINGUNA INSTANCIA
+    		case OPERACION_GET: // PARA EL GET NO HAY QUE ACCEDER A NINGUNA INSTANCIA
 		ManejarOperacionGET(clave, parametros, operacion);
     			break;
-    		case SET:
+    		case OPERACION_SET:
 		ManejarOperacionSET(clave, tamanioValor, parametros, operacion);
     			break;
-    		case STORE:
+    		case OPERACION_STORE:
 		ManejarOperacionSTORE(clave, parametros, operacion);
     			break;
     		}
@@ -349,7 +332,7 @@
 		}
 		clave[TAMANIO_CLAVE] = '\0';
 		printf("Recibi la clave: %s\n", clave);
-		operacion->tipo = GET;
+		operacion->tipo = OPERACION_GET;
 		operacion->clave = clave;
 		operacion->valor = NULL;
 		char* GetALoguear[sizeof(operacion)];
@@ -379,7 +362,7 @@
 		}
 		clave[tamanioValor] = '\0';
 		printf("Recibi la clave: %s\n", valor);
-		operacion->tipo = SET;
+		operacion->tipo = OPERACION_SET;
 		operacion->clave = clave;
 		operacion->valor = valor;
 		char* SetALoguear[sizeof(operacion)];

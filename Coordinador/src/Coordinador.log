@@ -325,3 +325,5 @@ SET	clave: <jugador>	valor: <messi>
 STORE	clave: <jugador>
 
 [INFO] 14:57:57:870 CORD/(5003:5011): TID 5011  Mensaje: ERROR en ESI
+[INFO] 14:46:56:650 CORD/(5068:5070): TID 5070  Mensaje: ERROR en ESI
+[INFO] 14:48:48:885 CORD/(5136:5138): TID 5138  Mensaje: ERROR en ESI
