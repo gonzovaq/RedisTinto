@@ -139,7 +139,12 @@
     }
     int enviarMensaje(int sockfd, char* mensaje){
 
-    	if ((send(sockfd, mensaje, strlen(mensaje)+1, 0)) == -1) {
+    	printf("Vor a enviar el mensaje: %s \n",mensaje);
+    	int x=0;
+    	// while(x < 100000000000000000) // Meti esto para ver si el problema estaba en que el coordnador esta recibiendo algo previamente y si, es eso, raro
+    		x++;
+
+    	if ((send(sockfd, mensaje, TAMANIO_CLAVE-1, 0)) == -1) {
         	puts("Error al enviar el mensaje.");
         	perror("send");
             exit(1);
@@ -181,7 +186,9 @@
                 if(parsed.valido){
                     switch(parsed.keyword){
                         case GET:
+                        	puts("Manejo operacion GET");
                         	manejarOperacionGET(socket_coordinador, parsed.argumentos.GET.clave, &operacion, &header);
+                        	puts("Se finalizo el manejo de la operacion GET");
                             break;
                         case SET:
                         	manejarOperacionSET(socket_coordinador, parsed.argumentos.SET.clave, parsed.argumentos.SET.valor, &operacion, &header);
@@ -238,6 +245,8 @@
 		enviarOperaciontHeader(socket_coordinador, header);
 		puts("Header de la Operacion GET enviado correctamente");
 
+		clave[TAMANIO_CLAVE]='\0';
+		printf("Voy a enviar la clave: %s \n",clave);
 		enviarMensaje(socket_coordinador, clave);
 
 		printf("Operacion GET con la clave: {0}, enviada correctamente" ,clave);

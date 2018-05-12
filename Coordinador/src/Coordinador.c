@@ -340,16 +340,16 @@
 
 	void ManejarOperacionGET(struct parametrosConexion* parametros, OperacionAEnviar* operacion) {
 
-		char * clave = malloc(TAMANIO_CLAVE);
-
-		if (recv(parametros->new_fd, clave, TAMANIO_CLAVE - 1, 0) == -1) {
+		char clave[TAMANIO_CLAVE];
+		int result_recv;
+		if ( (result_recv = recv(parametros->new_fd, clave, TAMANIO_CLAVE - 1, 0)) == -1) {
 			perror("recv");
 			log_info(logger, "TID %d  Mensaje: ERROR en ESI",
 					process_get_thread_id());
 			exit_gracefully(1);
 		}
 
-		clave[TAMANIO_CLAVE] = '\0';
+		clave[strlen(clave)+1] = '\0';
 		printf("Recibi la clave: %s\n", clave);
 		operacion->tipo = OPERACION_GET;
 		operacion->clave = clave;
