@@ -119,12 +119,10 @@ void *gestionarConexion(struct parametrosConexion *parametros);
 void *conexionESI(struct parametrosConexion* parametros);
 void *conexionPlanificador(struct parametrosConexion* parametros);
 void *conexionInstancia(struct parametrosConexion* parametros);
-void AnalizarOperacion(char clave[TAMANIO_CLAVE], int tamanioValor,
-		OperaciontHeader* header, struct parametrosConexion* parametros,
+void AnalizarOperacion(int tamanioValor,OperaciontHeader* header, struct parametrosConexion* parametros,
 		OperacionAEnviar* operacion);
-void ManejarOperacionGET(char clave[TAMANIO_CLAVE],
-		struct parametrosConexion* parametros, OperacionAEnviar* operacion);
-void ManejarOperacionSET(clave, tamanioValor, parametros, operacion);
-void ManejarOperacionSTORE(clave, parametros, operacion);
+void ManejarOperacionGET(struct parametrosConexion* parametros, OperacionAEnviar* operacion);
+void ManejarOperacionSET(tamanioValor, parametros, operacion);
+void ManejarOperacionSTORE(parametros, operacion);
 void InicializarListasYColas();
 

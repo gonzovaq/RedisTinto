@@ -11,13 +11,14 @@
     	archivoConScripts = leerArchivo(argv);
 
 
-    	//Comunicación con el Coordinador
     	socket_coordinador = conectarmeYPresentarme(PORT_COORDINADOR);
+    	//socket_planificador = conectarmeYPresentarme(PORT_PLANIFICADOR);
+
 
     	manejarArchivoConScripts(archivoConScripts,socket_coordinador,socket_planificador);
 
         close(socket_coordinador);
-        close(socket_planificador);
+        //close(socket_planificador);
         return 0;
     }
 
@@ -121,11 +122,24 @@
         return buf;
     }
 
-    int enviarMensaje(int sockfd, void* mensaje){
-    	int longitud_mensaje, bytes_enviados;
+    int enviarOperaciontHeader(int sockfd, OperaciontHeader* header){
 
-        longitud_mensaje = strlen(mensaje);
-        if ((bytes_enviados=send(sockfd, mensaje, longitud_mensaje , 0)) == -1) {
+    	if(header->tipo == OPERACION_GET) puts("ES UN GET");
+    	else if(header->tipo == OPERACION_SET) puts("ES UN SET");
+    	else if(header->tipo == OPERACION_STORE) puts("ES UN STORE");
+
+    	if ((send(sockfd, header, sizeof(OperaciontHeader), 0)) == -1) {
+        	puts("Error al enviar el mensaje.");
+        	perror("send");
+            exit(1);
+        }
+
+        puts("El header de la operacion se envio correctamente");
+        return EXIT_SUCCESS;
+    }
+    int enviarMensaje(int sockfd, char* mensaje){
+
+    	if ((send(sockfd, mensaje, strlen(mensaje)+1, 0)) == -1) {
         	puts("Error al enviar el mensaje.");
         	perror("send");
             exit(1);
@@ -167,13 +181,13 @@
                 if(parsed.valido){
                     switch(parsed.keyword){
                         case GET:
-                        	manejarOperacionGET(socket_coordinador, parsed.argumentos.GET.clave, operacion, header);
+                        	manejarOperacionGET(socket_coordinador, parsed.argumentos.GET.clave, &operacion, &header);
                             break;
                         case SET:
-                        	manejarOperacionSET(socket_coordinador, parsed.argumentos.SET.clave, parsed.argumentos.SET.valor, operacion, header);
+                        	manejarOperacionSET(socket_coordinador, parsed.argumentos.SET.clave, parsed.argumentos.SET.valor, &operacion, &header);
                         	break;
                         case STORE:
-                        	manejarOperacionSTORE(socket_coordinador, parsed.argumentos.STORE.clave, operacion, header);
+                        	manejarOperacionSTORE(socket_coordinador, parsed.argumentos.STORE.clave, &operacion, &header);
                         	break;
                         default:
                             fprintf(stderr, "No pude interpretar <%s>\n", line);
@@ -196,7 +210,7 @@
     }
 
     int recibirOrdenDeEjecucion(socket_planificador){
-    	return recibirMensaje(socket_planificador)==1;
+    	return 1;//recibirMensaje(socket_planificador)==1;
     }
 
     int recibirResultado(int socket_coordinador){
@@ -221,7 +235,7 @@
 	int manejarOperacionGET(int socket_coordinador, char clave[TAMANIO_CLAVE], OperacionAEnviar* operacion, OperaciontHeader * header) {
 
 		header->tipo = OPERACION_GET;
-		enviarMensaje(socket_coordinador, header);
+		enviarOperaciontHeader(socket_coordinador, header);
 		puts("Header de la Operacion GET enviado correctamente");
 
 		enviarMensaje(socket_coordinador, clave);

@@ -171,14 +171,16 @@
 				log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
 				exit_gracefully(1);
 			}
-
 			// Podriamos recibir una estructura que nos indique el tipo y tamanio de los mensajes y despues recibir los mensajes por separado
-			char clave[TAMANIO_CLAVE];
+			puts("INTENTO RECIBIR TAMANIO VALOR");
 			int tamanioValor = header->tamanioValor;
+			puts("RECIBI TAMANIO VALOR");
 			OperacionAEnviar * operacion = malloc(sizeof(tTipoOperacion)+TAMANIO_CLAVE+tamanioValor);
+			puts("EL MALLOC ANDUVO");
 
 			// Segun el tipo de operacion que sea, cargamos el mensaje en una estructura
-			AnalizarOperacion(clave, tamanioValor, header, parametros, operacion);
+			AnalizarOperacion(tamanioValor, header, parametros, operacion);
+			puts("El analizar operacion anduvo");
 
 			// Debo avisar a una Instancia cuando recibo una operacion (QUE NO SEA UN GET)
 
@@ -305,31 +307,48 @@
 		close(parametros->new_fd);
     }
 
-    void AnalizarOperacion(char clave[TAMANIO_CLAVE], int tamanioValor,
+    void AnalizarOperacion(int tamanioValor,
     			OperaciontHeader* header, struct parametrosConexion* parametros,
     			OperacionAEnviar* operacion) {
     		// Segun el tipo de operacion que sea, cargamos el mensaje en una estructura
+
+			if(header->tipo == OPERACION_GET) puts("ES UN GET");
+			else if(header->tipo == OPERACION_SET) puts("ES UN SET");
+			else if(header->tipo == OPERACION_STORE) puts("ES UN STORE");
+
     		switch (header->tipo) {
     		case OPERACION_GET: // PARA EL GET NO HAY QUE ACCEDER A NINGUNA INSTANCIA
-		ManejarOperacionGET(clave, parametros, operacion);
+    			puts("MANEJO UN GET");
+    			ManejarOperacionGET(parametros, operacion);
+    			puts("YA MANEJE UN GET");
     			break;
     		case OPERACION_SET:
-		ManejarOperacionSET(clave, tamanioValor, parametros, operacion);
+    			puts("MANEJO UN SET");
+    			ManejarOperacionSET(tamanioValor, parametros, operacion);
+    			puts("ya maneje un SET");
     			break;
     		case OPERACION_STORE:
-		ManejarOperacionSTORE(clave, parametros, operacion);
+    			puts("MANEJO UN STORE");
+    			ManejarOperacionSTORE(parametros, operacion);
+    			puts("YA MANEJE UN STORE");
+    			break;
+    		default:
+    			puts("ENTRO POR EL DEFAULT");
     			break;
     		}
     	}
 
-	void ManejarOperacionGET(char clave[TAMANIO_CLAVE],
-			struct parametrosConexion* parametros, OperacionAEnviar* operacion) {
+	void ManejarOperacionGET(struct parametrosConexion* parametros, OperacionAEnviar* operacion) {
+
+		char * clave = malloc(TAMANIO_CLAVE);
+
 		if (recv(parametros->new_fd, clave, TAMANIO_CLAVE - 1, 0) == -1) {
 			perror("recv");
 			log_info(logger, "TID %d  Mensaje: ERROR en ESI",
 					process_get_thread_id());
 			exit_gracefully(1);
 		}
+
 		clave[TAMANIO_CLAVE] = '\0';
 		printf("Recibi la clave: %s\n", clave);
 		operacion->tipo = OPERACION_GET;
