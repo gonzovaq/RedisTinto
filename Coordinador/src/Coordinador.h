@@ -24,6 +24,7 @@
 #include <commons/txt.h>
 #include <netdb.h>
 #include <sys/socket.h>
+#include <semaphore.h>
 
 ///// DEFINES
 
@@ -35,11 +36,11 @@
 
 // ESTRUCTURAS Y ENUMS
 
-struct parametrosConexion{
+typedef struct{
 	int new_fd;
-	int semaforo;
+	sem_t * semaforo;
 	struct node_t * colaProcesos;
-};  // Aqui dejamos los descriptores y un semaforo para los hilos que lo necesiten
+}parametrosConexion;  // Aqui dejamos los descriptores y un semaforo para los hilos que lo necesiten
 
 
 typedef enum{
@@ -102,7 +103,7 @@ int PUERTO;
 char* IP;
 t_log * logger;
 
-struct parametrosConexion * planificador;
+parametrosConexion * planificador;
 t_list* colaInstancias;
 t_list* colaESIS;
 t_list* colaMensajes;
@@ -117,17 +118,17 @@ pthread_mutex_t mutex;
 void sigchld_handler(int s);
 int main(void);
 int EscucharConexiones(int sockfd);
-int IdentificarProceso(tHeader* headerRecibido, struct parametrosConexion* parametros);
+int IdentificarProceso(tHeader* headerRecibido, parametrosConexion* parametros);
 int configure_logger();
 int exit_gracefully(int return_nr);
-int *gestionarConexion(struct parametrosConexion *parametros);
-int *conexionESI(struct parametrosConexion* parametros);
-int *conexionPlanificador(struct parametrosConexion* parametros);
-int *conexionInstancia(struct parametrosConexion* parametros);
-int AnalizarOperacion(int tamanioValor,OperaciontHeader* header, struct parametrosConexion* parametros,
+int *gestionarConexion(parametrosConexion *parametros);
+int *conexionESI(parametrosConexion* parametros);
+int *conexionPlanificador(parametrosConexion* parametros);
+int *conexionInstancia(parametrosConexion* parametros);
+int AnalizarOperacion(int tamanioValor,OperaciontHeader* header, parametrosConexion* parametros,
 		OperacionAEnviar* operacion);
-int ManejarOperacionGET(struct parametrosConexion* parametros, OperacionAEnviar* operacion);
-int ManejarOperacionSET(int tamanioValor, struct parametrosConexion* parametros, OperacionAEnviar* operacion);
-int ManejarOperacionSTORE(struct parametrosConexion* parametros, OperacionAEnviar* operacion);
+int ManejarOperacionGET(parametrosConexion* parametros, OperacionAEnviar* operacion);
+int ManejarOperacionSET(int tamanioValor, parametrosConexion* parametros, OperacionAEnviar* operacion);
+int ManejarOperacionSTORE(parametrosConexion* parametros, OperacionAEnviar* operacion);
 int InicializarListasYColas();
 

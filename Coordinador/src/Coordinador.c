@@ -77,7 +77,9 @@
     }
 
     int EscucharConexiones(int sockfd){
-        int sin_size, new_fd;
+        int sin_size;
+        int new_fd;
+		sem_t * semaforoNuevo;
         struct sockaddr_in direccion_cliente; // información sobre la dirección del cliente
 
         //Inicializamos el mutex
@@ -100,7 +102,12 @@
 
     	            //Para hilos debo crear una estructura de parametros de la funcion que quiera llamar
     				pthread_t tid;
-    				struct parametrosConexion parametros = {new_fd,sem_init(0)};// Inicializo el semaforo en 0
+    				if (sem_init(&semaforoNuevo,0,0) != 0){
+    					perror("semaforo nuevo");
+    		        	exit_gracefully(1);
+    				} // Inicializo el semaforo en 0
+
+    				parametrosConexion parametros = {new_fd,semaforoNuevo};
 
     	            int stat = pthread_create(&tid, NULL, (void*)gestionarConexion, (void*)&parametros);//(void*)&parametros -> parametros contendria todos los parametros que usa conexion
     				if (stat != 0){
@@ -117,27 +124,30 @@
 		return 1;
     }
 
-    int *gestionarConexion(struct parametrosConexion *parametros){ //(int* sockfd, int* new_fd)
+    int *gestionarConexion(parametrosConexion *parametros){ //(int* sockfd, int* new_fd)
         puts("Se disparo un hilo");
         int bytesRecibidos;
                tHeader *headerRecibido = malloc(sizeof(tHeader));
 
-		   if ((bytesRecibidos = recv(parametros->new_fd, headerRecibido, sizeof(tHeader), 0)) == -1){
-			perror("recv");
-			log_info(logger, "Mensaje: recv error");//process_get_thread_id()); //asienta error en logger y corta
-			exit_gracefully(1);
-						//exit(1);
-		   }
+        puts("Se espera un identificador");
 
-		   if (headerRecibido->tipoMensaje == CONECTARSE){
-			IdentificarProceso(headerRecibido, parametros);
-			free(headerRecibido);
-		   }
+	   if ((bytesRecibidos = recv(parametros->new_fd, headerRecibido, sizeof(tHeader), 0)) == -1){
+		perror("recv");
+		log_info(logger, "Mensaje: recv error");//process_get_thread_id()); //asienta error en logger y corta
+		exit_gracefully(1);
+					//exit(1);
+	   }
+
+	   if (headerRecibido->tipoMensaje == CONECTARSE){
+		puts("Se procede a identificar el proceso");
+		IdentificarProceso(headerRecibido, parametros);
+		free(headerRecibido);
+	   }
 
 		return 1;
     }
 
-    int IdentificarProceso(tHeader* headerRecibido, struct parametrosConexion* parametros) {
+    int IdentificarProceso(tHeader* headerRecibido, parametrosConexion* parametros) {
     	switch (headerRecibido->tipoProceso) {
     	case ESI:
     		printf("Se conecto el proceso %d \n", headerRecibido->idProceso);
@@ -147,7 +157,6 @@
     	case PLANIFICADOR:
     		printf("Se conecto el proceso %d \n", headerRecibido->idProceso);
     		conexionPlanificador(parametros);
-    		parametros->semaforo = 0;
     		planificador = parametros;
     		break;
     	case INSTANCIA:
@@ -162,7 +171,7 @@
 		return 1;
     }
 
-    int *conexionESI(struct parametrosConexion* parametros){
+    int *conexionESI(parametrosConexion* parametros){
     	//close(new_fd->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
         puts("ESI conectandose");
         // todo RECIBIR UNA OPERACION DEL ESI APLICANDO EL PROTOCOLO (Esto deberia ir en un while para leer varias operaciones)
@@ -198,7 +207,7 @@
 
 			pthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
 
-			struct parametrosConexion * instancia = list_take(colaInstancias,1); //saco la primer instancia de la cola pero luego tengo que deolverla a la cola
+			parametrosConexion * instancia = list_take(colaInstancias,1); //saco la primer instancia de la cola pero luego tengo que deolverla a la cola
 			sem_post(instancia->semaforo); // Le aviso al semaforo de la instancia de que puede operar (el semaforo es el tid)
 			list_add(colaInstancias,(void*)&instancia);
 
@@ -221,7 +230,7 @@
 		return 1;
     }
 
-    int *conexionPlanificador(struct parametrosConexion* parametros){
+    int *conexionPlanificador(parametrosConexion* parametros){
     	//close(new_fd->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
         puts("Planificador conectandose");
 		if (send(parametros->new_fd, "Hola papa!\n", 14, 0) == -1)
@@ -248,7 +257,7 @@
 		return 1;
     }
 
-    int *conexionInstancia(struct parametrosConexion* parametros){
+    int *conexionInstancia(parametrosConexion* parametros){
     	//close(new_fd->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
         puts("Instancia conectandose");
 		if (send(parametros->new_fd, "Hola papa!\n", 14, 0) == -1)
@@ -319,7 +328,7 @@
     }
 
     int AnalizarOperacion(int tamanioValor,
-    			OperaciontHeader* header, struct parametrosConexion* parametros,
+    			OperaciontHeader* header, parametrosConexion* parametros,
     			OperacionAEnviar* operacion) {
     		// Segun el tipo de operacion que sea, cargamos el mensaje en una estructura
 
@@ -350,7 +359,7 @@
     		return 1;
     	}
 
-	int ManejarOperacionGET(struct parametrosConexion* parametros, OperacionAEnviar* operacion) {
+	int ManejarOperacionGET(parametrosConexion* parametros, OperacionAEnviar* operacion) {
 
 		char clave[TAMANIO_CLAVE];
 		int result_recv;
@@ -376,7 +385,7 @@
 		return 1;
 	}
 
-	int ManejarOperacionSET(int tamanioValor, struct parametrosConexion* parametros, OperacionAEnviar* operacion) {
+	int ManejarOperacionSET(int tamanioValor, parametrosConexion* parametros, OperacionAEnviar* operacion) {
 
 		char clave[TAMANIO_CLAVE];
 		if (recv(parametros->new_fd, clave, TAMANIO_CLAVE - 1, 0) == -1) {
@@ -410,7 +419,7 @@
 		return 1;
 	}
 
-	int ManejarOperacionSTORE(struct parametrosConexion* parametros, OperacionAEnviar* operacion) {
+	int ManejarOperacionSTORE(parametrosConexion* parametros, OperacionAEnviar* operacion) {
 
 		char clave[TAMANIO_CLAVE];
 		if (recv(parametros->new_fd, clave, TAMANIO_CLAVE - 1, 0) == -1) {
