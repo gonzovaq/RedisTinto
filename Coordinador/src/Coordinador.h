@@ -72,29 +72,35 @@ typedef enum{
 typedef struct{
 	tResultadoOperacion resultado;
 	char* clave;
-}tResultado;
+}__attribute__((packed)) tResultado;
 
 typedef struct{
 	tTipoDeProceso tipoProceso;
 	tTipoDeMensaje tipoMensaje;
 	int idProceso;
-}tHeader; // Header que recibimos de los procesos para identificarlos
+}__attribute__((packed)) tHeader; // Header que recibimos de los procesos para identificarlos
 
 typedef struct {
   tTipoOperacion tipo;
   int tamanioValor;
-}OperaciontHeader; // Header que vamos a recibir de parte del ESI para identificar la operacion
+}__attribute__((packed)) OperaciontHeader; // Header que vamos a recibir de parte del ESI para identificar la operacion
 
 typedef struct {
 	tTipoOperacion tipo;
 	char* clave;
 	char* valor;
-}OperacionAEnviar; // Operacion que vamos a enviar a la instancia
+}__attribute__((packed)) OperacionAEnviar; // Operacion que vamos a enviar a la instancia
 
 typedef struct {
 	int ESIPID;
 	char* clave;
 }tBloqueo;
+
+typedef struct {
+	char * data;
+	int size;
+
+}__attribute__((packed)) stream;
 
 
 // VARIABLES GLOBALES

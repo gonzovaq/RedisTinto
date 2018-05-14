@@ -131,7 +131,7 @@
 
         puts("Se espera un identificador");
 
-	   if ((bytesRecibidos = recv(parametros->new_fd, headerRecibido, sizeof(tHeader), 0)) == -1){
+	   if ((bytesRecibidos = recv(parametros->new_fd, headerRecibido, sizeof(tHeader), 0)) <= 0){
 		perror("recv");
 		log_info(logger, "Mensaje: recv error");//process_get_thread_id()); //asienta error en logger y corta
 		exit_gracefully(1);
@@ -179,7 +179,8 @@
 
 			OperaciontHeader * header = malloc(sizeof(OperaciontHeader));
 
-			if ((recv(parametros->new_fd, header, sizeof(header), 0)) == -1) {
+			int recvHeader;
+			if ((recvHeader = recv(parametros->new_fd, header, sizeof(header), 0)) <= 0) {
 				perror("recv");
 				log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
 				exit_gracefully(1);
@@ -221,7 +222,8 @@
 			while(list_is_empty(colaResultados)) ; // mientras la cola este vacia no puedo continuar
 			tResultado * resultado = list_take(colaResultados,1);
 			log_info(logger,resultado);
-			if (send(parametros->new_fd, (void*)resultado->resultado, sizeof(resultado), 0) == -1){
+			int sendResultado;
+			if ((sendResultado =send(parametros->new_fd, (void*)resultado->resultado, sizeof(resultado), 0)) <= 0){
 				perror("send");
 				exit_gracefully(1);
 			}
@@ -233,12 +235,13 @@
     int *conexionPlanificador(parametrosConexion* parametros){
     	//close(new_fd->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
         puts("Planificador conectandose");
-		if (send(parametros->new_fd, "Hola papa!\n", 14, 0) == -1)
+        int mensajeFalopa;
+		if ((mensajeFalopa = send(parametros->new_fd, "Hola papa!\n", 14, 0)) <= 0)
 			perror("send");
         int numbytes,tamanio_buffer=100;
         char buf[tamanio_buffer]; //Seteo el maximo del buffer en 100 para probar. Debe ser variable.
 
-        if ((numbytes=recv(parametros->new_fd, buf, tamanio_buffer-1, 0)) == -1) {
+        if ((numbytes=recv(parametros->new_fd, buf, tamanio_buffer-1, 0)) <= 0) {
             perror("recv");
             exit_gracefully(1);
         }
@@ -260,12 +263,13 @@
     int *conexionInstancia(parametrosConexion* parametros){
     	//close(new_fd->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
         puts("Instancia conectandose");
-		if (send(parametros->new_fd, "Hola papa!\n", 14, 0) == -1)
+        int handshake;
+		if ((handshake = send(parametros->new_fd, "Hola papa!\n", 14, 0)) <= 0)
 			perror("send");
         int numbytes,tamanio_buffer=100;
         char buf[tamanio_buffer]; //Seteo el maximo del buffer en 100 para probar. Debe ser variable.
 
-        if ((numbytes=recv(parametros->new_fd, buf, tamanio_buffer-1, 0)) == -1) {
+        if ((numbytes=recv(parametros->new_fd, buf, tamanio_buffer-1, 0)) <= 0) {
             perror("recv");
             exit_gracefully(1);
         }
@@ -283,7 +287,8 @@
         header->tamanioValor = tamanioValor;
 
         // Envio el header a la instancia
-		if (send(parametros->new_fd, header, sizeof(header), 0) == -1){
+        int sendHeader;
+		if ((sendHeader = send(parametros->new_fd, header, sizeof(header), 0)) <= 0){
 			perror("send");
 			exit_gracefully(1);
 		}
@@ -291,21 +296,24 @@
 		free(header);
 
 		// Envio la clave
-		if (send(parametros->new_fd, operacion->clave, TAMANIO_CLAVE, 0) == -1){
+		int sendClave;
+		if ((sendClave = send(parametros->new_fd, operacion->clave, TAMANIO_CLAVE, 0)) <= 0){
 			perror("send");
 			exit_gracefully(1);
 		}
 
 
 		if(tipo == OPERACION_SET){
-			if (send(parametros->new_fd, operacion->valor, tamanioValor, 0) == -1)
+			int sendSet;
+			if ((sendSet = send(parametros->new_fd, operacion->valor, tamanioValor, 0)) <= 0)
 				perror("send");
 			exit_gracefully(1);
 		}
 
 		// Espero el resultado de la operacion
 		tResultadoOperacion * resultado = malloc(sizeof(tResultadoOperacion));
-        if (recv(parametros->new_fd, resultado, sizeof(tResultadoOperacion), 0) == -1) {
+		int resultadoRecv;
+        if ((resultadoRecv = recv(parametros->new_fd, resultado, sizeof(tResultadoOperacion), 0)) <= 0) {
             perror("recv");
             exit_gracefully(1);
         }
@@ -362,9 +370,9 @@
 	int ManejarOperacionGET(parametrosConexion* parametros, OperacionAEnviar* operacion) {
 
 		char clave[TAMANIO_CLAVE];
-		int result_recv;
+		int recvClave;
 
-		if ( (result_recv = recv(parametros->new_fd, clave, TAMANIO_CLAVE - 1, 0)) == -1) {
+		if ( (recvClave = recv(parametros->new_fd, clave, TAMANIO_CLAVE - 1, 0)) <= 0) {
 			perror("recv");
 			log_info(logger, "TID %d  Mensaje: ERROR en ESI",
 					process_get_thread_id());
@@ -372,7 +380,7 @@
 		}
 
 		clave[strlen(clave)+1] = '\0';
-		printf("Recibi la clave: %s\n", clave);
+		printf("Recibi la clave: %s \n", clave);
 		operacion->tipo = OPERACION_GET;
 		operacion->clave = clave;
 		operacion->valor = NULL;
@@ -389,7 +397,8 @@
 	int ManejarOperacionSET(int tamanioValor, parametrosConexion* parametros, OperacionAEnviar* operacion) {
 
 		char clave[TAMANIO_CLAVE];
-		if (recv(parametros->new_fd, clave, TAMANIO_CLAVE - 1, 0) == -1) {
+		int recvClave, recvValor;
+		if ((recvClave = recv(parametros->new_fd, clave, TAMANIO_CLAVE - 1, 0)) <= 0) {
 			perror("recv");
 			log_info(logger, "TID %d  Mensaje: ERROR en ESI",
 					process_get_thread_id());
@@ -398,7 +407,7 @@
 		clave[TAMANIO_CLAVE] = '\0';
 		printf("Recibi la clave: %s\n", clave);
 		char valor[tamanioValor];
-		if (recv(parametros->new_fd, valor, tamanioValor - 1, 0) == -1) {
+		if (( recvValor = recv(parametros->new_fd, valor, tamanioValor - 1, 0)) <= 0) {
 			perror("recv");
 			log_info(logger, "TID %d  Mensaje: ERROR en ESI",
 					process_get_thread_id());
@@ -423,7 +432,8 @@
 	int ManejarOperacionSTORE(parametrosConexion* parametros, OperacionAEnviar* operacion) {
 
 		char clave[TAMANIO_CLAVE];
-		if (recv(parametros->new_fd, clave, TAMANIO_CLAVE - 1, 0) == -1) {
+		int resultadoRecv;
+		if ((resultadoRecv =recv(parametros->new_fd, clave, TAMANIO_CLAVE - 1, 0)) <= 0) {
 			perror("recv");
 			log_info(logger, "TID %d  Mensaje: ERROR en ESI",
 					process_get_thread_id());
@@ -465,7 +475,6 @@
 
       return 1;
      }
-
 
 
 
