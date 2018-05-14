@@ -180,7 +180,7 @@
 			OperaciontHeader * header = malloc(sizeof(OperaciontHeader));
 
 			int recvHeader;
-			if ((recvHeader = recv(parametros->new_fd, header, sizeof(header), 0)) <= 0) {
+			if ((recvHeader = recv(parametros->new_fd, header, sizeof(OperaciontHeader), 0)) <= 0) {
 				perror("recv");
 				log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
 				exit_gracefully(1);
@@ -385,10 +385,12 @@
 		operacion->clave = clave;
 		operacion->valor = NULL;
 		char* GetALoguear[sizeof(operacion)];
-		strncpy(GetALoguear, "GET ", 4);
+		strcpy(GetALoguear, "GET ");
 		puts(GetALoguear);
-		strncpy(GetALoguear, clave, strlen(clave));
+		strcat(GetALoguear, clave);
+		GetALoguear[4+strlen(clave)+1]='\0';
 		puts(GetALoguear);
+
 		log_info(logger, GetALoguear);
 
 		return 1;
