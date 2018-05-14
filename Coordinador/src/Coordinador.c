@@ -76,7 +76,7 @@
         return 0;
     }
 
-    void EscucharConexiones(int sockfd){
+    int EscucharConexiones(int sockfd){
         int sin_size, new_fd;
         struct sockaddr_in direccion_cliente; // información sobre la dirección del cliente
 
@@ -113,9 +113,11 @@
 
         //Tenemos que destruir el mutex
         pthread_mutex_destroy(&mutex);
+
+		return 1;
     }
 
-    void *gestionarConexion(struct parametrosConexion *parametros){ //(int* sockfd, int* new_fd)
+    int *gestionarConexion(struct parametrosConexion *parametros){ //(int* sockfd, int* new_fd)
         puts("Se disparo un hilo");
         int bytesRecibidos;
                tHeader *headerRecibido = malloc(sizeof(tHeader));
@@ -131,10 +133,11 @@
 			IdentificarProceso(headerRecibido, parametros);
 			free(headerRecibido);
 		   }
+
+		return 1;
     }
 
-    void IdentificarProceso(tHeader* headerRecibido,
-    		struct parametrosConexion* parametros) {
+    int IdentificarProceso(tHeader* headerRecibido, struct parametrosConexion* parametros) {
     	switch (headerRecibido->tipoProceso) {
     	case ESI:
     		printf("Se conecto el proceso %d \n", headerRecibido->idProceso);
@@ -143,7 +146,7 @@
     		break;
     	case PLANIFICADOR:
     		printf("Se conecto el proceso %d \n", headerRecibido->idProceso);
-    		conexionPlanificador(parametros->new_fd);
+    		conexionPlanificador(parametros);
     		parametros->semaforo = 0;
     		planificador = parametros;
     		break;
@@ -156,9 +159,10 @@
     		puts("Error al intentar conectar un proceso");
     		close(parametros->new_fd);
     	}
+		return 1;
     }
 
-    void *conexionESI(struct parametrosConexion* parametros){
+    int *conexionESI(struct parametrosConexion* parametros){
     	//close(new_fd->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
         puts("ESI conectandose");
         // todo RECIBIR UNA OPERACION DEL ESI APLICANDO EL PROTOCOLO (Esto deberia ir en un while para leer varias operaciones)
@@ -190,7 +194,7 @@
 			pthread_mutex_unlock(&mutex);
 			free(operacion);
 
-			while(queue_is_empty(colaInstancias)) ; // mientras la cola este vacia no puedo continuar
+			while(list_is_empty(colaInstancias)) ; // mientras la cola este vacia no puedo continuar
 
 			pthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
 
@@ -205,7 +209,7 @@
 			free(header);
 
 			//esperamos el resultado para devolver
-			while(queue_is_empty(colaResultados)) ; // mientras la cola este vacia no puedo continuar
+			while(list_is_empty(colaResultados)) ; // mientras la cola este vacia no puedo continuar
 			tResultado * resultado = list_take(colaResultados,1);
 			log_info(logger,resultado);
 			if (send(parametros->new_fd, (void*)resultado->resultado, sizeof(resultado), 0) == -1){
@@ -214,9 +218,10 @@
 			}
         }
 		close(parametros->new_fd);
+		return 1;
     }
 
-    void *conexionPlanificador(struct parametrosConexion* parametros){
+    int *conexionPlanificador(struct parametrosConexion* parametros){
     	//close(new_fd->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
         puts("Planificador conectandose");
 		if (send(parametros->new_fd, "Hola papa!\n", 14, 0) == -1)
@@ -240,9 +245,10 @@
         }
 
 		close(parametros->new_fd);
+		return 1;
     }
 
-    void *conexionInstancia(struct parametrosConexion* parametros){
+    int *conexionInstancia(struct parametrosConexion* parametros){
     	//close(new_fd->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
         puts("Instancia conectandose");
 		if (send(parametros->new_fd, "Hola papa!\n", 14, 0) == -1)
@@ -263,7 +269,7 @@
         OperacionAEnviar * operacion = list_take(colaMensajes,1);
         int tamanioValor = strlen(operacion->valor);
         tTipoOperacion tipo = operacion->tipo;
-        OperaciontHeader * header;  // Creo el header que le voy a enviar a la instancia para que identifique la operacion
+        OperaciontHeader * header = malloc(sizeof(OperaciontHeader));  // Creo el header que le voy a enviar a la instancia para que identifique la operacion
         header->tipo = tipo;
         header->tamanioValor = tamanioValor;
 
@@ -272,6 +278,8 @@
 			perror("send");
 			exit_gracefully(1);
 		}
+
+		free(header);
 
 		// Envio la clave
 		if (send(parametros->new_fd, operacion->clave, TAMANIO_CLAVE, 0) == -1){
@@ -287,7 +295,7 @@
 		}
 
 		// Espero el resultado de la operacion
-		tResultadoOperacion * resultado;
+		tResultadoOperacion * resultado = malloc(sizeof(tResultadoOperacion));
         if (recv(parametros->new_fd, resultado, sizeof(tResultadoOperacion), 0) == -1) {
             perror("recv");
             exit_gracefully(1);
@@ -301,13 +309,16 @@
 
         tResultado * resultadoCompleto = {resultado,operacion->clave};
 
+        free(resultado);
+
         //Debo avisarle al ESI que me invoco el resultado
         list_add(colaResultados,(void*)&resultadoCompleto);
 
 		close(parametros->new_fd);
+		return 1;
     }
 
-    void AnalizarOperacion(int tamanioValor,
+    int AnalizarOperacion(int tamanioValor,
     			OperaciontHeader* header, struct parametrosConexion* parametros,
     			OperacionAEnviar* operacion) {
     		// Segun el tipo de operacion que sea, cargamos el mensaje en una estructura
@@ -336,9 +347,10 @@
     			puts("ENTRO POR EL DEFAULT");
     			break;
     		}
+    		return 1;
     	}
 
-	void ManejarOperacionGET(struct parametrosConexion* parametros, OperacionAEnviar* operacion) {
+	int ManejarOperacionGET(struct parametrosConexion* parametros, OperacionAEnviar* operacion) {
 
 		char clave[TAMANIO_CLAVE];
 		int result_recv;
@@ -360,10 +372,13 @@
 		strncpy(GetALoguear, clave, strlen(clave));
 		puts(GetALoguear);
 		log_info(logger, GetALoguear);
+
+		return 1;
 	}
 
-	void ManejarOperacionSET(char clave[TAMANIO_CLAVE], int tamanioValor,
-			struct parametrosConexion* parametros, OperacionAEnviar* operacion) {
+	int ManejarOperacionSET(int tamanioValor, struct parametrosConexion* parametros, OperacionAEnviar* operacion) {
+
+		char clave[TAMANIO_CLAVE];
 		if (recv(parametros->new_fd, clave, TAMANIO_CLAVE - 1, 0) == -1) {
 			perror("recv");
 			log_info(logger, "TID %d  Mensaje: ERROR en ESI",
@@ -391,10 +406,13 @@
 		puts(SetALoguear);
 		strncpy(SetALoguear, valor, strlen(valor));
 		log_info(logger, SetALoguear);
+
+		return 1;
 	}
 
-	void ManejarOperacionSTORE(char clave[TAMANIO_CLAVE],
-			struct parametrosConexion* parametros, OperacionAEnviar* operacion) {
+	int ManejarOperacionSTORE(struct parametrosConexion* parametros, OperacionAEnviar* operacion) {
+
+		char clave[TAMANIO_CLAVE];
 		if (recv(parametros->new_fd, clave, TAMANIO_CLAVE - 1, 0) == -1) {
 			perror("recv");
 			log_info(logger, "TID %d  Mensaje: ERROR en ESI",
@@ -409,25 +427,33 @@
 		strncpy(StoreALoguear, clave, strlen(clave));
 		puts(StoreALoguear);
 		log_info(logger, StoreALoguear);
+
+		return 1;
 	}
 
-	void InicializarListasYColas() {
+	int InicializarListasYColas() {
 		// Creamos una cola donde dejamos todas las instancias que se conectan con nosotros y otra para los mensajes recibidos de cualquier ESI
 		colaInstancias = list_create();
 		colaMensajes = list_create();
 		colaResultados = list_create();
 		colaESIS = list_create();
 		colaBloqueos = list_create();
+
+		return 1;
 	}
 
-    void exit_gracefully(int return_nr) {
+    int exit_gracefully(int return_nr) {
 
        log_destroy(logger);
        exit(return_nr);
+
+		return return_nr;
      }
 
-    void configure_logger() {
+    int configure_logger() {
       logger = log_create("Coordinador.log", "CORD", true, LOG_LEVEL_INFO);
+
+      return 1;
      }
 
 

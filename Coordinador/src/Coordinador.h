@@ -21,6 +21,9 @@
 #include <commons/collections/list.h>
 #include <commons/collections/queue.h>
 #include <sys/queue.h>
+#include <commons/txt.h>
+#include <netdb.h>
+#include <sys/socket.h>
 
 ///// DEFINES
 
@@ -100,11 +103,11 @@ char* IP;
 t_log * logger;
 
 struct parametrosConexion * planificador;
-t_list *colaInstancias;
-t_list *colaESIS;
-t_list *colaMensajes;
-t_list *colaResultados;
-t_list *colaBloqueos;
+t_list* colaInstancias;
+t_list* colaESIS;
+t_list* colaMensajes;
+t_list* colaResultados;
+t_list* colaBloqueos;
 
 pthread_mutex_t mutex;
 
@@ -113,16 +116,18 @@ pthread_mutex_t mutex;
 
 void sigchld_handler(int s);
 int main(void);
-void configure_logger();
-void exit_gracefully(int return_nr);
-void *gestionarConexion(struct parametrosConexion *parametros);
-void *conexionESI(struct parametrosConexion* parametros);
-void *conexionPlanificador(struct parametrosConexion* parametros);
-void *conexionInstancia(struct parametrosConexion* parametros);
-void AnalizarOperacion(int tamanioValor,OperaciontHeader* header, struct parametrosConexion* parametros,
+int EscucharConexiones(int sockfd);
+int IdentificarProceso(tHeader* headerRecibido, struct parametrosConexion* parametros);
+int configure_logger();
+int exit_gracefully(int return_nr);
+int *gestionarConexion(struct parametrosConexion *parametros);
+int *conexionESI(struct parametrosConexion* parametros);
+int *conexionPlanificador(struct parametrosConexion* parametros);
+int *conexionInstancia(struct parametrosConexion* parametros);
+int AnalizarOperacion(int tamanioValor,OperaciontHeader* header, struct parametrosConexion* parametros,
 		OperacionAEnviar* operacion);
-void ManejarOperacionGET(struct parametrosConexion* parametros, OperacionAEnviar* operacion);
-void ManejarOperacionSET(tamanioValor, parametros, operacion);
-void ManejarOperacionSTORE(parametros, operacion);
-void InicializarListasYColas();
+int ManejarOperacionGET(struct parametrosConexion* parametros, OperacionAEnviar* operacion);
+int ManejarOperacionSET(int tamanioValor, struct parametrosConexion* parametros, OperacionAEnviar* operacion);
+int ManejarOperacionSTORE(struct parametrosConexion* parametros, OperacionAEnviar* operacion);
+int InicializarListasYColas();
 
