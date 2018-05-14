@@ -108,7 +108,7 @@
     				} // Inicializo el semaforo en 0
 
     				parametrosConexion parametros = {new_fd,semaforoNuevo};
-
+    				printf("Socket %d \n",new_fd);
     	            int stat = pthread_create(&tid, NULL, (void*)gestionarConexion, (void*)&parametros);//(void*)&parametros -> parametros contendria todos los parametros que usa conexion
     				if (stat != 0){
     					puts("error al generar el hilo");
@@ -363,6 +363,7 @@
 
 		char clave[TAMANIO_CLAVE];
 		int result_recv;
+
 		if ( (result_recv = recv(parametros->new_fd, clave, TAMANIO_CLAVE - 1, 0)) == -1) {
 			perror("recv");
 			log_info(logger, "TID %d  Mensaje: ERROR en ESI",
