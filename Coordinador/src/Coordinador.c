@@ -189,6 +189,7 @@
 			puts("INTENTO RECIBIR TAMANIO VALOR");
 			int tamanioValor = header->tamanioValor;
 			puts("RECIBI TAMANIO VALOR");
+			printf("Tamaño valor: %d \n",tamanioValor);
 			OperacionAEnviar * operacion = malloc(sizeof(tTipoOperacion)+TAMANIO_CLAVE+tamanioValor);
 			puts("EL MALLOC ANDUVO");
 
@@ -409,13 +410,13 @@
 		clave[strlen(clave)+1] = '\0';
 		printf("Recibi la clave: %s\n", clave);
 		char valor[tamanioValor];
-		if (( recvValor = recv(parametros->new_fd, valor, tamanioValor - 1, 0)) <= 0) {
+		if (( recvValor = recv(parametros->new_fd, valor, tamanioValor+1, 0)) <= 0) {
 			perror("recv");
 			log_info(logger, "TID %d  Mensaje: ERROR en ESI",
 					process_get_thread_id());
 			exit_gracefully(1);
 		}
-		clave[tamanioValor] = '\0';
+		valor[tamanioValor] = '\0';
 		printf("Recibi el valor: %s\n", valor);
 		operacion->tipo = OPERACION_SET;
 		operacion->clave = clave;
@@ -425,8 +426,9 @@
 		puts(SetALoguear);
 		strcat(SetALoguear, clave);
 		puts(SetALoguear);
+		strcat(SetALoguear, " ");
 		strcat(SetALoguear, valor);
-		SetALoguear[4+strlen(clave)+strlen(valor)+1]='\0';
+		SetALoguear[5+strlen(clave)+strlen(valor)+1]='\0';
 		puts(SetALoguear);
 		log_info(logger, SetALoguear);
 
