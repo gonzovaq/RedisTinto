@@ -381,6 +381,13 @@
 		}
 
 		clave[strlen(clave)+1] = '\0';
+
+		if (EncontrarEnLista(colaBloqueos, clave)){
+			puts("La clave esta bloqueada");
+			while (EncontrarEnLista(colaBloqueos, clave));
+			puts("Se desbloqueo la clave");
+		}
+
 		printf("Recibi la clave: %s \n", clave);
 		operacion->tipo = OPERACION_GET;
 		operacion->clave = clave;
@@ -391,6 +398,8 @@
 		strcat(GetALoguear, clave);
 		GetALoguear[4+strlen(clave)+1]='\0';
 		puts(GetALoguear);
+
+		list_add(colaBloqueos,clave);
 
 		log_info(logger, GetALoguear);
 
@@ -487,6 +496,13 @@
 
       return 1;
      }
+
+    bool EncontrarEnLista(t_list * lista, char * claveABuscar){
+		bool yaExisteLaClave(void *claveDeLista) {
+			return claveDeLista == claveABuscar;
+		}
+		return list_any_satisfy(lista,yaExisteLaClave);
+    }
 
 
 

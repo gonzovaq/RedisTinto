@@ -137,4 +137,6 @@ int ManejarOperacionGET(parametrosConexion* parametros, OperacionAEnviar* operac
 int ManejarOperacionSET(int tamanioValor, parametrosConexion* parametros, OperacionAEnviar* operacion);
 int ManejarOperacionSTORE(parametrosConexion* parametros, OperacionAEnviar* operacion);
 int InicializarListasYColas();
+bool yaExisteLaClave(void *claveDeLista,char * clave);
+bool EncontrarEnLista(t_list * lista, char * claveABuscar);
 
