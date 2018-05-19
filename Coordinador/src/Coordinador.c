@@ -406,7 +406,7 @@
 					process_get_thread_id());
 			exit_gracefully(1);
 		}
-		clave[TAMANIO_CLAVE] = '\0';
+		clave[strlen(clave)+1] = '\0';
 		printf("Recibi la clave: %s\n", clave);
 		char valor[tamanioValor];
 		if (( recvValor = recv(parametros->new_fd, valor, tamanioValor - 1, 0)) <= 0) {
@@ -416,16 +416,18 @@
 			exit_gracefully(1);
 		}
 		clave[tamanioValor] = '\0';
-		printf("Recibi la clave: %s\n", valor);
+		printf("Recibi el valor: %s\n", valor);
 		operacion->tipo = OPERACION_SET;
 		operacion->clave = clave;
 		operacion->valor = valor;
 		char* SetALoguear[sizeof(operacion)];
-		strncpy(SetALoguear, "SET ", 4);
+		strcpy(SetALoguear, "SET ");
 		puts(SetALoguear);
-		strncpy(SetALoguear, clave, strlen(clave));
+		strcat(SetALoguear, clave);
 		puts(SetALoguear);
-		strncpy(SetALoguear, valor, strlen(valor));
+		strcat(SetALoguear, valor);
+		SetALoguear[4+strlen(clave)+strlen(valor)+1]='\0';
+		puts(SetALoguear);
 		log_info(logger, SetALoguear);
 
 		return 1;
@@ -435,19 +437,25 @@
 
 		char clave[TAMANIO_CLAVE];
 		int resultadoRecv;
+
 		if ((resultadoRecv =recv(parametros->new_fd, clave, TAMANIO_CLAVE - 1, 0)) <= 0) {
 			perror("recv");
 			log_info(logger, "TID %d  Mensaje: ERROR en ESI",
 					process_get_thread_id());
 			exit_gracefully(1);
 		}
-		clave[TAMANIO_CLAVE] = '\0';
+		clave[strlen(clave)+1] = '\0';
 		printf("Recibi la clave: %s\n", clave);
+		operacion->tipo = OPERACION_GET;
+		operacion->clave = clave;
+		operacion->valor = NULL;
 		char* StoreALoguear[sizeof(operacion)];
-		strncpy(StoreALoguear, "STORE ", 6);
+		strcpy(StoreALoguear, "STORE ");
 		puts(StoreALoguear);
-		strncpy(StoreALoguear, clave, strlen(clave));
+		strcat(StoreALoguear, clave);
+		StoreALoguear[6+strlen(clave)+1]='\0';
 		puts(StoreALoguear);
+
 		log_info(logger, StoreALoguear);
 
 		return 1;
