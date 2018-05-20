@@ -67,6 +67,11 @@ typedef enum{
 	ERROR = 3
 }tResultadoOperacion;
 
+typedef enum{
+	LSU = 1,
+	EL = 2,
+	KE = 3
+}tAlgoritmoDistribucion;
 
 
 typedef struct{
@@ -107,6 +112,11 @@ typedef struct {
 
 int PUERTO;
 char* IP;
+tAlgoritmoDistribucion ALGORITMO;
+char* ALGORITMO_CONFIG;
+int ENTRADAS;
+int TAMANIO_ENTRADAS;
+int RETARDO;
 t_log * logger;
 
 parametrosConexion * planificador;
@@ -139,4 +149,7 @@ int ManejarOperacionSTORE(parametrosConexion* parametros, OperacionAEnviar* oper
 int InicializarListasYColas();
 bool yaExisteLaClave(void *claveDeLista,char * clave);
 bool EncontrarEnLista(t_list * lista, char * claveABuscar);
+int LeerArchivoDeConfiguracion();
+int SeleccionarInstancia();
+parametrosConexion* SeleccionarPorEquitativeLoad();
 

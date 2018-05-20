@@ -7,19 +7,10 @@
 
 #include "Coordinador.h"
 
-
-    void sigchld_handler(int s) // eliminar procesos muertos
-    {
-        while(wait(NULL) > 0);
-    }
-
     int main(void)
     {
     	// Leer archivo de configuracion con las commons
-    	t_config *configuracion;
-    	configuracion = config_create(ARCHIVO_CONFIGURACION);
-    	PUERTO =  config_get_int_value(configuracion, "port");
-    	IP = config_get_string_value(configuracion, "ip");
+    	LeerArchivoDeConfiguracion();
     	printf("Mi ip es: %s \n",IP);
 
     	configure_logger();
@@ -205,16 +196,7 @@
 			pthread_mutex_unlock(&mutex);
 			free(operacion);
 
-			while(list_is_empty(colaInstancias)) ; // mientras la cola este vacia no puedo continuar
-
-			pthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
-
-			parametrosConexion * instancia = list_take(colaInstancias,1); //saco la primer instancia de la cola pero luego tengo que deolverla a la cola
-			sem_post(instancia->semaforo); // Le aviso al semaforo de la instancia de que puede operar (el semaforo es el tid)
-			list_add(colaInstancias,(void*)&instancia);
-
-			pthread_mutex_unlock(&mutex);
-
+			SeleccionarInstancia();
 			// Semaforo por si llegaran a entrar mas de un ESI
 
 			free(header);
@@ -382,9 +364,9 @@
 
 		clave[strlen(clave)+1] = '\0';
 
-		if (EncontrarEnLista(colaBloqueos, clave)){
+		if (EncontrarEnLista(colaBloqueos, &clave)){
 			puts("La clave esta bloqueada");
-			while (EncontrarEnLista(colaBloqueos, clave));
+			while (EncontrarEnLista(colaBloqueos, &clave));
 			puts("Se desbloqueo la clave");
 		}
 
@@ -499,12 +481,78 @@
 
     bool EncontrarEnLista(t_list * lista, char * claveABuscar){
 		bool yaExisteLaClave(void *claveDeLista) {
-			return claveDeLista == claveABuscar;
+			return strcmp(claveABuscar, claveDeLista) == 0;
 		}
 		return list_any_satisfy(lista,yaExisteLaClave);
     }
 
 
+    void sigchld_handler(int s) // eliminar procesos muertos
+    {
+        while(wait(NULL) > 0);
+    }
+
+	int  LeerArchivoDeConfiguracion() {
+		// Leer archivo de configuracion con las commons
+		t_config* configuracion;
+		configuracion = config_create(ARCHIVO_CONFIGURACION);
+		PUERTO = config_get_int_value(configuracion, "port");
+		IP = config_get_string_value(configuracion, "ip");
+		ALGORITMO_CONFIG = config_get_string_value(configuracion,
+				"algoritmo_distribucion");
+		ENTRADAS = config_get_int_value(configuracion, "Cantidad de Entradas");
+		TAMANIO_ENTRADAS = config_get_int_value(configuracion,
+				"Tamanio de Entrada");
+		RETARDO = config_get_int_value(configuracion, "Retardo");
+		printf("Algoritmo de distribucion %s \n", ALGORITMO_CONFIG);
+		if (strcmp(ALGORITMO_CONFIG, "EL") == 0)
+			ALGORITMO = EL;
+		else {
+			if (strcmp(ALGORITMO_CONFIG, "KE") == 0)
+				ALGORITMO = KE;
+			else {
+				if (strcmp(ALGORITMO_CONFIG, "LSU") == 0)
+					ALGORITMO = LSU;
+				else {
+					puts("Error al cargar el algoritmo de distribucion");
+					exit(1);
+				}
+			}
+		}
+
+		return 1;
+	}
+
+	int SeleccionarInstancia() {
+		while (list_is_empty(colaInstancias));
+
+		// mientras la cola este vacia no puedo continuar
+
+		pthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
+		switch (ALGORITMO){
+		case EL: ; // Si no se deja un statement vacio rompe
+			parametrosConexion* instancia = SeleccionarPorEquitativeLoad();
+			list_add(colaInstancias, (void*) &instancia);
+			break;
+		case LSU:
+			break;
+		case KE:
+			break;
+		default:
+			puts("Hubo un problema al seleccionar la instancia correcta");
+			exit_gracefully(1);
+		}
+		pthread_mutex_unlock(&mutex);
+		//saco la primer instancia de la cola pero luego tengo que deolverla a la colasem_post(instancia->semaforo); // Le aviso al semaforo de la instancia de que puede operar (el semaforo es el tid)
+
+		return 1;
+	}
+
+	parametrosConexion* SeleccionarPorEquitativeLoad() {
+		// mientras la cola este vacia no puedo continuarpthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
+		parametrosConexion* instancia = list_take(colaInstancias, 1);
+		return instancia;
+	}
 
 	// CERRAR CONEXIONES
 	// close() y shutdown()
