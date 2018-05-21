@@ -1,13 +1,4 @@
-	#include "Listas.h"
-	#include <stdio.h>
-    #include <stdlib.h>
-    #include <unistd.h>
-    #include <errno.h>
-    #include <string.h>
-    #include <netdb.h>
-    #include <sys/types.h>
-    #include <netinet/in.h>
-    #include <sys/socket.h>
+#include "Instancia.h"
 
     struct hostent *he;
     struct sockaddr_in their_addr; // información de la dirección de destino
@@ -15,11 +6,33 @@
     int main(int argc, char *argv[])
     {
 
-        t_list *tablaDeEntradas = list_create();
+
+        //**************************************************
+
+    	int cantidadEntradas = 8;
+    	int tamanioValor = 3;
+    	t_list *tablaEntradas = list_create();
+    	tablaEntradas->head = malloc(sizeof(t_link_element) * cantidadEntradas);
+
+    	char **arrayEntradas = malloc(cantidadEntradas * sizeof(char*));
+
+    	for (int i= 0; i < cantidadEntradas; i++){
+    		arrayEntradas[i] = calloc(tamanioValor, sizeof(char));
+    	}
+
     	int socketCoordinador;
         char *buffer_mensaje_recibido;
         char *mensaje_coordinador = "Hola Coordinador, como va?";
-        tMensaje *mensajeInstruccionRecibido = malloc(sizeof(tMensaje));
+
+        tMensaje *mensajeSet = malloc(sizeof(tMensaje));
+        strcpy(mensajeSet->instruccion.clave, "Probando claves\0");
+        strcpy(mensajeSet->instruccion.valor, "bbbb\0");
+
+        tMensaje *mensajeGet = malloc(sizeof(tMensaje));
+        strcpy(mensajeGet->instruccion.clave, "Probando claves\0");
+        strcpy(mensajeGet->instruccion.valor, "\0");
+        int longitudMaximaValorBuscado;
+        char *valorGet = calloc(longitudMaximaValorBuscado, 1);
 
 
         verificarParametrosAlEjecutar(argc, argv);
@@ -31,12 +44,15 @@
         free(buffer_mensaje_recibido);
         enviarMensaje(socketCoordinador, mensaje_coordinador);
 
-        mensajeInstruccionRecibido = recibirInstruccion(socketCoordinador);
-        procesarInstruccion(mensajeInstruccionRecibido, tablaDeEntradas);
-        mostrarTabla(tablaDeEntradas);
+        //Pruebo el set
+		agregarEntrada(mensajeSet, arrayEntradas, cantidadEntradas, tamanioValor, tablaEntradas);
+		mostrarArray(arrayEntradas, cantidadEntradas);
 
-
-
+		//Pruebo el get
+		longitudMaximaValorBuscado = calcularLongitudMaxValorBuscado(mensajeGet->instruccion.clave,tablaEntradas);
+		printf("El valor de la clave ocupa %d entradas en mi tabla \n", longitudMaximaValorBuscado);
+		valorGet = obtenerValor(longitudMaximaValorBuscado, tablaEntradas, mensajeGet->instruccion.clave, arrayEntradas, tamanioValor);
+		printf("Valor obtenido del GET: %s\n",valorGet);
 
         close(socketCoordinador);
         return 0;
@@ -170,34 +186,145 @@
     	return mensajeRecibido;
     }
 
-    void procesarInstruccion(tMensaje *unMensaje, t_list *tablaDeEntradas){
-    	tEntrada *buffer = malloc(sizeof(tEntrada));
-    	*buffer = unMensaje->entrada;
+    void procesarInstruccion(tMensaje *unMensaje, char **arrayEntradas, int cantidadEntradas, int tamanioValor, t_list *tablaEntradas){
+    	int *longitudMaximaValorBuscado = malloc(sizeof(int));
     	if (unMensaje->encabezado.tipoProceso != COORDINADOR){
     		puts("El mensaje no se recibio desde el tipo de proceso indicado");
     	}
+    	else{
+        	switch(unMensaje->encabezado.tipoMensaje){
+        	case SET:
+        		agregarEntrada(unMensaje, arrayEntradas, cantidadEntradas, tamanioValor, tablaEntradas);
+        		break;
+        	case GET:
+        		longitudMaximaValorBuscado = calcularLongitudMaxValorBuscado(unMensaje->instruccion.clave,tablaEntradas);
+        		printf("El valor de la clave ocupa %d entradas", longitudMaximaValorBuscado);
+        		break;
+        	default:
+        		puts("Nada para hacer");
+        	}
 
-    	switch(unMensaje->encabezado.tipoMensaje){
-    	case SET:
-    		list_add(tablaDeEntradas, buffer);
-    		break;
-    	default:
-    		puts("Nada para hacer");
-    	}
-
-    	free(buffer);
-    	return;
-    }
-
-    void mostrarTabla(t_list *tablaDeEntradas){
-
-    	while(tablaDeEntradas->head->next){
-    		puts("Clave:");
-    		puts(tablaDeEntradas->head->info.clave);
-    		puts("Valor:");
-    		puts(tablaDeEntradas->head->info.valor);
-    		tablaDeEntradas->head = tablaDeEntradas->head->next;
     	}
 
     	return;
     }
+
+
+    void agregarEntrada(tMensaje *unMensaje, char ** arrayEntradas, int cantidadEntradas, int tamanioValor, t_list *tablaEntradas){
+    	char *valorMensaje = calloc(40, 1);
+    	memcpy(valorMensaje, unMensaje->instruccion.valor, strlen(unMensaje->instruccion.valor));
+    	int tamanioBuffer = strlen(valorMensaje);
+    	char *nombreClave = malloc(40);
+    	strcpy(nombreClave, unMensaje->instruccion.clave);
+
+    	if(tamanioBuffer > tamanioValor){
+    		int vecesAIterar = calcularIteracion(tamanioBuffer, tamanioValor);
+			int offset;
+
+			for(int i = 0; i < vecesAIterar; i++){
+				offset = i * tamanioValor;
+
+				for(int j = 0; j < cantidadEntradas; j++){
+
+					if(*(arrayEntradas[j]) == NULL){
+
+						int bytesRestantes = tamanioBuffer - tamanioValor * i;
+
+						if (i == vecesAIterar - 1){
+							memcpy(arrayEntradas[j], valorMensaje + offset, bytesRestantes);
+							agregarNodoAtabla(tablaEntradas, j, bytesRestantes, nombreClave);
+							break;
+						}
+						else{
+							memcpy(arrayEntradas[j], valorMensaje + offset, tamanioValor);
+							agregarNodoAtabla(tablaEntradas, j, tamanioValor, nombreClave);
+							break;
+						}
+
+					}
+
+				}
+
+			}
+			free(unMensaje);
+			free(valorMensaje);
+			return;
+    	}
+
+    	else{
+    			for(int i = 0; i < cantidadEntradas; i++){
+    				if(*(arrayEntradas[i]) == NULL){
+    					memcpy(arrayEntradas[i], valorMensaje, strlen(valorMensaje));
+    					break;
+    				}
+    			}
+    			free(unMensaje);
+    			free(valorMensaje);
+    		}
+
+   	    return;
+ }
+
+    int calcularIteracion(int valorSobrePasado, int tamanioValor){
+        	return valorSobrePasado / tamanioValor + 1;
+        }
+
+    int calcularLongitudMaxValorBuscado(char *unaClave,t_list *tablaEntradas){
+     	int coincidir(tEntrada *unaEntrada){
+     	    		return string_equals_ignore_case(unaEntrada->clave, unaClave);
+     	    	}
+     	return list_count_satisfying(tablaEntradas, (void*) coincidir);
+     }
+
+    void agregarNodoAtabla(t_list *tablaEntradas, int nroEntradaStorage, int tamanioAlmacenado, char *nombreClave){
+     	tEntrada *buffer = malloc(sizeof(tEntrada));
+     	buffer->numeroEntrada = nroEntradaStorage;
+     	buffer->tamanioAlmacenado = tamanioAlmacenado;
+     	strcpy(buffer->clave, nombreClave);
+
+
+     	list_add(tablaEntradas, (tEntrada *) buffer);
+
+    	return;
+     }
+
+    void mostrarArray(char **arrayEntradas, int cantidadEntradas){
+    	for (int i = 0; i < cantidadEntradas; i++){
+    		if(*(arrayEntradas[i]) != NULL){
+    			printf("Valor de la primer entrada: %s\n", arrayEntradas[i]);
+    		}
+    	}
+    return;
+    }
+
+    char *obtenerValor(int longitudMaximaValorBuscado, t_list *tablaEntradas, char *claveBuscada,char **arrayEntradas,int tamanioValor){
+    	char *valor = malloc(longitudMaximaValorBuscado);
+    	t_list *tablaDuplicada = malloc(sizeof(t_list));
+    	tEntrada *bufferEntrada = malloc(sizeof(tEntrada));
+
+    	tablaDuplicada = list_duplicate(tablaEntradas);
+
+    	int coincidir(tEntrada *unaEntrada){
+    		return string_equals_ignore_case(unaEntrada->clave, claveBuscada);
+    	}
+
+    	tablaDuplicada = list_filter(tablaDuplicada, (void*) coincidir);
+    	printf("longitud lita duplicada: %d\n", tablaDuplicada->elements_count);
+
+    	for(int i = 0; i < tablaDuplicada->elements_count; i++){
+    		bufferEntrada = list_get(tablaDuplicada, i);
+    		int index = bufferEntrada->numeroEntrada;
+    		memcpy((valor + i * tamanioValor), arrayEntradas[index], tamanioValor);
+    	}
+
+    	list_destroy(tablaDuplicada);
+    	free(bufferEntrada);
+    	return valor;
+    }
+
+    t_list* list_duplicate(t_list* self) {
+    	t_list* duplicated = list_create();
+    	list_add_all(duplicated, self);
+    	return duplicated;
+    }
+

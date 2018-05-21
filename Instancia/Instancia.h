@@ -1,15 +1,29 @@
 /*
- * Coordinador.h
+ *
  *
  *  Created on: 4 abr. 2018
  *      Author: utnso
  */
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
+#include <netdb.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <commons/string.h>
+#include <commons/collections/list.h>
+
+
+
+
 
 
 #define PORT 3490 // puerto al que vamos a conectar
 
 #define MAXDATASIZE 100 // máximo número de bytes que se pueden leer de una vez
-
 
 
 
@@ -27,7 +41,8 @@ typedef enum{
 typedef enum{
 	CONECTARSE = 1,
 	SET = 2,
-	GET = 3
+	GET = 3,
+	STORE = 4
 }tTipoDeMensaje;
 
 
@@ -39,29 +54,41 @@ typedef struct{
 
 typedef struct{
 	char clave[40];
-	char valor[40];
-//	int numeroEntrada;
-//	int tamanioAlmacenado;
+	int numeroEntrada;
+	int tamanioAlmacenado;
 }tEntrada;
 
 typedef struct{
+	char clave[40];
+	char valor[40];
+}__attribute__((packed))
+tInstruccion;
+
+typedef struct{
 	tHeader encabezado;
-	tEntrada entrada;
-}tMensaje;
+	tInstruccion instruccion;
+}__attribute__((packed))
+tMensaje;
 
-struct link_element{
-	tEntrada info;
-	struct link_element *next;
-};
-typedef struct link_element t_link_element;
 
-//Prototipos de funciones
 
 int main(int argc, char *argv[]);
 int leerConfiguracion();
 int verificarParametrosAlEjecutar(int argc, char *argv[]);
-int conectarmeYPresentarme(int port);
+int conectarSocket(int port);
 int enviarHeader(int sockfd);
 char* recibirMensaje(int sockfd);
 int enviarMensaje(int sockfd, char* mensaje);
-tMensaje *recibirInstruccion(int sockfd);
+tMensaje *recibirOtroMensaje(int sockfd);
+void mostrarArray(char **arrayEntradas, int cantidadEntradas);
+
+void agregarEntrada(tMensaje *unMensaje, char **arrayEntradas, int cantidadEntradas, int tamanioValor, t_list *tablaEntradas);
+void procesarMensaje(tMensaje *unMensaje, t_list *tablaEntradas);
+void mostrarLista(t_list *miTabla);
+void procesarInstruccion(tMensaje *unMensaje, char **arrayEntradas, int cantidadEntradas, int tamanioValor, t_list *tablaEntradas);
+int calcularLongitudMaxValorBuscado(char *unaClave,t_list *tablaEntradas);
+int calcularIteracion(int valorSobrePasado, int tamanioValor);
+void agregarNodoAtabla(t_list *tablaEntradas, int nroEntradaStorage, int tamanioAlmacenado, char *nombreClave);
+char *obtenerValor(int longitudMaximaValorBuscado, t_list *tablaEntradas, char *claveBuscada,char **arrayEntradas,int tamanioValor);
+
+t_list* list_duplicate(t_list* self);
