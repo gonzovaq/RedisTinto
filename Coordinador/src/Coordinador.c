@@ -13,6 +13,7 @@
     	LeerArchivoDeConfiguracion();
     	printf("Mi ip es: %s \n",IP);
 
+    	InicializarListasYColas();
     	configure_logger();
 
         int sockfd;  // Escuchar sobre sock_fd, nuevas conexiones sobre new_fd
@@ -57,8 +58,6 @@
         }
 
         puts("A trabajar");
-
-    	InicializarListasYColas();
 
         EscucharConexiones(sockfd);
 
@@ -364,7 +363,7 @@
 
 		clave[strlen(clave)+1] = '\0';
 
-		if (EncontrarEnLista(colaBloqueos, &clave)){
+		if (!list_is_empty(colaBloqueos) && EncontrarEnLista(colaBloqueos, &clave)){
 			puts("La clave esta bloqueada");
 			while (EncontrarEnLista(colaBloqueos, &clave));
 			puts("Se desbloqueo la clave");
@@ -381,7 +380,10 @@
 		GetALoguear[4+strlen(clave)+1]='\0';
 		puts(GetALoguear);
 
-		list_add(colaBloqueos,clave);
+		tBloqueo *bloqueo = malloc(sizeof(operacion));
+		bloqueo->clave=clave;
+		bloqueo->esi="1";
+		list_add(colaBloqueos,(void *)&bloqueo);
 
 		log_info(logger, GetALoguear);
 
@@ -439,6 +441,12 @@
 		}
 		clave[strlen(clave)+1] = '\0';
 		printf("Recibi la clave: %s\n", clave);
+
+		if (list_is_empty(colaBloqueos) && EncontrarEnLista(colaBloqueos, &clave)){
+			printf("Se desbloqueo la clave: %s \n",clave);
+			list_remove_and_destroy_by_condition(colaBloqueos,EncontrarEnLista,(void*)destruirBloqueo);
+		}
+
 		operacion->tipo = OPERACION_GET;
 		operacion->clave = clave;
 		operacion->valor = NULL;
@@ -456,11 +464,24 @@
 
 	int InicializarListasYColas() {
 		// Creamos una cola donde dejamos todas las instancias que se conectan con nosotros y otra para los mensajes recibidos de cualquier ESI
+		int instanciasMaximas = 10;
 		colaInstancias = list_create();
+		colaInstancias->head = malloc(sizeof(parametrosConexion) * instanciasMaximas);
+
+		int mensajesMaximos = 5;
 		colaMensajes = list_create();
+		colaMensajes->head = malloc(sizeof(OperacionAEnviar) * mensajesMaximos);
+
+		int resultadosMaximos = 5;
 		colaResultados = list_create();
+		colaResultados->head = malloc(sizeof(tResultado) * resultadosMaximos);
+
+		int esisMaximos = 10;
 		colaESIS = list_create();
+		colaESIS->head = malloc(sizeof(parametrosConexion) * esisMaximos);
+
 		colaBloqueos = list_create();
+		colaBloqueos->head = malloc(TBLOQUEO * ENTRADAS);
 
 		return 1;
 	}
@@ -469,6 +490,11 @@
 
        log_destroy(logger);
        exit(return_nr);
+       free(colaInstancias->head);
+       free(colaMensajes->head);
+       free(colaResultados->head);
+       free(colaESIS->head);
+       free(colaBloqueos->head);
 
 		return return_nr;
      }
@@ -480,10 +506,11 @@
      }
 
     bool EncontrarEnLista(t_list * lista, char * claveABuscar){
-		bool yaExisteLaClave(void *claveDeLista) {
-			return strcmp(claveABuscar, claveDeLista) == 0;
+		bool yaExisteLaClave(tBloqueo *bloqueo) {
+			printf("Clave bloqueada: %s \n",bloqueo->clave);
+			return string_equals_ignore_case(bloqueo->clave,claveABuscar);
 		}
-		return list_any_satisfy(lista,yaExisteLaClave);
+		return list_any_satisfy(lista,(void*) yaExisteLaClave);
     }
 
 
@@ -552,6 +579,12 @@
 		// mientras la cola este vacia no puedo continuarpthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
 		parametrosConexion* instancia = list_take(colaInstancias, 1);
 		return instancia;
+	}
+
+	static void destruirBloqueo(tBloqueo *bloqueo) {
+	    free(bloqueo->clave);
+	    free(bloqueo->esi);
+	    free(bloqueo);
 	}
 
 	// CERRAR CONEXIONES

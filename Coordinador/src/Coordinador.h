@@ -32,6 +32,7 @@
 #define ARCHIVO_CONFIGURACION "configuracion.config"
 #define BACKLOG 10     // Cuántas conexiones pendientes se mantienen en cola
 #define TAMANIO_CLAVE 41
+#define TBLOQUEO 50
 
 
 // ESTRUCTURAS Y ENUMS
@@ -97,15 +98,15 @@ typedef struct {
 }__attribute__((packed)) OperacionAEnviar; // Operacion que vamos a enviar a la instancia
 
 typedef struct {
-	int ESIPID;
-	char* clave;
-}tBloqueo;
-
-typedef struct {
 	char * data;
 	int size;
 
 }__attribute__((packed)) stream;
+
+typedef struct {
+	char* clave;
+	char* esi;
+}tBloqueo; //podriamos agregar pid?
 
 
 // VARIABLES GLOBALES
@@ -152,4 +153,5 @@ bool EncontrarEnLista(t_list * lista, char * claveABuscar);
 int LeerArchivoDeConfiguracion();
 int SeleccionarInstancia();
 parametrosConexion* SeleccionarPorEquitativeLoad();
+static void destruirBloqueo(tBloqueo *bloqueo);
 
