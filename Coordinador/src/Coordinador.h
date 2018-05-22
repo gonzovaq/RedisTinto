@@ -154,4 +154,5 @@ int LeerArchivoDeConfiguracion();
 int SeleccionarInstancia();
 parametrosConexion* SeleccionarPorEquitativeLoad();
 static void destruirBloqueo(tBloqueo *bloqueo);
+void RemoverDeLaLista(t_list * lista, char * claveABuscar);
 

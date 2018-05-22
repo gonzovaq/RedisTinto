@@ -362,6 +362,7 @@
 		}
 
 		clave[strlen(clave)+1] = '\0';
+		printf("Recibi la clave: %s \n", clave);
 
 		if (!list_is_empty(colaBloqueos) && EncontrarEnLista(colaBloqueos, &clave)){
 			puts("La clave esta bloqueada");
@@ -369,7 +370,6 @@
 			puts("Se desbloqueo la clave");
 		}
 
-		printf("Recibi la clave: %s \n", clave);
 		operacion->tipo = OPERACION_GET;
 		operacion->clave = clave;
 		operacion->valor = NULL;
@@ -383,7 +383,7 @@
 		tBloqueo *bloqueo = malloc(sizeof(operacion));
 		bloqueo->clave=clave;
 		bloqueo->esi="1";
-		list_add(colaBloqueos,(void *)&bloqueo);
+		list_add(colaBloqueos,(void *)bloqueo);
 
 		log_info(logger, GetALoguear);
 
@@ -442,9 +442,9 @@
 		clave[strlen(clave)+1] = '\0';
 		printf("Recibi la clave: %s\n", clave);
 
-		if (list_is_empty(colaBloqueos) && EncontrarEnLista(colaBloqueos, &clave)){
+		if (!list_is_empty(colaBloqueos) && EncontrarEnLista(colaBloqueos, &clave)){
 			printf("Se desbloqueo la clave: %s \n",clave);
-			list_remove_and_destroy_by_condition(colaBloqueos,EncontrarEnLista,(void*)destruirBloqueo);
+			RemoverDeLaLista(colaBloqueos, &clave);
 		}
 
 		operacion->tipo = OPERACION_GET;
@@ -507,7 +507,6 @@
 
     bool EncontrarEnLista(t_list * lista, char * claveABuscar){
 		bool yaExisteLaClave(tBloqueo *bloqueo) {
-			printf("Clave bloqueada: %s \n",bloqueo->clave);
 			return string_equals_ignore_case(bloqueo->clave,claveABuscar);
 		}
 		return list_any_satisfy(lista,(void*) yaExisteLaClave);
@@ -585,6 +584,13 @@
 	    free(bloqueo->clave);
 	    free(bloqueo->esi);
 	    free(bloqueo);
+	}
+
+	void RemoverDeLaLista(t_list * lista, char * claveABuscar){
+		bool yaExisteLaClave(tBloqueo *bloqueo){
+			return string_equals_ignore_case(bloqueo->clave,claveABuscar);
+		}
+		list_remove_and_destroy_by_condition(colaBloqueos,yaExisteLaClave,(void*)destruirBloqueo);
 	}
 
 	// CERRAR CONEXIONES
