@@ -12,13 +12,13 @@
 
 
     	socket_coordinador = conectarmeYPresentarme(PORT_COORDINADOR);
-    	//socket_planificador = conectarmeYPresentarme(PORT_PLANIFICADOR);
+    	socket_planificador = conectarmeYPresentarme(PORT_PLANIFICADOR);
 
 
     	manejarArchivoConScripts(archivoConScripts,socket_coordinador,socket_planificador);
 
         close(socket_coordinador);
-        //close(socket_planificador);
+        close(socket_planificador);
         return 0;
     }
 

@@ -75,6 +75,7 @@
     	        puts("Descripores bases añanidos");
 
     	        // Iniciemos la consola
+		
 				pthread_t tid;
 	            int stat = pthread_create(&tid, NULL, (void*)ejecutarConsola, NULL);
 				if (stat != 0){
@@ -91,7 +92,7 @@
     	        fdmax = listener; // por ahora es éste
     	        // bucle principal
     	        for(;;) {
-
+						
     	        	/*
     	        	dos conjuntos de descriptores de fichero: master y read_fds.
     	        	El primero, master, contiene todos los descriptores de fichero que están actualmente conectados,
@@ -109,6 +110,7 @@
     	                exit(1);
     	            }
     	            // explorar conexiones existentes en busca de datos que leer
+					
     	            for(i = 0; i <= fdmax; i++) {
     	                if (FD_ISSET(i, &read_fds)) { // ¡¡tenemos datos!!
     	                    if (i == listener) {
@@ -126,9 +128,8 @@
     	                            printf("selectserver: new connection from %s on "
     	                                "socket %d\n", inet_ntoa(remoteaddr.sin_addr), newfd);
     	                        	gestionarConexion(newfd);
+									
     	                        	//printf("tst2");
-    	                        	//FD_CLR(i, &master); no hace falta aca
-
     	                        }
     	                    } else {
     	                        // gestionar datos de un cliente
@@ -141,6 +142,7 @@
     	                                perror("recv");
     	                            }
     	                            close(i); // bye!
+									
     	                            FD_CLR(i, &master); // eliminar del conjunto maestro
     	                        } else {
     	                            // tenemos datos de algún cliente
@@ -160,7 +162,7 @@
     	                }
     	            }
     	        }
-
+				
     	        return 0;
     }
     void ConectarAlCoordinador(int  * sockCord, struct sockaddr_in* cord_addr,
@@ -216,7 +218,11 @@
 			{
 				puts("va a pausar");
 			}
-
+			if(strncmp(linea,"cola",4)==0)
+			{
+		
+				mostrarCola();
+			}
 			if(strncmp(linea,"continuar",9)==0)
 			{
 				puts("va a continuar");
@@ -273,6 +279,7 @@
 				//obtener id
 				int id=obtenerId(4,linea);
 				printf("id: %d \n",id);
+				kill(id);
 			}
 			if(strncmp(linea,"status",6)==0)
 			{
@@ -363,21 +370,9 @@
 
 
 		    void *conexionESI(int *socket){
-		        puts("ESI conectandose");
-		        int numbytes,tamanio_buffer=100;
-		        char buf[tamanio_buffer]; //Seteo el maximo del buffer en 100 para probar. Debe ser variable.
-
-		        if ((numbytes=recv(socket, buf, tamanio_buffer-1, 0)) == -1) {
-		            perror("recv");
-		            exit(1);
-		        }
-
-		        buf[numbytes] = '\0';
-		        printf("Received: %s\n",buf);
-
-		        free(buf[numbytes]);
-				//close(socket); lo cierra despues el select
-				//printf("tst1");
+		        puts("ESI conectando");
+				//Aca se va a gestionar lo que se haga con este esi.
+		       
 		    }
 
 		    void Encolar(Fifo*ultimo,int EsiId){  //agrega al final de la cola
@@ -396,3 +391,25 @@
 		    void DesEncolar(){
 
 		    }
+			void mostrarCola()
+			{	
+				int tam = queue_size(colaESIS);
+				printf("Tamanio de cola: %d \n",tam);
+			}
+			bool compare(int a)
+			{
+				if(a==21)
+					return true;
+				else
+					return false;
+			}
+			void kill(int id)
+			{
+				int pos;
+				int buscado;
+				//list_find(colaESIS->elements,compare);
+				//TODO: Hay que buscar al proceso dentro de la cola y removerlo para que no replanifique.
+				printf("Se mata al proceso: %d en la pos:%d \n",id,pos);
+			}
+			
+			
