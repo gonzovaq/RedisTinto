@@ -32,11 +32,23 @@ struct parametrosConexion{
 	struct node_t * colaProcesos;
 };
 
-typedef struct Fifo {
+// Uso de commons en Queue
+typedef struct {
       int pid;
-      struct Fifo *sgt;
-}Fifo;
+      //struct Fifo *sgt;
+}t_Esi;
 
+static t_Esi * new_ESI(int id){
+	t_Esi *new = malloc(sizeof(t_Esi));
+	new->pid = id;
+	return new;
+}
+
+static void ESI_destroy (t_Esi * self){
+	free (self->pid);
+	free (self);
+}
+// fin de uso de commons para queue
 typedef enum{
 	ESI = 1,
 	PLANIFICADOR = 2,

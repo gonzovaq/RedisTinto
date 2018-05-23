@@ -5,11 +5,14 @@
     	LeerArchivoDeConfiguracion();
     	verificarParametrosAlEjecutar(argc, argv);
     			//FIFO
-    		  	Fifo *primero = malloc(sizeof(Fifo));
-    		  	Fifo *ultimo = malloc(sizeof(Fifo));
-    	        primero = NULL;
-    	        ultimo = NULL;
-    	        //
+    		  	//Fifo *primero = malloc(sizeof(Fifo));
+    		  	//Fifo *ultimo = malloc(sizeof(Fifo));
+    	        //primero = NULL;
+    	       // ultimo = NULL;
+    			t_queue *colaESIS;
+    	   		t_queue *colaFinalizados;
+    	   		t_queue *colaEspera;
+    	   		t_queue *colaX;
     	        fd_set master;   // conjunto maestro de descriptores de fichero
     	        fd_set read_fds; // conjunto temporal de descriptores de fichero para select()
     	        struct sockaddr_in myaddr;     // dirección del servidor
@@ -85,9 +88,12 @@
 				}
 				pthread_detach(tid); //Con esto decis que cuando el hilo termine libere sus recursos
 
-				//Creemos la cola ready de los esis
-				colaESIS = queue_create();
-
+				//Creamos las colas que vamos a manejar con las funciones de abajo
+								colaESIS = queue_create();
+								colaEspera = queue_create();
+								colaFinalizados = queue_create();
+								colaX = queue_create();
+				//finalizamos el creado de colas
     	        // seguir la pista del descriptor de fichero mayor
     	        fdmax = listener; // por ahora es éste
     	        // bucle principal
@@ -121,7 +127,7 @@
     	                            perror("accept");
     	                        } else {
     	                            FD_SET(newfd, &master); // añadir al conjunto maestro
-    	                            queue_push(colaESIS,newfd); //todo probablemente no debamos agregar al ESI de esta forma, sino con un mensaje que nos mande con cierto struct
+
     	                            if (newfd > fdmax) {    // actualizar el máximo
     	                                fdmax = newfd;
     	                            }
@@ -361,6 +367,7 @@
 		    	case ESI:
 		    		printf("Se conecto el proceso %d \n", headerRecibido->idProceso);
 		    		conexionESI(socket);
+		    		// si hago un AgregarACola(colaESIS,new_esi bla bla aca me tira segmentation fault, osea que no tiene acceso a la memoria de la cola
 		    		break;
 		    	default:
 		    		puts("Error al intentar conectar un proceso");
@@ -374,7 +381,30 @@
 				//Aca se va a gestionar lo que se haga con este esi.
 		       
 		    }
+		    void AgregarACola(t_queue *Cola,t_Esi *ID){
 
+		    				queue_push(Cola,ID->pid);
+
+		    				printf("se Agrego a la Cola el proceso: %d \n",ID->pid);
+		    			}
+		    void mostrarCola(t_queue *Cola)
+		    		  	{
+		    		    	int tam = queue_size(Cola);
+		    		    	printf("Tamanio de cola: %d \n",tam);
+		    		   	}
+		    void moverCola(t_queue *ColaInicio, t_queue *ColaFin)
+		    {
+		    		    		    	queue_push(ColaFin,queue_pop(ColaInicio))
+		    		    		   	}
+
+
+		    // para DESENCOLAR usarmos queue_pop(t_queue * cola);
+		  /*  void BuscarElementoEnCola(t_queue *Cola,t_Esi * elemento)
+		    			{
+		    		    	Cola-> elements;
+		    		  	}*/
+
+		    /*
 		    void Encolar(Fifo*ultimo,int EsiId){  //agrega al final de la cola
 		    	while(ultimo->sgt != NULL)
 		    	         ultimo=ultimo->sgt;
@@ -403,7 +433,7 @@
 				else
 					return false;
 			}
-			void kill(int id)
+			void kill(int id) // esto no se puede hacer porqe no hay un index en las colas
 			{
 				int pos;
 				int buscado;
@@ -412,4 +442,4 @@
 				printf("Se mata al proceso: %d en la pos:%d \n",id,pos);
 			}
 			
-			
+			*/
