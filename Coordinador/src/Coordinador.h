@@ -84,6 +84,7 @@ typedef struct{
 	tTipoDeProceso tipoProceso;
 	tTipoDeMensaje tipoMensaje;
 	int idProceso;
+	char nombreProceso[40];
 }__attribute__((packed)) tHeader; // Header que recibimos de los procesos para identificarlos
 
 typedef struct {

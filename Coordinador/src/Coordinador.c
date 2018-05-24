@@ -187,8 +187,9 @@
 			AnalizarOperacion(tamanioValor, header, parametros, operacion);
 			puts("El analizar operacion anduvo");
 
-			// Debo avisar a una Instancia cuando recibo una operacion (QUE NO SEA UN GET)
+			sleep(RETARDO);
 
+			//Debo avisar a una Instancia cuando recibo una operacion (QUE NO SEA UN GET)
 			//Agregamos el mensaje a una cola en memoria
 			pthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
 			list_add(colaMensajes,(void*)&operacion);
