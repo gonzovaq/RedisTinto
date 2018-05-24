@@ -141,6 +141,7 @@
     	switch (headerRecibido->tipoProceso) {
     	case ESI:
     		printf("Se conecto el proceso %d \n", headerRecibido->idProceso);
+            strcpy(parametros->nombreProceso, headerRecibido->nombreProceso);
     		list_add(colaESIS,(void*)&parametros);
     		conexionESI(parametros);
     		break;
@@ -151,6 +152,7 @@
     		break;
     	case INSTANCIA:
     		printf("Se conecto el proceso %d \n", headerRecibido->idProceso);
+            strcpy(parametros->nombreProceso, headerRecibido->nombreProceso);
     		list_add(colaInstancias,(void*)&parametros);
     		conexionInstancia(parametros);
     		break;
@@ -372,7 +374,7 @@
 		}
 
 		operacion->tipo = OPERACION_GET;
-		operacion->clave = clave;
+		strcpy(operacion->clave,clave);
 		operacion->valor = NULL;
 		char* GetALoguear[sizeof(operacion)];
 		strcpy(GetALoguear, "GET ");
@@ -381,9 +383,9 @@
 		GetALoguear[4+strlen(clave)+1]='\0';
 		puts(GetALoguear);
 
-		tBloqueo *bloqueo = malloc(sizeof(operacion));
-		bloqueo->clave=clave;
-		bloqueo->esi="1";
+		tBloqueo *bloqueo = malloc(sizeof(tBloqueo));
+		strcpy(bloqueo->clave,clave);
+		strcpy(bloqueo->esi, parametros->nombreProceso);
 		list_add(colaBloqueos,(void *)bloqueo);
 
 		log_info(logger, GetALoguear);
@@ -413,7 +415,7 @@
 		valor[tamanioValor] = '\0';
 		printf("Recibi el valor: %s\n", valor);
 		operacion->tipo = OPERACION_SET;
-		operacion->clave = clave;
+		strcpy(operacion->clave,clave);
 		operacion->valor = valor;
 		char* SetALoguear[sizeof(operacion)];
 		strcpy(SetALoguear, "SET ");
@@ -443,13 +445,20 @@
 		clave[strlen(clave)+1] = '\0';
 		printf("Recibi la clave: %s\n", clave);
 
-		if (!list_is_empty(colaBloqueos) && EncontrarEnLista(colaBloqueos, &clave)){
+		tBloqueo *bloqueo = malloc(sizeof(tBloqueo));
+		strcpy(bloqueo->clave,clave);
+		strcpy(bloqueo->esi, parametros->nombreProceso);
+
+		if (!list_is_empty(colaBloqueos) && LePerteneceLaClave(colaBloqueos, bloqueo)){
 			printf("Se desbloqueo la clave: %s \n",clave);
 			RemoverDeLaLista(colaBloqueos, &clave);
 		}
+		else{
+			printf("No puede realizar el STORE sobre la clave: %s \n",clave);
+		}
 
 		operacion->tipo = OPERACION_GET;
-		operacion->clave = clave;
+		strcpy(operacion->clave,clave);
 		operacion->valor = NULL;
 		char* StoreALoguear[sizeof(operacion)];
 		strcpy(StoreALoguear, "STORE ");
@@ -513,6 +522,12 @@
 		return list_any_satisfy(lista,(void*) yaExisteLaClave);
     }
 
+    bool LePerteneceLaClave(t_list * lista, tBloqueo * bloqueoBuscado){
+		bool yaExisteLaClaveYPerteneceAlESI(tBloqueo *bloqueo) {
+			return string_equals_ignore_case(bloqueo->esi,bloqueoBuscado->esi) && string_equals_ignore_case(bloqueo->clave,bloqueoBuscado->clave);
+		}
+		return list_any_satisfy(lista,(void*) yaExisteLaClaveYPerteneceAlESI);
+    }
 
     void sigchld_handler(int s) // eliminar procesos muertos
     {

@@ -33,6 +33,7 @@
 #define BACKLOG 10     // Cuántas conexiones pendientes se mantienen en cola
 #define TAMANIO_CLAVE 41
 #define TBLOQUEO 50
+#define TAMANIO_NOMBREPROCESO 40
 
 
 // ESTRUCTURAS Y ENUMS
@@ -41,6 +42,7 @@ typedef struct{
 	int new_fd;
 	sem_t * semaforo;
 	struct node_t * colaProcesos;
+	char nombreProceso[TAMANIO_NOMBREPROCESO];
 }parametrosConexion;  // Aqui dejamos los descriptores y un semaforo para los hilos que lo necesiten
 
 
@@ -77,14 +79,14 @@ typedef enum{
 
 typedef struct{
 	tResultadoOperacion resultado;
-	char* clave;
+	char clave[TAMANIO_CLAVE];
 }__attribute__((packed)) tResultado;
 
 typedef struct{
 	tTipoDeProceso tipoProceso;
 	tTipoDeMensaje tipoMensaje;
 	int idProceso;
-	char nombreProceso[40];
+	char nombreProceso[TAMANIO_NOMBREPROCESO];
 }__attribute__((packed)) tHeader; // Header que recibimos de los procesos para identificarlos
 
 typedef struct {
@@ -94,7 +96,7 @@ typedef struct {
 
 typedef struct {
 	tTipoOperacion tipo;
-	char* clave;
+	char clave[TAMANIO_CLAVE];
 	char* valor;
 }__attribute__((packed)) OperacionAEnviar; // Operacion que vamos a enviar a la instancia
 
@@ -105,8 +107,8 @@ typedef struct {
 }__attribute__((packed)) stream;
 
 typedef struct {
-	char* clave;
-	char* esi;
+	char clave[TAMANIO_CLAVE];
+	char esi[TAMANIO_NOMBREPROCESO];
 }tBloqueo; //podriamos agregar pid?
 
 
@@ -151,6 +153,7 @@ int ManejarOperacionSTORE(parametrosConexion* parametros, OperacionAEnviar* oper
 int InicializarListasYColas();
 bool yaExisteLaClave(void *claveDeLista,char * clave);
 bool EncontrarEnLista(t_list * lista, char * claveABuscar);
+bool LePerteneceLaClave(t_list * lista, tBloqueo * bloqueoBuscado);
 int LeerArchivoDeConfiguracion();
 int SeleccionarInstancia();
 parametrosConexion* SeleccionarPorEquitativeLoad();
