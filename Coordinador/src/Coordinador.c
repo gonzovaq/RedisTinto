@@ -238,7 +238,7 @@
         // Le avisamos al planificador cada clave que se bloquee y desbloquee
         while(1){
         	sem_wait(planificador->semaforo); // Me van a avisar si se produce algun bloqueo
-
+        	send(parametros->new_fd,notificacion,sizeof(notificacion),0);
         }
 
 		close(parametros->new_fd);
@@ -369,9 +369,17 @@
 
 		if (!list_is_empty(colaBloqueos) && EncontrarEnLista(colaBloqueos, &clave)){
 			puts("La clave esta bloqueada");
-			while (EncontrarEnLista(colaBloqueos, &clave));
+
+			/*
+			notificacion->tipoNotificacion=BLOQUEO;
+			strcpy(notificacion->clave,clave);
+			strcpy(notificacion->esi, parametros->nombreProceso);
+			sem_post(planificador->semaforo);
+			*/
+
+			while (EncontrarEnLista(colaBloqueos, &clave)); // Probablemente esto no sea asi porque el ESI se va a bloquear y cuando se desbloquee sera replanificado
 			puts("Se desbloqueo la clave");
-		}
+		} // ACA HAY QUE AVISARLE AL PLANIFICDOR DEL BLOQUEO PARA QUE FRENE AL ESI
 
 		operacion->tipo = OPERACION_GET;
 		strcpy(operacion->clave,clave);
@@ -386,7 +394,14 @@
 		tBloqueo *bloqueo = malloc(sizeof(tBloqueo));
 		strcpy(bloqueo->clave,clave);
 		strcpy(bloqueo->esi, parametros->nombreProceso);
-		list_add(colaBloqueos,(void *)bloqueo);
+		list_add(colaBloqueos,(void *)bloqueo); // TENGO QUE AVISARLE AL PLANIFICADOR QUE ESTA CLAVE ESTA BLOQUEADA POR ESTE ESI
+
+		/* ACA HAY QUE AVISARLE AL PLANIFICDOR DEL BLOQUEO PARA QUE FRENE AL ESI
+		notificacion->tipoNotificacion=BLOQUEO;
+		strcpy(notificacion->clave,clave);
+		strcpy(notificacion->esi, parametros->nombreProceso);
+		sem_post(planificador->semaforo);
+		*/
 
 		log_info(logger, GetALoguear);
 
@@ -461,6 +476,14 @@
 		if (!list_is_empty(colaBloqueos) && LePerteneceLaClave(colaBloqueos, bloqueo)){
 			printf("Se desbloqueo la clave: %s \n",clave);
 			RemoverDeLaLista(colaBloqueos, &clave);
+
+			/*
+			notificacion->tipoNotificacion=BLOQUEO;
+			strcpy(notificacion->clave,clave);
+			strcpy(notificacion->esi, parametros->nombreProceso);
+			sem_post(planificador->semaforo);
+			*/
+			// LE AVISO AL PLANIFICADOR QUE LA CLAVE SE DESBLOQUEO, DESPUES EL PODRA PLANIFICAR UN ESI BLOQUEADO POR ESTA
 		}
 		else{
 			printf("No se puede realizar un STORE sobre la clave: %s debido a que nunca se la solicito \n",clave);

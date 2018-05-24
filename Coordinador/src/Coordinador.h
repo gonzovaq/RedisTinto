@@ -67,7 +67,8 @@ typedef enum{
 typedef enum{
 	OK = 1,
 	BLOQUEO = 2,
-	ERROR = 3
+	ERROR = 3,
+	DESBLOQUEO = 4
 }tResultadoOperacion;
 
 typedef enum{
@@ -111,7 +112,11 @@ typedef struct {
 	char esi[TAMANIO_NOMBREPROCESO];
 }tBloqueo; //podriamos agregar pid?
 
-
+typedef struct{
+	tResultadoOperacion tipoNotificacion;
+	char clave[TAMANIO_CLAVE];
+	char esi[TAMANIO_NOMBREPROCESO];
+}tNotificacionPlanificador;
 // VARIABLES GLOBALES
 
 int PUERTO;
@@ -122,6 +127,7 @@ int ENTRADAS;
 int TAMANIO_ENTRADAS;
 int RETARDO;
 t_log * logger;
+tNotificacionPlanificador * notificacion;
 
 parametrosConexion * planificador;
 t_list* colaInstancias;
