@@ -405,6 +405,15 @@
 		}
 		clave[strlen(clave)+1] = '\0';
 		printf("Recibi la clave: %s\n", clave);
+
+		tBloqueo *bloqueo = malloc(sizeof(tBloqueo));
+		strcpy(bloqueo->clave,clave);
+		strcpy(bloqueo->esi, parametros->nombreProceso);
+
+		if (!(!list_is_empty(colaBloqueos) && LePerteneceLaClave(colaBloqueos, bloqueo))){
+			printf("No se puede realizar un SET sobre la clave: %s debido a que nunca se la solicito \n",clave);
+		}
+
 		char valor[tamanioValor];
 		if (( recvValor = recv(parametros->new_fd, valor, tamanioValor+1, 0)) <= 0) {
 			perror("recv");
@@ -454,7 +463,7 @@
 			RemoverDeLaLista(colaBloqueos, &clave);
 		}
 		else{
-			printf("No puede realizar el STORE sobre la clave: %s \n",clave);
+			printf("No se puede realizar un STORE sobre la clave: %s debido a que nunca se la solicito \n",clave);
 		}
 
 		operacion->tipo = OPERACION_GET;
