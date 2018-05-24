@@ -34,6 +34,7 @@
 #define TAMANIO_CLAVE 41
 #define TBLOQUEO 50
 #define TAMANIO_NOMBREPROCESO 40
+#define KEYS_POSIBLES 25
 
 
 // ESTRUCTURAS Y ENUMS
@@ -117,6 +118,13 @@ typedef struct{
 	char clave[TAMANIO_CLAVE];
 	char esi[TAMANIO_NOMBREPROCESO];
 }tNotificacionPlanificador;
+
+typedef struct{
+	parametrosConexion * informacion;
+	int cantidadEntradasMaximas;
+	int entradasUsadas;
+}tInstancia;
+
 // VARIABLES GLOBALES
 
 int PUERTO;
@@ -128,6 +136,7 @@ int TAMANIO_ENTRADAS;
 int RETARDO;
 t_log * logger;
 tNotificacionPlanificador * notificacion;
+char CLAVE[TAMANIO_CLAVE];
 
 parametrosConexion * planificador;
 t_list* colaInstancias;
@@ -161,8 +170,10 @@ bool yaExisteLaClave(void *claveDeLista,char * clave);
 bool EncontrarEnLista(t_list * lista, char * claveABuscar);
 bool LePerteneceLaClave(t_list * lista, tBloqueo * bloqueoBuscado);
 int LeerArchivoDeConfiguracion();
-int SeleccionarInstancia();
-parametrosConexion* SeleccionarPorEquitativeLoad();
+int SeleccionarInstancia(char * clave);
+int SeleccionarPorEquitativeLoad();
 static void destruirBloqueo(tBloqueo *bloqueo);
 void RemoverDeLaLista(t_list * lista, char * claveABuscar);
+int MandarAlFinalDeLaLista(t_list * lista, tInstancia * instancia);
+tInstancia* BuscarInstanciaMenosUsada(t_list * lista);
 

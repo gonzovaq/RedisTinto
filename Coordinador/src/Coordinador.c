@@ -153,7 +153,11 @@
     	case INSTANCIA:
     		printf("Se conecto el proceso %d \n", headerRecibido->idProceso);
             strcpy(parametros->nombreProceso, headerRecibido->nombreProceso);
-    		list_add(colaInstancias,(void*)&parametros);
+            tInstancia * nuevaInstancia = malloc(sizeof(tInstancia));
+            nuevaInstancia->informacion = parametros;
+            nuevaInstancia->cantidadEntradasMaximas = ENTRADAS;
+            nuevaInstancia->entradasUsadas=0;
+    		list_add(colaInstancias,(void*)&nuevaInstancia);
     		conexionInstancia(parametros);
     		break;
     	default:
@@ -185,32 +189,42 @@
 			OperacionAEnviar * operacion = malloc(sizeof(tTipoOperacion)+TAMANIO_CLAVE+tamanioValor);
 			puts("EL MALLOC ANDUVO");
 
-			// Segun el tipo de operacion que sea, cargamos el mensaje en una estructura
-			AnalizarOperacion(tamanioValor, header, parametros, operacion);
-			puts("El analizar operacion anduvo");
+			// Si la operacion devuelve 1 todo salio bien, si devuelve 2 hubo un bloqueo y le avisamos al ESI
+			int resultadoOperacion;
+			if ((resultadoOperacion = AnalizarOperacion(tamanioValor, header, parametros, operacion)) == 2){
+				int sendBloqueo;
+				if ((sendBloqueo =send(parametros->new_fd, BLOQUEO, sizeof(tResultadoOperacion), 0)) <= 0){
+					perror("send");
+					exit_gracefully(1);
+				}
+				free(header);
+			}
+			else {
+				puts("El analizar operacion anduvo");
 
-			sleep(RETARDO);
+				sleep(RETARDO);
 
-			//Debo avisar a una Instancia cuando recibo una operacion (QUE NO SEA UN GET)
-			//Agregamos el mensaje a una cola en memoria
-			pthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
-			list_add(colaMensajes,(void*)&operacion);
-			pthread_mutex_unlock(&mutex);
-			free(operacion);
+				//Debo avisar a una Instancia cuando recibo una operacion (QUE NO SEA UN GET)
+				//Agregamos el mensaje a una cola en memoria
+				pthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
+				list_add(colaMensajes,(void*)&operacion);
+				pthread_mutex_unlock(&mutex);
+				free(operacion);
 
-			SeleccionarInstancia();
-			// Semaforo por si llegaran a entrar mas de un ESI
+				SeleccionarInstancia(&CLAVE);
+				// Semaforo por si llegaran a entrar mas de un ESI
 
-			free(header);
+				free(header);
 
-			//esperamos el resultado para devolver
-			while(list_is_empty(colaResultados)) ; // mientras la cola este vacia no puedo continuar
-			tResultado * resultado = list_take(colaResultados,1);
-			log_info(logger,resultado);
-			int sendResultado;
-			if ((sendResultado =send(parametros->new_fd, (void*)resultado->resultado, sizeof(resultado), 0)) <= 0){
-				perror("send");
-				exit_gracefully(1);
+				//esperamos el resultado para devolver
+				while(list_is_empty(colaResultados)) ; // mientras la cola este vacia no puedo continuar
+				tResultado * resultado = list_take(colaResultados,1);
+				log_info(logger,resultado);
+				int sendResultado;
+				if ((sendResultado =send(parametros->new_fd, (void*)resultado->resultado, sizeof(resultado), 0)) <= 0){
+					perror("send");
+					exit_gracefully(1);
+				}
 			}
         }
 		close(parametros->new_fd);
@@ -325,6 +339,7 @@
     			OperacionAEnviar* operacion) {
     		// Segun el tipo de operacion que sea, cargamos el mensaje en una estructura
 
+    	int resultadoOperacion;
 			if(header->tipo == OPERACION_GET) puts("ES UN GET");
 			else if(header->tipo == OPERACION_SET) puts("ES UN SET");
 			else if(header->tipo == OPERACION_STORE) puts("ES UN STORE");
@@ -332,24 +347,24 @@
     		switch (header->tipo) {
     		case OPERACION_GET: // PARA EL GET NO HAY QUE ACCEDER A NINGUNA INSTANCIA
     			puts("MANEJO UN GET");
-    			ManejarOperacionGET(parametros, operacion);
+    			resultadoOperacion = ManejarOperacionGET(parametros, operacion);
     			puts("YA MANEJE UN GET");
     			break;
     		case OPERACION_SET:
     			puts("MANEJO UN SET");
-    			ManejarOperacionSET(tamanioValor, parametros, operacion);
+    			resultadoOperacion = ManejarOperacionSET(tamanioValor, parametros, operacion);
     			puts("ya maneje un SET");
     			break;
     		case OPERACION_STORE:
     			puts("MANEJO UN STORE");
-    			ManejarOperacionSTORE(parametros, operacion);
+    			resultadoOperacion = ManejarOperacionSTORE(parametros, operacion);
     			puts("YA MANEJE UN STORE");
     			break;
     		default:
     			puts("ENTRO POR EL DEFAULT");
     			break;
     		}
-    		return 1;
+    		return resultadoOperacion;
     	}
 
 	int ManejarOperacionGET(parametrosConexion* parametros, OperacionAEnviar* operacion) {
@@ -366,6 +381,7 @@
 
 		clave[strlen(clave)+1] = '\0';
 		printf("Recibi la clave: %s \n", clave);
+		strcpy(CLAVE,clave);
 
 		if (!list_is_empty(colaBloqueos) && EncontrarEnLista(colaBloqueos, &clave)){
 			puts("La clave esta bloqueada");
@@ -375,10 +391,13 @@
 			strcpy(notificacion->clave,clave);
 			strcpy(notificacion->esi, parametros->nombreProceso);
 			sem_post(planificador->semaforo);
+
+			return 2;
 			*/
 
 			while (EncontrarEnLista(colaBloqueos, &clave)); // Probablemente esto no sea asi porque el ESI se va a bloquear y cuando se desbloquee sera replanificado
 			puts("Se desbloqueo la clave");
+
 		} // ACA HAY QUE AVISARLE AL PLANIFICDOR DEL BLOQUEO PARA QUE FRENE AL ESI
 
 		operacion->tipo = OPERACION_GET;
@@ -420,6 +439,7 @@
 		}
 		clave[strlen(clave)+1] = '\0';
 		printf("Recibi la clave: %s\n", clave);
+		strcpy(CLAVE,clave);
 
 		tBloqueo *bloqueo = malloc(sizeof(tBloqueo));
 		strcpy(bloqueo->clave,clave);
@@ -428,6 +448,7 @@
 		if (!(!list_is_empty(colaBloqueos) && LePerteneceLaClave(colaBloqueos, bloqueo))){
 			printf("No se puede realizar un SET sobre la clave: %s debido a que nunca se la solicito \n",clave);
 		}
+		free(bloqueo);
 
 		char valor[tamanioValor];
 		if (( recvValor = recv(parametros->new_fd, valor, tamanioValor+1, 0)) <= 0) {
@@ -468,6 +489,7 @@
 		}
 		clave[strlen(clave)+1] = '\0';
 		printf("Recibi la clave: %s\n", clave);
+		strcpy(CLAVE,clave);
 
 		tBloqueo *bloqueo = malloc(sizeof(tBloqueo));
 		strcpy(bloqueo->clave,clave);
@@ -489,6 +511,8 @@
 			printf("No se puede realizar un STORE sobre la clave: %s debido a que nunca se la solicito \n",clave);
 		}
 
+		free(bloqueo);
+
 		operacion->tipo = OPERACION_GET;
 		strcpy(operacion->clave,clave);
 		operacion->valor = NULL;
@@ -508,7 +532,7 @@
 		// Creamos una cola donde dejamos todas las instancias que se conectan con nosotros y otra para los mensajes recibidos de cualquier ESI
 		int instanciasMaximas = 10;
 		colaInstancias = list_create();
-		colaInstancias->head = malloc(sizeof(parametrosConexion) * instanciasMaximas);
+		colaInstancias->head = malloc(sizeof(tInstancia) * instanciasMaximas);
 
 		int mensajesMaximos = 5;
 		colaMensajes = list_create();
@@ -561,6 +585,32 @@
 		return list_any_satisfy(lista,(void*) yaExisteLaClaveYPerteneceAlESI);
     }
 
+    tInstancia* BuscarInstanciaMenosUsada(t_list * lista){
+    	int tamanioLista = list_size(lista);
+    	tInstancia* instancia = malloc(sizeof(tInstancia));
+    	instancia = list_get(lista,0);
+    	for (int i = 0; i< tamanioLista; i++){
+    		tInstancia* instanciaAComparar = malloc(sizeof(tInstancia));
+        	instancia = list_get(lista,i);
+        	if (instancia->entradasUsadas > instanciaAComparar->entradasUsadas)
+        		instancia = instanciaAComparar;
+    		free(instanciaAComparar);
+    	}
+    	MandarAlFinalDeLaLista(colaInstancias, &instancia);
+    	return instancia;
+    }
+
+    int MandarAlFinalDeLaLista(t_list * lista, tInstancia * instancia){
+    	bool Comparar(tInstancia * instanciaAComparar){
+    		return instanciaAComparar->informacion->new_fd == instancia->informacion->new_fd;
+    	}
+    	t_list * listaNueva = malloc(sizeof(lista));
+    	listaNueva = list_take_and_remove(lista, Comparar);
+    	list_add_all(lista,listaNueva);
+    	free(listaNueva);
+    	return 1;
+    }
+
     void sigchld_handler(int s) // eliminar procesos muertos
     {
         while(wait(NULL) > 0);
@@ -597,7 +647,7 @@
 		return 1;
 	}
 
-	int SeleccionarInstancia() {
+	int SeleccionarInstancia(char* clave) {
 		while (list_is_empty(colaInstancias));
 
 		// mientras la cola este vacia no puedo continuar
@@ -605,12 +655,13 @@
 		pthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
 		switch (ALGORITMO){
 		case EL: ; // Si no se deja un statement vacio rompe
-			parametrosConexion* instancia = SeleccionarPorEquitativeLoad();
-			list_add(colaInstancias, (void*) &instancia);
+			SeleccionarPorEquitativeLoad();
 			break;
 		case LSU:
+			SeleccionarPorLeastSpaceUsed();
 			break;
 		case KE:
+			SeleccionarPorKeyExplicit(&clave);
 			break;
 		default:
 			puts("Hubo un problema al seleccionar la instancia correcta");
@@ -622,10 +673,59 @@
 		return 1;
 	}
 
-	parametrosConexion* SeleccionarPorEquitativeLoad() {
+	int SeleccionarPorEquitativeLoad() {
 		// mientras la cola este vacia no puedo continuarpthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
-		parametrosConexion* instancia = list_take(colaInstancias, 1);
-		return instancia;
+		tInstancia * instancia = malloc(sizeof(instancia));
+		instancia = list_get(colaInstancias, 0);
+		sem_post(instancia->informacion->semaforo);
+		MandarAlFinalDeLaLista(colaInstancias,instancia);
+		return 1;
+	}
+
+	int SeleccionarPorLeastSpaceUsed(){
+		tInstancia* instanciasMenosUsadas = malloc(sizeof(tInstancia));
+		instanciasMenosUsadas = BuscarInstanciaMenosUsada(colaInstancias); // Va a buscar la instancia que menos entradas tenga, desempata con fifo
+		free(instanciasMenosUsadas);
+		return 1;
+	}
+
+	int SeleccionarPorKeyExplicit(char* clave){
+		int cantidadInstancias = list_size(colaInstancias);
+		char primerCaracter = clave[0];
+		int x = 0;
+		while (clave[x] < 97 && clave[x] > 122){ // Busco el primer caracter en minuscula
+			primerCaracter = clave[x];
+			x++;
+		}
+
+		int posicionLetraEnASCII = primerCaracter - 97;
+		int rango = KEYS_POSIBLES/cantidadInstancias;
+		int restoRango = KEYS_POSIBLES%cantidadInstancias;
+		int entradasUltimaInstancia;
+		if (restoRango !=0){
+			entradasUltimaInstancia = KEYS_POSIBLES - ((cantidadInstancias-1) * (rango + 1));
+		}
+
+		for (int i = 0; i < cantidadInstancias; i++){
+			if (i!= cantidadInstancias - 1 && restoRango == 0){    // Si no es la ultima instancia debo redondear hacia arriba
+					if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + rango)){
+						tInstancia * instancia = list_get(colaInstancias, i);
+						sem_post(instancia->informacion->semaforo);
+					}
+				}
+				else if (i!= cantidadInstancias - 1 && restoRango != 0){ // si es la ultima instancia debo recalcular y ver cuantas entradas puedo acepar
+					if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + rango + 1)){
+						tInstancia * instancia = list_get(colaInstancias, i);
+						sem_post(instancia->informacion->semaforo);
+					}else{
+						if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + entradasUltimaInstancia)){
+							tInstancia * instancia = list_get(colaInstancias, i);
+							sem_post(instancia->informacion->semaforo);
+					}
+				}
+			}
+		}
+		return 1;
 	}
 
 	static void destruirBloqueo(tBloqueo *bloqueo) {
