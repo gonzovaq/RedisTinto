@@ -100,6 +100,7 @@
                header->tipoProceso = ESI;
                header->tipoMensaje = CONECTARSE;
                header->idProceso = pid;
+               strcpy(header->nombreProceso, "ESI DE PRUEBA" ); // El nombre se da en el archivo de configuracion --> MINOMBRE
 			   if (send(sockfd, header, sizeof(tHeader), 0) == -1){
 				   puts("Error al enviar mi identificador");
 				   perror("Send");
@@ -140,9 +141,6 @@
     int enviarMensaje(int sockfd, char* mensaje){
 
     	printf("Vor a enviar el mensaje: %s \n",mensaje);
-    	int x=0;
-    	// while(x < 100000000000000000) // Meti esto para ver si el problema estaba en que el coordnador esta recibiendo algo previamente y si, es eso, raro
-    		x++;
 
     	if ((send(sockfd, mensaje, TAMANIO_CLAVE-1, 0)) == -1) {
         	puts("Error al enviar el mensaje.");
@@ -257,13 +255,13 @@
 	int manejarOperacionSET(int socket_coordinador, char clave[TAMANIO_CLAVE], char *valor, OperacionAEnviar* operacion, OperaciontHeader *header) {
 
 		header->tipo = OPERACION_SET;
-		header->tamanioValor = sizeof(valor);
+		header->tamanioValor = strlen(valor);
 
-		enviarMensaje(socket_coordinador, header);
+		enviarOperaciontHeader(socket_coordinador, header);
 		puts("Header de la Operacion SET enviado correctamente");
 
 		enviarMensaje(socket_coordinador, clave);
-		enviarMensaje(socket_coordinador, valor);
+		enviarValor(socket_coordinador, valor);
 
 		printf("Operacion SET con clave: {0}, y valor {1}, enviada correctamente" ,clave,valor);
 		return EXIT_SUCCESS;
@@ -272,7 +270,7 @@
 	int manejarOperacionSTORE(int socket_coordinador, char clave[TAMANIO_CLAVE], OperacionAEnviar* operacion, OperaciontHeader *header) {
 
 		header->tipo = OPERACION_STORE;
-		enviarMensaje(socket_coordinador, header);
+		enviarOperaciontHeader(socket_coordinador, header);
 		puts("Header de la Operacion STORE enviado correctamente");
 
 		enviarMensaje(socket_coordinador, clave);
@@ -282,4 +280,18 @@
 		return EXIT_SUCCESS;
 
 	}
+
+    int enviarValor(int sockfd, char* mensaje){
+
+    	printf("Vor a enviar el mensaje: %s \n",mensaje);
+
+    	if ((send(sockfd, mensaje, strlen(mensaje), 0)) == -1) {
+        	puts("Error al enviar el mensaje.");
+        	perror("send");
+            exit(1);
+        }
+
+        printf("El mensaje: \"%s\", se ha enviado correctamente! \n\n",mensaje);
+        return EXIT_SUCCESS;
+    }
 

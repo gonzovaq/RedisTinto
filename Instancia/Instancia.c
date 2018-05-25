@@ -136,6 +136,7 @@
                header->tipoProceso = INSTANCIA;
                header->tipoMensaje = CONECTARSE;
                header->idProceso = pid;
+               strcpy(header->nombreProceso, "INSTANCIA DE PRUEBA" );  // El nombre se da en el archivo de configuracion
 			   if (send(socketCoordinador, header, sizeof(tHeader), 0) == -1){
 				   puts("Error al enviar mi identificador");
 				   perror("Send");

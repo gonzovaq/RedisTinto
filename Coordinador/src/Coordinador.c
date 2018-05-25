@@ -532,22 +532,22 @@
 		// Creamos una cola donde dejamos todas las instancias que se conectan con nosotros y otra para los mensajes recibidos de cualquier ESI
 		int instanciasMaximas = 10;
 		colaInstancias = list_create();
-		colaInstancias->head = malloc(sizeof(tInstancia) * instanciasMaximas);
+		//colaInstancias->head = malloc(sizeof(tInstancia) * instanciasMaximas);
 
 		int mensajesMaximos = 5;
 		colaMensajes = list_create();
-		colaMensajes->head = malloc(sizeof(OperacionAEnviar) * mensajesMaximos);
+		//colaMensajes->head = malloc(sizeof(OperacionAEnviar) * mensajesMaximos);
 
 		int resultadosMaximos = 5;
 		colaResultados = list_create();
-		colaResultados->head = malloc(sizeof(tResultado) * resultadosMaximos);
+		//colaResultados->head = malloc(sizeof(tResultado) * resultadosMaximos);
 
 		int esisMaximos = 10;
 		colaESIS = list_create();
-		colaESIS->head = malloc(sizeof(parametrosConexion) * esisMaximos);
+		//colaESIS->head = malloc(sizeof(parametrosConexion) * esisMaximos);
 
 		colaBloqueos = list_create();
-		colaBloqueos->head = malloc(TBLOQUEO * ENTRADAS);
+		//colaBloqueos->head = malloc(TBLOQUEO * ENTRADAS);
 
 		return 1;
 	}

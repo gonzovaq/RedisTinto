@@ -17,14 +17,10 @@
 #include <commons/collections/list.h>
 
 
-
-
-
-
 #define PORT 3490 // puerto al que vamos a conectar
 
 #define MAXDATASIZE 100 // máximo número de bytes que se pueden leer de una vez
-
+#define TAMANIO_NOMBREPROCESO 40
 
 
 
@@ -50,6 +46,7 @@ typedef struct{
 	tTipoDeProceso tipoProceso;
 	tTipoDeMensaje tipoMensaje;
 	int idProceso;
+	char nombreProceso[TAMANIO_NOMBREPROCESO];
 }tHeader;
 
 typedef struct{

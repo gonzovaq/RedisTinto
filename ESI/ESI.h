@@ -13,11 +13,13 @@
 #define PORT_COORDINADOR 3490 // puerto del coordinador, donde nos vamos a conectar
 #define PORT_PLANIFICADOR 3491 // puerto del planificador, donde nos vamos a conectar
 #define TAMANIO_CLAVE 41 //Por enunciado la clave sera de 40 caracteres.
+#define TAMANIO_NOMBREPROCESO 40
 
 
 static const char filename[] = "/home/utnso/workspace2/tp-2018-1c-Sistemas-Operactivos/ESI/configuracion.config";
 struct hostent *he;
 struct sockaddr_in their_addr; // información de la dirección de destino
+char MINOMBRE[40];
 
 
 typedef enum{
@@ -37,6 +39,7 @@ typedef struct{
 	tTipoDeProceso tipoProceso;
 	tTipoDeMensaje tipoMensaje;
 	int idProceso;
+	char nombreProceso[TAMANIO_NOMBREPROCESO];
 }tHeader;
 
 typedef enum{
@@ -86,4 +89,4 @@ int recibirResultado(int socket_coordinador);
 int manejarOperacionGET(int socket_coordinador, char clave[TAMANIO_CLAVE], OperacionAEnviar* operacion, OperaciontHeader * header);
 int manejarOperacionSET(int socket_coordinador, char clave[TAMANIO_CLAVE], char *valor, OperacionAEnviar* operacion, OperaciontHeader *header);
 int manejarOperacionSTORE(int socket_coordinador, char clave[TAMANIO_CLAVE], OperacionAEnviar* operacion, OperaciontHeader *header);
-
+int enviarMensaje(int sockfd, char* mensaje);
