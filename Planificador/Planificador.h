@@ -24,8 +24,8 @@
 
 struct hostent *he;
 struct sockaddr_in cord_addr; // información de la dirección del Coordinador
-t_queue *colaESIS;
-
+t_queue *ready;
+t_queue *ejecucion;
 //ESTO DEBERIA ESTAR EN OTRO .H
 struct parametrosConexion{
 	int new_fd;
@@ -34,20 +34,25 @@ struct parametrosConexion{
 
 // Uso de commons en Queue
 typedef struct {
-      int pid;
-      //struct Fifo *sgt;
-}t_Esi;
+      int id;
+      int fd;
+}t_esi;
 
-static t_Esi * new_ESI(int id){
-	t_Esi *new = malloc(sizeof(t_Esi));
-	new->pid = id;
+
+static t_esi * new_ESI(int id,int fd){
+	t_esi *new = malloc(sizeof(t_esi));
+	new->id = id;
+	new->fd = fd;
 	return new;
 }
 
-static void ESI_destroy (t_Esi * self){
-	free (self->pid);
+static void ESI_destroy (t_esi * self){
+	free (self->id);
+	free(self->fd);
 	free (self);
 }
+
+
 // fin de uso de commons para queue
 typedef enum{
 	ESI = 1,

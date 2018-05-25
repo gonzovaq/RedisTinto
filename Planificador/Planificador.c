@@ -9,7 +9,8 @@
     		  	//Fifo *ultimo = malloc(sizeof(Fifo));
     	        //primero = NULL;
     	       // ultimo = NULL;
-    			t_queue *colaESIS;
+    			t_queue *ready;
+				t_queue *ejecucion;
     	   		t_queue *colaFinalizados;
     	   		t_queue *colaEspera;
     	   		t_queue *colaX;
@@ -28,7 +29,13 @@
     	        int i, j;
     	        FD_ZERO(&master);    // borra los conjuntos maestro y temporal
     	        FD_ZERO(&read_fds);
-
+				//Creamos las colas que vamos a manejar con las funciones de abajo
+								ready = queue_create();
+								ejecucion=queue_create();
+								colaEspera = queue_create();
+								colaFinalizados = queue_create();
+								colaX = queue_create();
+				//finalizamos el creado de colas
     	        // obtener socket para coordinador
     	        ConectarAlCoordinador(&sockCord, &cord_addr, he);
 
@@ -87,13 +94,6 @@
 					//continue;
 				}
 				pthread_detach(tid); //Con esto decis que cuando el hilo termine libere sus recursos
-
-				//Creamos las colas que vamos a manejar con las funciones de abajo
-								colaESIS = queue_create();
-								colaEspera = queue_create();
-								colaFinalizados = queue_create();
-								colaX = queue_create();
-				//finalizamos el creado de colas
     	        // seguir la pista del descriptor de fichero mayor
     	        fdmax = listener; // por ahora es éste
     	        // bucle principal
@@ -132,10 +132,13 @@
     	                                fdmax = newfd;
     	                            }
     	                            printf("selectserver: new connection from %s on "
-    	                                "socket %d\n", inet_ntoa(remoteaddr.sin_addr), newfd);
-    	                        	gestionarConexion(newfd);
+    	                                "socket %d \n", inet_ntoa(remoteaddr.sin_addr), newfd);
+									int idEsi=obtenerEsi(newfd);
+									queue_push(ready,new_ESI(idEsi,newfd));
+																		
+									printf("Esi id %d conectado y puesto en cola \n",idEsi);
 									
-    	                        	//printf("tst2");
+									
     	                        }
     	                    } else {
     	                        // gestionar datos de un cliente
@@ -166,7 +169,35 @@
     	                        }
     	                    } // Esto es ¡TAN FEO!
     	                }
+						//Planificar
+					int f_ejecutar=0;//Flag para mandar de ready a ejecucion.
+					if(queue_is_empty(ejecucion)==0)
+					{
+						f_ejecutar=0;
+						t_esi *esi=malloc(2*sizeof(int));
+						esi = queue_pop(ejecucion);
+						printf("ejecuta el esi:%d \n",esi->id);
+						free(esi);
+					}
+					else
+					{
+						f_ejecutar=1;//Como esta vacia, pedimos que nos manden un esi de ready
+					}
+					if(queue_is_empty(ready)==0)
+					{
+						if(f_ejecutar==1)
+						{
+							t_esi *esi=malloc(2*sizeof(int));
+						    esi = queue_pop(ready);
+							printf("esi de id %d cambiado de cola \n",esi->id);
+							queue_push(ejecucion,new_ESI(esi->id,esi->fd));
+							free(esi);
+						}
+						puts("Ready no vacia");
+					}
     	            }
+					
+					
     	        }
 				
     	        return 0;
@@ -342,8 +373,23 @@
 		puts("Archivo de configuracion vacio");
 	}
 
+int obtenerEsi(int socket)
+{
+	int bytesRecibidos;
+		               tHeader *headerRecibido = malloc(sizeof(tHeader));
+				   if ((bytesRecibidos = recv(socket, headerRecibido, sizeof(tHeader), 0)) == -1){
+					perror("recv");
+					exit(1);
 
+				   }
+				   //fprintf("Mensaje : %s",headerRecibido->tipoMensaje);
+				   if (headerRecibido->tipoMensaje == CONECTARSE){
+					free(headerRecibido);
+					return(headerRecibido->idProceso);
+				   }
+}
 	///////////////
+	/*
 		void *gestionarConexion(int socket){ //(int* sockfd, int* new_fd)
 
 		        int bytesRecibidos;
@@ -366,7 +412,8 @@
 		    	switch (headerRecibido->tipoProceso) {
 		    	case ESI:
 		    		printf("Se conecto el proceso %d \n", headerRecibido->idProceso);
-		    		conexionESI(socket);
+					
+		    		readyEsi(socket,headerRecibido->idProceso);
 		    		// si hago un AgregarACola(colaESIS,new_esi bla bla aca me tira segmentation fault, osea que no tiene acceso a la memoria de la cola
 		    		break;
 		    	default:
@@ -374,18 +421,26 @@
 		    		close(socket);
 		    	}
 		    }
+			
 
 
-		    void *conexionESI(int *socket){
+		    void readyEsi(int socket,int id){
 		        puts("ESI conectando");
+				t_esi *esi=malloc(2*sizeof(int));
+				esi->id=id;
+				esi->fd=socket;
+				//AgregarACola(*ready,esi);
+				queue_push(*ready,esi);
+				free(esi);
 				//Aca se va a gestionar lo que se haga con este esi.
 		       
 		    }
-		    void AgregarACola(t_queue *Cola,t_Esi *ID){
+*/
+		    void AgregarACola(t_queue *Cola,t_esi *esi){
 
-		    				queue_push(Cola,ID->pid);
+		    				queue_push(Cola,esi);
 
-		    				printf("se Agrego a la Cola el proceso: %d \n",ID->pid);
+		    				printf("se Agrego a la Cola el proceso: %d \n",esi->id);
 		    			}
 		    void mostrarCola(t_queue *Cola)
 		    		  	{
@@ -394,7 +449,7 @@
 		    		   	}
 		    void moverCola(t_queue *ColaInicio, t_queue *ColaFin)
 		    {
-		    		    		    	queue_push(ColaFin,queue_pop(ColaInicio))
+		    		    		    	queue_push(ColaFin,queue_pop(ColaInicio));
 		    		    		   	}
 
 

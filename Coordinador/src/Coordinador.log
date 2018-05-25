@@ -198,3 +198,38 @@
 [INFO] 13:47:21:387 CORD/(20971:20977): STORE jugador
 [INFO] 13:47:23:199 CORD/(20971:20979): STORE jugador
 [INFO] 13:47:24:311 CORD/(20971:20981): STORE jugador
+[INFO] 18:23:24:478 CORD/(3686:3688): Mensaje: recv error
+[INFO] 19:09:22:730 CORD/(4693:4725): GET jugador
+[INFO] 19:09:22:902 CORD/(4693:4696): Mensaje: recv error
+[INFO] 19:11:01:433 CORD/(4788:4790): Mensaje: recv error
+[INFO] 19:12:00:106 CORD/(4828:4830): Mensaje: recv error
+[INFO] 19:12:19:99 CORD/(4867:4871): Mensaje: recv error
+[INFO] 19:13:23:877 CORD/(4892:4894): Mensaje: recv error
+[INFO] 19:42:45:886 CORD/(5407:5420): Mensaje: recv error
+[INFO] 19:51:41:406 CORD/(5475:5477): Mensaje: recv error
+[INFO] 19:53:53:12 CORD/(5607:5609): Mensaje: recv error
+[INFO] 19:55:18:768 CORD/(5692:5694): Mensaje: recv error
+[INFO] 20:04:06:100 CORD/(5715:5717): Mensaje: recv error
+[INFO] 20:06:43:134 CORD/(5924:5928): Mensaje: recv error
+[INFO] 20:08:26:389 CORD/(5962:5964): Mensaje: recv error
+[INFO] 20:10:14:78 CORD/(6064:6066): Mensaje: recv error
+[INFO] 20:10:32:605 CORD/(6122:6124): Mensaje: recv error
+[INFO] 20:20:42:278 CORD/(6194:6196): Mensaje: recv error
+[INFO] 20:22:49:913 CORD/(6261:6263): Mensaje: recv error
+[INFO] 20:26:32:101 CORD/(6429:6431): Mensaje: recv error
+[INFO] 20:26:43:664 CORD/(6457:6459): Mensaje: recv error
+[INFO] 20:30:41:901 CORD/(6519:6521): Mensaje: recv error
+[INFO] 20:42:01:278 CORD/(6547:6549): Mensaje: recv error
+[INFO] 20:43:01:358 CORD/(6639:6641): Mensaje: recv error
+[INFO] 20:43:35:306 CORD/(6672:6674): Mensaje: recv error
+[INFO] 20:51:48:774 CORD/(6704:6706): Mensaje: recv error
+[INFO] 21:01:10:937 CORD/(6778:6780): Mensaje: recv error
+[INFO] 21:02:33:186 CORD/(6918:6920): Mensaje: recv error
+[INFO] 21:04:28:940 CORD/(6979:6981): Mensaje: recv error
+[INFO] 21:05:20:44 CORD/(7017:7019): Mensaje: recv error
+[INFO] 21:11:04:114 CORD/(7209:7211): Mensaje: recv error
+[INFO] 21:14:29:86 CORD/(7242:7244): Mensaje: recv error
+[INFO] 21:27:51:8 CORD/(7403:7405): Mensaje: recv error
+[INFO] 21:33:54:218 CORD/(7557:7559): Mensaje: recv error
+[INFO] 21:37:52:14 CORD/(7597:7599): Mensaje: recv error
+[INFO] 22:07:03:458 CORD/(7642:7644): Mensaje: recv error
