@@ -72,9 +72,9 @@ typedef enum{
 
 
 typedef struct{
-	tResultadoOperacion resultado;
-	char* clave;
-}tResultado;
+	tResultadoOperacion tipoResultado;
+	char clave[TAMANIO_CLAVE];
+}__attribute__((packed)) tResultado;
 
 
 
@@ -89,9 +89,10 @@ int enviarOperaciontHeader(int sockfd, OperaciontHeader* header);
 FILE *leerArchivo(char **argv);
 int manejarArchivoConScripts(FILE * file, int socket_coordinador, int socket_planificador);
 int recibirOrdenDeEjecucion(int socket_planificador);
-int recibirResultado(int socket_coordinador);
 int manejarOperacionGET(int socket_coordinador, char clave[TAMANIO_CLAVE], OperacionAEnviar* operacion, OperaciontHeader * header);
 int manejarOperacionSET(int socket_coordinador, char clave[TAMANIO_CLAVE], char *valor, OperacionAEnviar* operacion, OperaciontHeader *header);
 int manejarOperacionSTORE(int socket_coordinador, char clave[TAMANIO_CLAVE], OperacionAEnviar* operacion, OperaciontHeader *header);
 int enviarValor(int sockfd, char* valor);
 int enviarValidez(int sockfd, tValidezOperacion *validez);
+int recibirResultadoDelCoordinador(int sockfd, tResultado * resultado);
+int recibirResultado(int socket_coordinador, tResultado * resultado);

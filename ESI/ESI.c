@@ -123,6 +123,18 @@
         return buf;
     }
 
+    int recibirResultadoDelCoordinador(int sockfd, tResultado * resultado){
+    	int numbytes;
+
+
+        if ((numbytes=recv(sockfd, resultado, sizeof(tResultado), 0)) == -1) {
+            perror("recv");
+            exit(1);
+        }
+        puts("Recibi el resultado");
+        return EXIT_SUCCESS;
+    }
+
     int enviarOperaciontHeader(int sockfd, OperaciontHeader* header){
 
     	if ((send(sockfd, header, sizeof(OperaciontHeader), 0)) == -1) {
@@ -176,7 +188,7 @@
         int tamanioValor;
 
         while(getline(&line, &len, file) != -1){ //aca habia un read = getline
-            while (recibirOrdenDeEjecucion(socket_planificador)) {
+            while (!recibirOrdenDeEjecucion(socket_planificador));
                 t_esi_operacion parsed = parse(line);
 
                 if(parsed.valido){
@@ -208,7 +220,9 @@
                             enviarValidez(socket_coordinador, &validez);
                             exit(EXIT_FAILURE);
                     }
-                    recibirResultado(socket_coordinador);
+            		tResultado * resultado = malloc(sizeof(tResultado));
+                    recibirResultado(socket_coordinador, resultado);
+                    free(resultado);
                     destruir_operacion(parsed);
                 } else {
                 	validez = OPERACION_INVALIDA;
@@ -216,7 +230,7 @@
                     enviarValidez(socket_coordinador, &validez);
                     exit(EXIT_FAILURE);
                 }
-            }
+
         }
         fclose(file);
         if (line){
@@ -232,15 +246,18 @@
     	return 1;//recibirMensaje(socket_planificador)==1;
     }
 
-    int recibirResultado(int socket_coordinador){
-    	switch(recibirMensaje(socket_coordinador)){
-    		case 1:
+    int recibirResultado(int socket_coordinador, tResultado * resultado){
+    	puts("Vor a recibir el resultado");
+    	recibirResultadoDelCoordinador(socket_coordinador,resultado);
+
+    	switch(resultado->tipoResultado){
+    		case OK:
     			puts("La operación salio OK"); //EN ESTOS CASE DEBERIA LOGGEAR O ALGO ASI, PREGUNTAR MAS ADELANTE
     			break;
-    		case 2:
+    		case BLOQUEO:
 				puts("La operación se BLOQUEO");
 				break;
-    		case 3:
+    		case ERROR:
 				puts("La operación tiro ERROR");
 				break;
     		default:
@@ -300,6 +317,7 @@
     int enviarValor(int sockfd, char* valor){
 
     	printf("Se envió el valor: %s \n",valor);
+    	valor[strlen(valor) + 1] = '\0';
 
     	if ((send(sockfd, valor, strlen(valor), 0)) == -1) {
         	puts("Error al enviar el valor.");

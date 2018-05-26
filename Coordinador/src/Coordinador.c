@@ -168,26 +168,28 @@
     }
 
     int *conexionESI(parametrosConexion* parametros){
-    	//close(new_fd->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
         puts("ESI conectandose");
-        // todo RECIBIR UNA OPERACION DEL ESI APLICANDO EL PROTOCOLO (Esto deberia ir en un while para leer varias operaciones)
+
         while(1){
-        	verificarValidez(parametros->new_fd);
+        	int operacionValida;
+        	operacionValida = verificarValidez(parametros->new_fd);
+        	if (operacionValida == 2)
+        		return EXIT_SUCCESS;
 			OperaciontHeader * header = malloc(sizeof(OperaciontHeader));
 
 			int recvHeader;
 			if ((recvHeader = recv(parametros->new_fd, header, sizeof(OperaciontHeader), 0)) <= 0) {
 				perror("recv");
 				log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
-				exit_gracefully(1);
+				close(parametros->new_fd);
+				//exit_gracefully(1);
 			}
-			// Podriamos recibir una estructura que nos indique el tipo y tamanio de los mensajes y despues recibir los mensajes por separado
+
 			puts("INTENTO RECIBIR TAMANIO VALOR");
-			int tamanioValor = header->tamanioValor;
+			int tamanioValor = header->tamanioValor; // Si es un STORE o un GET, el ESI va a enviar 0
 			puts("RECIBI TAMANIO VALOR");
 			printf("Tamaño valor: %d \n",tamanioValor);
 			OperacionAEnviar * operacion = malloc(sizeof(tTipoOperacion)+TAMANIO_CLAVE+tamanioValor);
-			puts("EL MALLOC ANDUVO");
 
 			// Si la operacion devuelve 1 todo salio bien, si devuelve 2 hubo un bloqueo y le avisamos al ESI
 			int resultadoOperacion;
@@ -200,12 +202,15 @@
 					exit_gracefully(1);
 				}
 				free(header);
+				free(operacion);
 			}
 			else {
 				puts("El analizar operacion anduvo");
 
-				sleep(RETARDO);
+				// sleep(RETARDO);
 
+
+				/*
 				//Debo avisar a una Instancia cuando recibo una operacion (QUE NO SEA UN GET)
 				//Agregamos el mensaje a una cola en memoria
 				pthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
@@ -222,15 +227,26 @@
 				while(list_is_empty(colaResultados)) ; // mientras la cola este vacia no puedo continuar
 				tResultado * resultado = list_take(colaResultados,1);
 				log_info(logger,resultado);
+				*/
+
+				tResultado * resultado = malloc(sizeof(tResultado));
+
+				resultado->resultado = OK;
+
 				int sendResultado;
-				if ((sendResultado =send(parametros->new_fd, (void*)resultado->resultado, sizeof(resultado), 0)) <= 0){
+				puts("Por enviar el resultado");
+				if ((sendResultado =send(parametros->new_fd, resultado, sizeof(tResultado), 0)) <= 0){
 					perror("send");
 					exit_gracefully(1);
 				}
+
+				puts("Se envio el resultado");
+
+				free(resultado);
 			}
         }
 		close(parametros->new_fd);
-		return 1;
+		return EXIT_SUCCESS;
     }
 
     int *conexionPlanificador(parametrosConexion* parametros){
@@ -339,7 +355,6 @@
     int AnalizarOperacion(int tamanioValor,
     			OperaciontHeader* header, parametrosConexion* parametros,
     			OperacionAEnviar* operacion) {
-    		// Segun el tipo de operacion que sea, cargamos el mensaje en una estructura
 
     	int resultadoOperacion;
 
@@ -390,19 +405,14 @@
 			strcpy(notificacion->clave,clave);
 			strcpy(notificacion->esi, parametros->nombreProceso);
 			sem_post(planificador->semaforo);
-
+			 */
 			return 2;
-			*/
-
-			while (EncontrarEnLista(colaBloqueos, &clave)); // Probablemente esto no sea asi porque el ESI se va a bloquear y cuando se desbloquee sera replanificado
-			puts("Se desbloqueo la clave");
-
 		} // ACA HAY QUE AVISARLE AL PLANIFICDOR DEL BLOQUEO PARA QUE FRENE AL ESI
 
 		operacion->tipo = OPERACION_GET;
 		strcpy(operacion->clave,clave);
 		operacion->valor = NULL;
-		char* GetALoguear[sizeof(operacion)];
+		char* GetALoguear[4+strlen(clave)+1];
 		strcpy(GetALoguear, "GET ");
 		puts(GetALoguear);
 		strcat(GetALoguear, clave);
@@ -430,7 +440,7 @@
 
 		char clave[TAMANIO_CLAVE];
 		int recvClave, recvValor;
-		if ((recvClave = recv(parametros->new_fd, clave, TAMANIO_CLAVE - 1, 0)) <= 0) {
+		if ((recvClave = recv(parametros->new_fd, clave, TAMANIO_CLAVE, 0)) <= 0) {
 			perror("recv");
 			log_info(logger, "TID %d  Mensaje: ERROR en ESI",
 					process_get_thread_id());
@@ -450,18 +460,18 @@
 		free(bloqueo);
 
 		char valor[tamanioValor];
-		if (( recvValor = recv(parametros->new_fd, valor, tamanioValor+1, 0)) <= 0) {
+		if (( recvValor = recv(parametros->new_fd, valor, tamanioValor + 1, 0)) <= 0) {
 			perror("recv");
 			log_info(logger, "TID %d  Mensaje: ERROR en ESI",
 					process_get_thread_id());
 			exit_gracefully(1);
 		}
 		valor[tamanioValor] = '\0';
-		printf("Recibi el valor: %s\n", valor);
+		printf("Recibi el valor: %s \n", valor);
 		operacion->tipo = OPERACION_SET;
 		strcpy(operacion->clave,clave);
 		operacion->valor = valor;
-		char* SetALoguear[sizeof(operacion)];
+		char* SetALoguear[5+strlen(clave)+strlen(valor)+1];
 		strcpy(SetALoguear, "SET ");
 		puts(SetALoguear);
 		strcat(SetALoguear, clave);
@@ -470,7 +480,9 @@
 		strcat(SetALoguear, valor);
 		SetALoguear[5+strlen(clave)+strlen(valor)+1]='\0';
 		puts(SetALoguear);
+
 		log_info(logger, SetALoguear);
+		//free(SetALoguear);
 
 		return 1;
 	}
@@ -480,7 +492,7 @@
 		char clave[TAMANIO_CLAVE];
 		int resultadoRecv;
 
-		if ((resultadoRecv =recv(parametros->new_fd, clave, TAMANIO_CLAVE - 1, 0)) <= 0) {
+		if ((resultadoRecv =recv(parametros->new_fd, clave, TAMANIO_CLAVE, 0)) <= 0) {
 			perror("recv");
 			log_info(logger, "TID %d  Mensaje: ERROR en ESI",
 					process_get_thread_id());
@@ -515,7 +527,8 @@
 		operacion->tipo = OPERACION_GET;
 		strcpy(operacion->clave,clave);
 		operacion->valor = NULL;
-		char* StoreALoguear[sizeof(operacion)];
+
+		char* StoreALoguear[6+strlen(clave)+1];
 		strcpy(StoreALoguear, "STORE ");
 		puts(StoreALoguear);
 		strcat(StoreALoguear, clave);
@@ -523,6 +536,7 @@
 		puts(StoreALoguear);
 
 		log_info(logger, StoreALoguear);
+		//free(StoreALoguear);
 
 		return 1;
 	}
@@ -728,13 +742,13 @@
 	}
 
 	static void destruirBloqueo(tBloqueo *bloqueo) {
-	    free(bloqueo->clave);
-	    free(bloqueo->esi);
+		printf("Vor a borrar la clave %s \n",bloqueo->clave);
 	    free(bloqueo);
 	}
 
 	void RemoverDeLaLista(t_list * lista, char * claveABuscar){
 		bool yaExisteLaClave(tBloqueo *bloqueo){
+			printf("Comparando la clave %s con %s \n", claveABuscar, bloqueo->clave);
 			return string_equals_ignore_case(bloqueo->clave,claveABuscar);
 		}
 		list_remove_and_destroy_by_condition(colaBloqueos,yaExisteLaClave,(void*)destruirBloqueo);
@@ -744,7 +758,7 @@
 		tValidezOperacion *validez = malloc(sizeof(tValidezOperacion));
 		if(recv(sockfd, validez, sizeof(tValidezOperacion), 0) <= 0){
 			perror("Fallo el recibir validez");
-			exit_gracefully(-1);
+			return 2;  //Aca salimos
 		}
 
 		if(validez == OPERACION_INVALIDA){
