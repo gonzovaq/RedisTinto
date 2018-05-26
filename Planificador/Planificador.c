@@ -174,8 +174,9 @@
 					if(queue_is_empty(ejecucion)==0)
 					{
 						f_ejecutar=0;
-						t_esi *esi=malloc(2*sizeof(int));
+						t_esi *esi=malloc(sizeof(t_esi));
 						esi = queue_pop(ejecucion);
+						EnviarConfirmacion(esi);
 						printf("ejecuta el esi:%d \n",esi->id);
 						free(esi);
 					}
@@ -187,7 +188,7 @@
 					{
 						if(f_ejecutar==1)
 						{
-							t_esi *esi=malloc(2*sizeof(int));
+							t_esi *esi=malloc(sizeof(t_esi));
 						    esi = queue_pop(ready);
 							printf("esi de id %d cambiado de cola \n",esi->id);
 							queue_push(ejecucion,new_ESI(esi->id,esi->fd));
@@ -202,6 +203,19 @@
 				
     	        return 0;
     }
+    int EnviarConfirmacion (t_esi * esi){
+    	char confirmacion[1]=1;
+    			puts("enviando informacion al esi \n");
+			   if (send(esi->fd, confirmacion , sizeof(confirmacion), 0) <= 0){
+				   printf("Error al enviar ejecucion al ESI (%d) a direccion (%d) \n ",esi->id, esi->fd);
+				   perror("Send");
+
+				   exit(1);
+			   }
+			   puts("Se envió confirmacion");
+			   return EXIT_SUCCESS;
+    }
+
     void ConectarAlCoordinador(int  * sockCord, struct sockaddr_in* cord_addr,
     		struct hostent* he) {
     	// obtener socket para coordinador

@@ -241,9 +241,16 @@
 
     }
 
-    int recibirOrdenDeEjecucion(int socket_planificador){
+   int  recibirOrdenDeEjecucion(int socket_planificador){
+    	puts("llega al recibir ejecucion");
+    	char buffer[1];
+    	if(recv(socket_planificador,buffer,sizeof(char),0) <= 0){
+    		perror("error al recibir orden de ejecucion");
+    		exit(EXIT_FAILURE);
+    	 }
+
     	puts("El planificador me dio permiso");
-    	return 1;//recibirMensaje(socket_planificador)==1;
+    	return buffer;//recibirMensaje(socket_planificador)==1;
     }
 
     int recibirResultado(int socket_coordinador, tResultado * resultado){
@@ -319,7 +326,7 @@
     	printf("Se envió el valor: %s \n",valor);
     	valor[strlen(valor) + 1] = '\0';
 
-    	if ((send(sockfd, valor, strlen(valor), 0)) == -1) {
+    	if ((send(sockfd, valor, strlen(valor), 0)) <= 0) {
         	puts("Error al enviar el valor.");
         	perror("send");
             exit(1);
@@ -330,7 +337,7 @@
     }
 
     int enviarValidez(int sockfd, tValidezOperacion *validez){
-    	if ((send(sockfd, validez, sizeof(tValidezOperacion), 0)) == -1) {
+    	if ((send(sockfd, validez, sizeof(tValidezOperacion), 0)) <= 0) {
         	puts("Error al enviar la validez.");
         	perror("send");
             exit(1);

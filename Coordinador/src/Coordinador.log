@@ -249,3 +249,16 @@
 [INFO] 14:45:57:429 CORD/(6891:6909): GET jugadoraaaxxxxxxxxxxddddddddddwwwwwwwwww
 [INFO] 14:47:28:882 CORD/(6928:6935): GET jugador
 [INFO] 14:49:55:931 CORD/(6958:6964): GET jugadoraaaxxxxxxxxxxddddddddddwwwwwwwwww
+[INFO] 18:38:48:807 CORD/(3334:3341): GET jugador
+[INFO] 19:04:47:421 CORD/(4025:4027): Mensaje: recv error
+[INFO] 19:25:09:135 CORD/(4568:4570): Mensaje: recv error
+[INFO] 19:29:33:12 CORD/(4679:4686): Mensaje: recv error
+[INFO] 19:31:23:693 CORD/(4715:4739): Mensaje: recv error
+[INFO] 19:36:40:237 CORD/(4850:4864): Mensaje: recv error
+[INFO] 19:44:24:249 CORD/(5030:5032): Mensaje: recv error
+[INFO] 19:46:07:855 CORD/(5083:5093): Mensaje: recv error
+[INFO] 19:47:04:555 CORD/(5119:5128): Mensaje: recv error
+[INFO] 19:49:12:492 CORD/(5167:5170): Mensaje: recv error
+[INFO] 19:51:24:893 CORD/(5214:5223): Mensaje: recv error
+[INFO] 19:52:09:801 CORD/(5250:5266): Mensaje: recv error
+[INFO] 19:53:53:470 CORD/(5293:5298): Mensaje: recv error
