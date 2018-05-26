@@ -172,7 +172,7 @@
         puts("ESI conectandose");
         // todo RECIBIR UNA OPERACION DEL ESI APLICANDO EL PROTOCOLO (Esto deberia ir en un while para leer varias operaciones)
         while(1){
-
+        	verificarValidez(parametros->new_fd);
 			OperaciontHeader * header = malloc(sizeof(OperaciontHeader));
 
 			int recvHeader;
@@ -191,7 +191,9 @@
 
 			// Si la operacion devuelve 1 todo salio bien, si devuelve 2 hubo un bloqueo y le avisamos al ESI
 			int resultadoOperacion;
-			if ((resultadoOperacion = AnalizarOperacion(tamanioValor, header, parametros, operacion)) == 2){
+			resultadoOperacion = AnalizarOperacion(tamanioValor, header, parametros, operacion);
+			printf("%d",resultadoOperacion);
+			if ( resultadoOperacion == 2){
 				int sendBloqueo;
 				if ((sendBloqueo =send(parametros->new_fd, BLOQUEO, sizeof(tResultadoOperacion), 0)) <= 0){
 					perror("send");
@@ -340,9 +342,6 @@
     		// Segun el tipo de operacion que sea, cargamos el mensaje en una estructura
 
     	int resultadoOperacion;
-			if(header->tipo == OPERACION_GET) puts("ES UN GET");
-			else if(header->tipo == OPERACION_SET) puts("ES UN SET");
-			else if(header->tipo == OPERACION_STORE) puts("ES UN STORE");
 
     		switch (header->tipo) {
     		case OPERACION_GET: // PARA EL GET NO HAY QUE ACCEDER A NINGUNA INSTANCIA
@@ -372,7 +371,7 @@
 		char clave[TAMANIO_CLAVE];
 		int recvClave;
 
-		if ( (recvClave = recv(parametros->new_fd, clave, TAMANIO_CLAVE - 1, 0)) <= 0) {
+		if ( (recvClave = recv(parametros->new_fd, clave, TAMANIO_CLAVE, 0)) <= 0) {
 			perror("recv");
 			log_info(logger, "TID %d  Mensaje: ERROR en ESI",
 					process_get_thread_id());
@@ -740,6 +739,22 @@
 		}
 		list_remove_and_destroy_by_condition(colaBloqueos,yaExisteLaClave,(void*)destruirBloqueo);
 	}
+
+	int verificarValidez(int sockfd){
+		tValidezOperacion *validez = malloc(sizeof(tValidezOperacion));
+		if(recv(sockfd, validez, sizeof(tValidezOperacion), 0) <= 0){
+			perror("Fallo el recibir validez");
+			exit_gracefully(-1);
+		}
+
+		if(validez == OPERACION_INVALIDA){
+			close(sockfd);
+			puts("Se cerró la conexión con el ESI debido a una OPERACION INVALIDA");
+		}
+		free(validez);
+		return EXIT_SUCCESS;
+	}
+
 
 	// CERRAR CONEXIONES
 	// close() y shutdown()

@@ -125,10 +125,6 @@
 
     int enviarOperaciontHeader(int sockfd, OperaciontHeader* header){
 
-    	if(header->tipo == OPERACION_GET) puts("ES UN GET");
-    	else if(header->tipo == OPERACION_SET) puts("ES UN SET");
-    	else if(header->tipo == OPERACION_STORE) puts("ES UN STORE");
-
     	if ((send(sockfd, header, sizeof(OperaciontHeader), 0)) == -1) {
         	puts("Error al enviar el mensaje.");
         	perror("send");
@@ -138,11 +134,12 @@
         puts("El header de la operacion se envio correctamente");
         return EXIT_SUCCESS;
     }
+
     int enviarMensaje(int sockfd, char* mensaje){
 
-    	printf("Vor a enviar el mensaje: %s \n",mensaje);
+    	printf("Se envió el mensaje: %s \n",mensaje);
 
-    	if ((send(sockfd, mensaje, TAMANIO_CLAVE-1, 0)) == -1) {
+    	if ((send(sockfd, mensaje, TAMANIO_CLAVE, 0)) == -1) {
         	puts("Error al enviar el mensaje.");
         	perror("send");
             exit(1);
@@ -175,6 +172,7 @@
 
         OperacionAEnviar * operacion;
         OperaciontHeader * header;
+        tValidezOperacion * validez = malloc(sizeof(tValidezOperacion));
         int tamanioValor;
 
         while(getline(&line, &len, file) != -1){ //aca habia un read = getline
@@ -184,24 +182,38 @@
                 if(parsed.valido){
                     switch(parsed.keyword){
                         case GET:
-                        	puts("Manejo operacion GET");
-                        	manejarOperacionGET(socket_coordinador, parsed.argumentos.GET.clave, &operacion, &header);
-                        	puts("Se finalizo el manejo de la operacion GET");
-                            break;
+                        	validez=OPERACION_VALIDA;
+                        	enviarValidez(socket_coordinador,&validez);
+							puts("Manejo operacion GET");
+							manejarOperacionGET(socket_coordinador, parsed.argumentos.GET.clave, &operacion, &header);
+							puts("Se finalizo el manejo de la operacion GET");
+                        	break;
                         case SET:
-                        	manejarOperacionSET(socket_coordinador, parsed.argumentos.SET.clave, parsed.argumentos.SET.valor, &operacion, &header);
+                        	validez=OPERACION_VALIDA;
+                        	enviarValidez(socket_coordinador,&validez);
+                        	puts("Manejo operacion SET");
+							manejarOperacionSET(socket_coordinador, parsed.argumentos.SET.clave, parsed.argumentos.SET.valor, &operacion, &header);
+							puts("Se finalizo el manejo de la operacion SET");
                         	break;
                         case STORE:
-                        	manejarOperacionSTORE(socket_coordinador, parsed.argumentos.STORE.clave, &operacion, &header);
+                        	validez=OPERACION_VALIDA;
+                        	enviarValidez(socket_coordinador,&validez);
+                        	puts("Manejo operacion STORE");
+							manejarOperacionSTORE(socket_coordinador, parsed.argumentos.STORE.clave, &operacion, &header);
+							puts("Se finalizo el manejo de la operacion STORE");
                         	break;
                         default:
+                        	validez = OPERACION_INVALIDA;
                             fprintf(stderr, "No pude interpretar <%s>\n", line);
+                            enviarValidez(socket_coordinador, &validez);
                             exit(EXIT_FAILURE);
                     }
                     recibirResultado(socket_coordinador);
                     destruir_operacion(parsed);
                 } else {
+                	validez = OPERACION_INVALIDA;
                     fprintf(stderr, "La linea <%s> no es valida\n", line);
+                    enviarValidez(socket_coordinador, &validez);
                     exit(EXIT_FAILURE);
                 }
             }
@@ -210,11 +222,13 @@
         if (line){
             free(line);
         }
+        free(validez);
         return EXIT_SUCCESS;
 
     }
 
-    int recibirOrdenDeEjecucion(socket_planificador){
+    int recibirOrdenDeEjecucion(int socket_planificador){
+    	puts("El planificador me dio permiso");
     	return 1;//recibirMensaje(socket_planificador)==1;
     }
 
@@ -234,12 +248,13 @@
     			EXIT_FAILURE;
     			break;
     	}
-    	EXIT_SUCCESS;
+    	return EXIT_SUCCESS;
     }
 
 	int manejarOperacionGET(int socket_coordinador, char clave[TAMANIO_CLAVE], OperacionAEnviar* operacion, OperaciontHeader * header) {
 
 		header->tipo = OPERACION_GET;
+		header->tamanioValor = 0;
 		enviarOperaciontHeader(socket_coordinador, header);
 		puts("Header de la Operacion GET enviado correctamente");
 
@@ -247,7 +262,7 @@
 		printf("Voy a enviar la clave: %s \n",clave);
 		enviarMensaje(socket_coordinador, clave);
 
-		printf("Operacion GET con la clave: {0}, enviada correctamente" ,clave);
+		printf("Operacion GET con la clave: %s, enviada correctamente\n" ,clave);
 
 		return EXIT_SUCCESS;
 	}
@@ -263,35 +278,47 @@
 		enviarMensaje(socket_coordinador, clave);
 		enviarValor(socket_coordinador, valor);
 
-		printf("Operacion SET con clave: {0}, y valor {1}, enviada correctamente" ,clave,valor);
+		printf("Operacion SET con clave: %s, y valor {1}, enviada correctamente" ,clave,valor);
 		return EXIT_SUCCESS;
 	}
 
 	int manejarOperacionSTORE(int socket_coordinador, char clave[TAMANIO_CLAVE], OperacionAEnviar* operacion, OperaciontHeader *header) {
 
 		header->tipo = OPERACION_STORE;
+		header->tamanioValor = 0;
 		enviarOperaciontHeader(socket_coordinador, header);
 		puts("Header de la Operacion STORE enviado correctamente");
 
 		enviarMensaje(socket_coordinador, clave);
 
-		printf("Operacion STORE con la clave: {0}, enviada correctamente" ,clave);
+		printf("Operacion STORE con la clave: %s, enviada correctamente" ,clave);
 
 		return EXIT_SUCCESS;
 
 	}
 
-    int enviarValor(int sockfd, char* mensaje){
+    int enviarValor(int sockfd, char* valor){
 
-    	printf("Vor a enviar el mensaje: %s \n",mensaje);
+    	printf("Se envió el valor: %s \n",valor);
 
-    	if ((send(sockfd, mensaje, strlen(mensaje), 0)) == -1) {
-        	puts("Error al enviar el mensaje.");
+    	if ((send(sockfd, valor, strlen(valor), 0)) == -1) {
+        	puts("Error al enviar el valor.");
         	perror("send");
             exit(1);
         }
 
-        printf("El mensaje: \"%s\", se ha enviado correctamente! \n\n",mensaje);
+        printf("El mensaje: \"%s\", se ha enviado correctamente! \n\n",valor);
         return EXIT_SUCCESS;
+    }
+
+    int enviarValidez(int sockfd, tValidezOperacion *validez){
+    	if ((send(sockfd, validez, sizeof(tValidezOperacion), 0)) == -1) {
+        	puts("Error al enviar la validez.");
+        	perror("send");
+            exit(1);
+        }
+    	puts("Se envió la validez");
+        return EXIT_SUCCESS;
+
     }
 

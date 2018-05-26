@@ -65,6 +65,10 @@ typedef enum{
 	ERROR = 3
 }tResultadoOperacion;
 
+typedef enum{
+	OPERACION_VALIDA = 1,
+	OPERACION_INVALIDA= -1
+}tValidezOperacion;
 
 
 typedef struct{
@@ -89,4 +93,5 @@ int recibirResultado(int socket_coordinador);
 int manejarOperacionGET(int socket_coordinador, char clave[TAMANIO_CLAVE], OperacionAEnviar* operacion, OperaciontHeader * header);
 int manejarOperacionSET(int socket_coordinador, char clave[TAMANIO_CLAVE], char *valor, OperacionAEnviar* operacion, OperaciontHeader *header);
 int manejarOperacionSTORE(int socket_coordinador, char clave[TAMANIO_CLAVE], OperacionAEnviar* operacion, OperaciontHeader *header);
-int enviarMensaje(int sockfd, char* mensaje);
+int enviarValor(int sockfd, char* valor);
+int enviarValidez(int sockfd, tValidezOperacion *validez);

@@ -78,6 +78,11 @@ typedef enum{
 	KE = 3
 }tAlgoritmoDistribucion;
 
+typedef enum{
+	OPERACION_VALIDA = 1,
+	OPERACION_INVALIDA= -1
+}tValidezOperacion;
+
 
 typedef struct{
 	tResultadoOperacion resultado;
@@ -124,6 +129,8 @@ typedef struct{
 	int cantidadEntradasMaximas;
 	int entradasUsadas;
 }tInstancia;
+
+
 
 // VARIABLES GLOBALES
 
