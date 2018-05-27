@@ -262,3 +262,6 @@
 [INFO] 19:51:24:893 CORD/(5214:5223): Mensaje: recv error
 [INFO] 19:52:09:801 CORD/(5250:5266): Mensaje: recv error
 [INFO] 19:53:53:470 CORD/(5293:5298): Mensaje: recv error
+[INFO] 13:37:20:871 CORD/(3932:3942): Mensaje: recv error
+[INFO] 13:45:10:431 CORD/(4211:4213): Mensaje: recv error
+[INFO] 13:49:55:21 CORD/(4373:4385): GET jugador

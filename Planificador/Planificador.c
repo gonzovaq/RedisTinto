@@ -204,16 +204,16 @@
     	        return 0;
     }
     int EnviarConfirmacion (t_esi * esi){
-    	char confirmacion[1]=1;
-    			puts("enviando informacion al esi \n");
-			   if (send(esi->fd, confirmacion , sizeof(confirmacion), 0) <= 0){
-				   printf("Error al enviar ejecucion al ESI (%d) a direccion (%d) \n ",esi->id, esi->fd);
-				   perror("Send");
+    	puts("enviando informacion al esi \n");
+    	char *confirmacion = "EJECUTATE";
+	    if (send(esi->fd, confirmacion , strlen(confirmacion), 0) <= 0){
+		   printf("Error al enviar ejecucion al ESI (%d) a direccion (%d) \n ",esi->id, esi->fd);
+		   perror("Send");
 
-				   exit(1);
-			   }
-			   puts("Se envió confirmacion");
-			   return EXIT_SUCCESS;
+		   exit(1);
+	    }
+	   puts("Se envió confirmacion");
+	   return EXIT_SUCCESS;
     }
 
     void ConectarAlCoordinador(int  * sockCord, struct sockaddr_in* cord_addr,
@@ -387,21 +387,21 @@
 		puts("Archivo de configuracion vacio");
 	}
 
-int obtenerEsi(int socket)
-{
-	int bytesRecibidos;
-		               tHeader *headerRecibido = malloc(sizeof(tHeader));
-				   if ((bytesRecibidos = recv(socket, headerRecibido, sizeof(tHeader), 0)) == -1){
-					perror("recv");
-					exit(1);
+	int obtenerEsi(int socket)
+	{
+		int bytesRecibidos;
+						   tHeader *headerRecibido = malloc(sizeof(tHeader));
+					   if ((bytesRecibidos = recv(socket, headerRecibido, sizeof(tHeader), 0)) == -1){
+						perror("recv");
+						exit(1);
 
-				   }
-				   //fprintf("Mensaje : %s",headerRecibido->tipoMensaje);
-				   if (headerRecibido->tipoMensaje == CONECTARSE){
-					free(headerRecibido);
-					return(headerRecibido->idProceso);
-				   }
-}
+					   }
+					   //fprintf("Mensaje : %s",headerRecibido->tipoMensaje);
+					   if (headerRecibido->tipoMensaje == CONECTARSE){
+						free(headerRecibido);
+						return(headerRecibido->idProceso);
+					   }
+	}
 	///////////////
 	/*
 		void *gestionarConexion(int socket){ //(int* sockfd, int* new_fd)

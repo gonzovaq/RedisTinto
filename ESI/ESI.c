@@ -241,16 +241,17 @@
 
     }
 
-   int  recibirOrdenDeEjecucion(int socket_planificador){
+   int recibirOrdenDeEjecucion(int socket_planificador){
     	puts("llega al recibir ejecucion");
-    	char buffer[1];
-    	if(recv(socket_planificador,buffer,sizeof(char),0) <= 0){
+    	char *buffer = malloc(strlen("EJECUTATE"));
+    	int tengoPermiso = 0;
+    	if(recv(socket_planificador,buffer,strlen("EJECUTATE"),0) <= 0){
     		perror("error al recibir orden de ejecucion");
     		exit(EXIT_FAILURE);
-    	 }
-
-    	puts("El planificador me dio permiso");
-    	return buffer;//recibirMensaje(socket_planificador)==1;
+    	}
+    	tengoPermiso = strcmp("EJECUTATE",buffer);
+    	free(buffer);
+    	return tengoPermiso;
     }
 
     int recibirResultado(int socket_coordinador, tResultado * resultado){

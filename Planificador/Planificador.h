@@ -66,7 +66,6 @@ typedef enum{
 	CONECTARSE = 1
 }tTipoDeMensaje;
 
-
 typedef struct{
 	tTipoDeProceso tipoProceso;
 	tTipoDeMensaje tipoMensaje;
