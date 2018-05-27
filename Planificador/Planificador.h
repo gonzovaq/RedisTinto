@@ -21,6 +21,8 @@
 #define PORT 3491 // puerto al que vamos a conectar
 #define PORT_COORDINADOR 3490 // puerto del coordinador, donde nos vamos a conectar
 #define MAXDATASIZE 100 // máximo número de bytes que se pueden leer de una vez
+#define TAMANIO_CLAVE 41 //Por enunciado la clave sera de 40 caracteres.
+#define TAMANIO_NOMBREPROCESO 40
 
 struct hostent *he;
 struct sockaddr_in cord_addr; // información de la dirección del Coordinador
@@ -70,12 +72,24 @@ typedef struct{
 	tTipoDeProceso tipoProceso;
 	tTipoDeMensaje tipoMensaje;
 	int idProceso;
+	char nombreProceso[TAMANIO_NOMBREPROCESO];
 }tHeader;
+
+typedef enum{
+	OK = 1,
+	BLOQUEO = 2,
+	ERROR = 3
+}tResultadoOperacion;
+
+typedef struct{
+	tResultadoOperacion tipoResultado;
+	char clave[TAMANIO_CLAVE];
+}__attribute__((packed)) tResultado;
 
 
 void LeerArchivoDeConfiguracion();
 int verificarParametrosAlEjecutar(int argc, char *argv[]);
-void ConectarAlCoordinador(int * sockCord, struct sockaddr_in* cord_addr,
+void ConectarAlCoordinador(int sockCord, struct sockaddr_in* cord_addr,
 		struct hostent* he);
 void *ejecutarConsola();
 

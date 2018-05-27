@@ -230,7 +230,7 @@
 				*/
 
 				tResultado * resultado = malloc(sizeof(tResultado));
-
+				strcpy(resultado->clave,"PRUEBA");
 				resultado->resultado = OK;
 
 				int sendResultado;

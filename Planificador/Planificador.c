@@ -37,7 +37,7 @@
 								colaX = queue_create();
 				//finalizamos el creado de colas
     	        // obtener socket para coordinador
-    	        ConectarAlCoordinador(&sockCord, &cord_addr, he);
+    	        ConectarAlCoordinador(sockCord, &cord_addr, he);
 
 
     	        /*Inicializar cola
@@ -140,20 +140,21 @@
 									
 									
     	                        }
-    	                    } else {
+    	                    } /*else {
     	                        // gestionar datos de un cliente
+								puts("Entre a gestion de clientes");
     	                        if ((nbytes = recv(i, buf, sizeof(buf), 0)) <= 0) {
     	                            // error o conexión cerrada por el cliente
     	                            if (nbytes == 0) {
     	                                // conexión cerrada
     	                                printf("selectserver: socket %d hung up\n", i);
     	                            } else {
-    	                                perror("recv");
+    	                                perror("recv de gestion de cliente");
     	                            }
     	                            close(i); // bye!
 									
     	                            FD_CLR(i, &master); // eliminar del conjunto maestro
-    	                        } else {
+    	                        } */else {
     	                            // tenemos datos de algún cliente
     	                            for(j = 0; j <= fdmax; j++) {
     	                                // ¡enviar a todo el mundo!
@@ -168,17 +169,26 @@
     	                            }
     	                        }
     	                    } // Esto es ¡TAN FEO!
-    	                }
+    	                
 						//Planificar
 					int f_ejecutar=0;//Flag para mandar de ready a ejecucion.
+					puts("voy a verificar las colas");
 					if(queue_is_empty(ejecucion)==0)
 					{
+						puts("Entre a ejecucion");
+						printf("Tamanio cola %d \n",queue_size(ejecucion));
 						f_ejecutar=0;
 						t_esi *esi=malloc(sizeof(t_esi));
-						esi = queue_pop(ejecucion);
+						esi = queue_peek(ejecucion);
+						printf("Id del esi a ejecutar: %d \n",esi->id);
 						EnviarConfirmacion(esi);
 						printf("ejecuta el esi:%d \n",esi->id);
-						free(esi);
+						
+						tResultado * resultado = malloc(sizeof(tResultado));
+                   		recibirResultado(esi->fd, resultado);
+						//queue_push(ejecucion,new_ESI(esi->id,esi->fd));
+						//free(esi);
+                    	free(resultado);
 					}
 					else
 					{
@@ -197,16 +207,16 @@
 						puts("Ready no vacia");
 					}
     	            }
+				}
 					
-					
-    	        }
+    	        //}
 				
     	        return 0;
     }
     int EnviarConfirmacion (t_esi * esi){
     	puts("enviando informacion al esi \n");
     	char *confirmacion = "EJECUTATE";
-	    if (send(esi->fd, confirmacion , strlen(confirmacion), 0) <= 0){
+	    if (send(esi->fd, confirmacion , strlen("EJECUTATE"), 0) <= 0){
 		   printf("Error al enviar ejecucion al ESI (%d) a direccion (%d) \n ",esi->id, esi->fd);
 		   perror("Send");
 
@@ -216,10 +226,10 @@
 	   return EXIT_SUCCESS;
     }
 
-    void ConectarAlCoordinador(int  * sockCord, struct sockaddr_in* cord_addr,
+    void ConectarAlCoordinador(int sockCord, struct sockaddr_in* cord_addr,
     		struct hostent* he) {
     	// obtener socket para coordinador
-    	if ((*sockCord = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+    	if ((sockCord = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
     		puts("Error al crear el socket");
     		perror("socket");
     		exit(1);
@@ -230,13 +240,14 @@
     	memset(&(cord_addr->sin_zero), '\0', 8); // poner a cero el resto de la estructura
     	// conectar al coordinador
     	puts("Por conectarnos al coordinador");
-    	if (connect(*sockCord, (struct sockaddr*) &*cord_addr,
+    	if (connect(sockCord, (struct sockaddr*) &*cord_addr,
     			sizeof(struct sockaddr)) == -1) {
     		puts("Error al conectarme al servidor.");
     		perror("connect");
     		exit(1);
     	}
     	puts("Conectado con el coordinador!\n");
+		enviarHeader(sockCord);
     }
 
     int verificarParametrosAlEjecutar(int argc, char *argv[]){
@@ -261,9 +272,9 @@
 		{
 			//char * readline(const char * linea);
 			char * linea = readline(": ");
-
+/*
    			 if(linea)
-      			add_history(linea);
+      			add_history(linea);*/
 
 			if(strncmp(linea,"pausar",7)==0)
 			{
@@ -402,6 +413,44 @@
 						return(headerRecibido->idProceso);
 					   }
 	}
+
+	int recibirResultado(int socket, tResultado * resultado){
+    	puts("Vor a recibir el resultado");
+    	recibirResultadoDelEsi(socket,resultado);
+
+    	switch(resultado->tipoResultado){
+    		case OK:
+    			puts("La operación salio OK"); //EN ESTOS CASE DEBERIA LOGGEAR O ALGO ASI, PREGUNTAR MAS ADELANTE
+				
+    			break;
+    		case BLOQUEO:
+				puts("La operación se BLOQUEO");
+				break;
+    		case ERROR:
+				puts("La operación tiro ERROR");
+				break;
+    		default:
+    			puts("ERROR AL RECIBIR EL RESULTADO");
+    			EXIT_FAILURE;
+    			break;
+    	}
+    	return EXIT_SUCCESS;
+    }
+
+int recibirResultadoDelEsi(int sockfd, tResultado * resultado){
+    	int numbytes;
+
+
+        if ((numbytes=recv(sockfd, resultado, sizeof(tResultado), 0)) <= 0) {
+            perror("recv");
+            exit(1);
+        }
+        puts("Recibi el resultado");
+		printf("Resultado: %d \n",resultado->tipoResultado);
+        printf("Resultado: %s \n",resultado->clave);
+		return EXIT_SUCCESS;
+    }
+
 	///////////////
 	/*
 		void *gestionarConexion(int socket){ //(int* sockfd, int* new_fd)
@@ -512,3 +561,21 @@
 			}
 			
 			*/
+int enviarHeader(int sockfd){
+    	int pid = getpid(); //Los procesos podrian pasarle sus PID al coordinador para que los tenga identificados
+    	printf("Mi ID es %d \n",pid);
+        tHeader *header = malloc(sizeof(tHeader));
+               header->tipoProceso = PLANIFICADOR;
+               header->tipoMensaje = CONECTARSE;
+               header->idProceso = pid;
+               strcpy(header->nombreProceso, "Planificador" ); // El nombre se da en el archivo de configuracion --> MINOMBRE
+			   if (send(sockfd, header, sizeof(tHeader), 0) == -1){
+				   puts("Error al enviar mi identificador");
+				   perror("Send");
+				   free(header);
+				   exit(1);
+			   }
+			   puts("Se envió mi identificador");
+			   free(header);
+			   return EXIT_SUCCESS;
+    }

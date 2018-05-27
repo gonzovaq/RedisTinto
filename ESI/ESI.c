@@ -222,6 +222,7 @@
                     }
             		tResultado * resultado = malloc(sizeof(tResultado));
                     recibirResultado(socket_coordinador, resultado);
+					enviarResultado(socket_planificador,resultado);
                     free(resultado);
                     destruir_operacion(parsed);
                 } else {
@@ -347,4 +348,15 @@
         return EXIT_SUCCESS;
 
     }
-
+	int enviarResultado(int socket,tResultado * resul)
+	{
+		if ((send(socket, resul, sizeof(tResultado), 0)) <= 0) {
+        	puts("Error al enviar resultado al planificador");
+        	perror("send");
+            exit(1);
+        }
+		printf("Resultado es: %d \n",resul->tipoResultado);//Envio bien el resultado
+		printf("Resultado clave: %s \n",resul->clave);
+    	puts("Se envió el resultado al planificador");
+        return EXIT_SUCCESS;
+	}
