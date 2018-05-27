@@ -6,13 +6,9 @@
     int main(int argc, char *argv[])
     {
 
-
-        //**************************************************
-
     	int cantidadEntradas = 8;
     	int tamanioValor = 3;
     	t_list *tablaEntradas = list_create();
-    	tablaEntradas->head = malloc(sizeof(t_link_element) * cantidadEntradas);
 
     	char **arrayEntradas = malloc(cantidadEntradas * sizeof(char*));
 
@@ -23,16 +19,7 @@
     	int socketCoordinador;
         char *buffer_mensaje_recibido;
         char *mensaje_coordinador = "Hola Coordinador, como va?";
-
-        tMensaje *mensajeSet = malloc(sizeof(tMensaje));
-        strcpy(mensajeSet->instruccion.clave, "Probando claves\0");
-        strcpy(mensajeSet->instruccion.valor, "bbbb\0");
-
-        tMensaje *mensajeGet = malloc(sizeof(tMensaje));
-        strcpy(mensajeGet->instruccion.clave, "Probando claves\0");
-        strcpy(mensajeGet->instruccion.valor, "\0");
         int longitudMaximaValorBuscado;
-        char *valorGet = calloc(longitudMaximaValorBuscado, 1);
 
 
         verificarParametrosAlEjecutar(argc, argv);
@@ -43,16 +30,41 @@
         printf("Received: %s \n",buffer_mensaje_recibido);
         free(buffer_mensaje_recibido);
         enviarMensaje(socketCoordinador, mensaje_coordinador);
+        puts("Antes del while");
 
-        //Pruebo el set
-		agregarEntrada(mensajeSet, arrayEntradas, cantidadEntradas, tamanioValor, tablaEntradas);
-		mostrarArray(arrayEntradas, cantidadEntradas);
+        while(1){
+        	OperaciontHeader *headerRecibido;
+        	headerRecibido = recibirHeader(socketCoordinador);
+        	char *bufferClave;
+        	char *valorGet;
 
-		//Pruebo el get
-		longitudMaximaValorBuscado = calcularLongitudMaxValorBuscado(mensajeGet->instruccion.clave,tablaEntradas);
-		printf("El valor de la clave ocupa %d entradas en mi tabla \n", longitudMaximaValorBuscado);
-		valorGet = obtenerValor(longitudMaximaValorBuscado, tablaEntradas, mensajeGet->instruccion.clave, arrayEntradas, tamanioValor);
-		printf("Valor obtenido del GET: %s\n",valorGet);
+        	puts("despues de recibir header");
+        	int bytesValor = 0;
+        	operacionRecibida *operacion;
+
+        	printf("Tamanio en el header: %d\n", headerRecibido->tamanioValor);
+
+        	if (headerRecibido->tipo == SET){
+        		puts("Entra al if del while");
+        		int bytesValor = headerRecibido->tamanioValor;
+        		operacion = recibirOperacion(socketCoordinador, bytesValor);
+        		agregarEntrada(operacion, arrayEntradas, cantidadEntradas, tamanioValor, tablaEntradas);
+        	}
+
+        	if (headerRecibido->tipo == GET){
+        		bufferClave = recibirMensaje(socketCoordinador);
+        		longitudMaximaValorBuscado = calcularLongitudMaxValorBuscado(bufferClave,tablaEntradas);
+        		valorGet = obtenerValor(longitudMaximaValorBuscado, tablaEntradas, bufferClave,arrayEntradas, tamanioValor);
+        		enviarValorGet(socketCoordinador, valorGet);
+        		puts("Muere aca");
+        		free(valorGet);
+
+        	}
+
+        	free(headerRecibido);
+        	free(operacion);
+        }
+
 
         close(socketCoordinador);
         return 0;
@@ -148,9 +160,33 @@
 			   return 1;
     }
 
+    int enviarValorGet(int socketCoordinador, char *valorGet){
+    	int tamanioValorGet = strlen(valorGet) + 1;
+    	OperaciontHeader *header = malloc(tamanioValorGet);
+
+    	header->tipo = GET;
+    	header->tamanioValor = tamanioValorGet;
+
+    	if(send(socketCoordinador, header, sizeof(OperaciontHeader), 0) == -1){
+    		puts("Error al enviar header de operacion");
+    		perror("Send");
+    		free(header);
+    	}
+
+    	if(send(socketCoordinador, valorGet, tamanioValorGet, 0) == -1){
+    		puts("Error al enviar el valor buscado");
+    		perror("Send");
+    	}
+
+
+
+    	return 1;
+    }
+
+
     char *recibirMensaje(int socketCoordinador){
     	int numbytes;
-        int tamanio_buffer=100;
+        int tamanio_buffer=41;
         char* buf = malloc(tamanio_buffer) ; //Seteo el maximo del buffer en 100 para probar. Debe ser variable.
 
         if ((numbytes=recv(socketCoordinador, buf, tamanio_buffer-1, 0)) == -1) {
@@ -160,6 +196,21 @@
 
         *(buf + numbytes) = '\0';
         return buf;
+    }
+
+    OperaciontHeader *recibirHeader(int socketCoordinador){
+    	int bytesRecibidos;
+    	OperaciontHeader *unHeader = malloc(sizeof(OperaciontHeader));
+
+    	puts("Entre al recibir Header");
+
+    	if ((bytesRecibidos = recv(socketCoordinador, unHeader, sizeof(OperaciontHeader), 0)) == -1 ){
+    		perror("recv");
+    		exit(1);
+    	}
+
+    	printf("ASDASDASD: %d \n", unHeader->tamanioValor);
+    	return unHeader;
     }
 
     int enviarMensaje(int socketCoordinador, char* mensaje){
@@ -176,50 +227,33 @@
         return 1;
     }
 
-    tMensaje *recibirInstruccion(int socketCoordinador){
-    	tMensaje *mensajeRecibido = malloc(sizeof(tMensaje));
+    operacionRecibida *recibirOperacion(int socketCoordinador, int bytesValor){
+    	operacionRecibida *operacion = malloc(sizeof(operacionRecibida) + bytesValor);
     	int numBytes;
 
-    	if ((numBytes = recv(socketCoordinador, mensajeRecibido, sizeof(tMensaje), 0)) == -1 ){
+    	if ((numBytes = recv(socketCoordinador, operacion, sizeof(operacionRecibida) + bytesValor, 0)) == -1 ){
     		perror("Recv");
     		exit(1);
     	}
-    	return mensajeRecibido;
-    }
-
-    void procesarInstruccion(tMensaje *unMensaje, char **arrayEntradas, int cantidadEntradas, int tamanioValor, t_list *tablaEntradas){
-    	int *longitudMaximaValorBuscado = malloc(sizeof(int));
-    	if (unMensaje->encabezado.tipoProceso != COORDINADOR){
-    		puts("El mensaje no se recibio desde el tipo de proceso indicado");
-    	}
-    	else{
-        	switch(unMensaje->encabezado.tipoMensaje){
-        	case SET:
-        		agregarEntrada(unMensaje, arrayEntradas, cantidadEntradas, tamanioValor, tablaEntradas);
-        		break;
-        	case GET:
-        		longitudMaximaValorBuscado = calcularLongitudMaxValorBuscado(unMensaje->instruccion.clave,tablaEntradas);
-        		printf("El valor de la clave ocupa %d entradas", longitudMaximaValorBuscado);
-        		break;
-        	default:
-        		puts("Nada para hacer");
-        	}
-
-    	}
-
-    	return;
+    	return operacion;
     }
 
 
-    void agregarEntrada(tMensaje *unMensaje, char ** arrayEntradas, int cantidadEntradas, int tamanioValor, t_list *tablaEntradas){
-    	char *valorMensaje = calloc(40, 1);
-    	memcpy(valorMensaje, unMensaje->instruccion.valor, strlen(unMensaje->instruccion.valor));
-    	int tamanioBuffer = strlen(valorMensaje);
-    	char *nombreClave = malloc(40);
-    	strcpy(nombreClave, unMensaje->instruccion.clave);
+    void agregarEntrada(operacionRecibida *unaOperacion, char ** arrayEntradas, int cantidadEntradas, int tamanioValor, t_list *tablaEntradas){
 
-    	if(tamanioBuffer > tamanioValor){
-    		int vecesAIterar = calcularIteracion(tamanioBuffer, tamanioValor);
+    	int tamanioValorRecibido = strlen(unaOperacion->valor); // Sin contar el \0
+    	char *valorRecibido = malloc(strlen(unaOperacion->valor));
+    	memcpy(valorRecibido, unaOperacion->valor, strlen(unaOperacion->valor)); // Copio el valor sin el \0
+
+    	char claveRecibida = malloc(40+1);
+    	strcpy(claveRecibida, unaOperacion->clave); // Copio toda la clave
+
+    	if(validarClaveExistente(claveRecibida, tablaEntradas) == true){
+    	    		eliminarNodosyValores(claveRecibida, tablaEntradas, arrayEntradas);
+    	    	}
+
+    	if(tamanioValorRecibido > tamanioValor){
+    		int vecesAIterar = calcularIteracion(tamanioValorRecibido, tamanioValor);
 			int offset;
 
 			for(int i = 0; i < vecesAIterar; i++){
@@ -229,16 +263,16 @@
 
 					if(*(arrayEntradas[j]) == NULL){
 
-						int bytesRestantes = tamanioBuffer - tamanioValor * i;
+						int bytesRestantes = tamanioValorRecibido - tamanioValor * i;
 
 						if (i == vecesAIterar - 1){
-							memcpy(arrayEntradas[j], valorMensaje + offset, bytesRestantes);
-							agregarNodoAtabla(tablaEntradas, j, bytesRestantes, nombreClave);
+							memcpy(arrayEntradas[j], valorRecibido + offset, bytesRestantes);
+							agregarNodoAtabla(tablaEntradas, j, bytesRestantes, claveRecibida);
 							break;
 						}
 						else{
-							memcpy(arrayEntradas[j], valorMensaje + offset, tamanioValor);
-							agregarNodoAtabla(tablaEntradas, j, tamanioValor, nombreClave);
+							memcpy(arrayEntradas[j], valorRecibido + offset, tamanioValor);
+							agregarNodoAtabla(tablaEntradas, j, tamanioValor, claveRecibida);
 							break;
 						}
 
@@ -247,20 +281,20 @@
 				}
 
 			}
-			free(unMensaje);
-			free(valorMensaje);
+			free(unaOperacion);
+			free(valorRecibido);
 			return;
     	}
 
     	else{
     			for(int i = 0; i < cantidadEntradas; i++){
     				if(*(arrayEntradas[i]) == NULL){
-    					memcpy(arrayEntradas[i], valorMensaje, strlen(valorMensaje));
+    					memcpy(arrayEntradas[i], valorRecibido, tamanioValorRecibido);
     					break;
     				}
     			}
-    			free(unMensaje);
-    			free(valorMensaje);
+    			free(unaOperacion);
+    			free(valorRecibido);
     		}
 
    	    return;
@@ -285,6 +319,7 @@
 
 
      	list_add(tablaEntradas, (tEntrada *) buffer);
+     	free(nombreClave);
 
     	return;
      }
@@ -299,7 +334,7 @@
     }
 
     char *obtenerValor(int longitudMaximaValorBuscado, t_list *tablaEntradas, char *claveBuscada,char **arrayEntradas,int tamanioValor){
-    	char *valor = malloc(longitudMaximaValorBuscado);
+    	char *valor = malloc(longitudMaximaValorBuscado * tamanioValor + 1);
     	t_list *tablaDuplicada = malloc(sizeof(t_list));
     	tEntrada *bufferEntrada = malloc(sizeof(tEntrada));
 
@@ -317,6 +352,7 @@
     		int index = bufferEntrada->numeroEntrada;
     		memcpy((valor + i * tamanioValor), arrayEntradas[index], tamanioValor);
     	}
+    	valor[longitudMaximaValorBuscado * tamanioValor] = '\0';
 
     	list_destroy(tablaDuplicada);
     	free(bufferEntrada);
@@ -328,4 +364,67 @@
     	list_add_all(duplicated, self);
     	return duplicated;
     }
+
+    bool validarClaveExistente(char *unaClave, t_list *tablaEntradas){
+
+       	bool coincidir(tEntrada *unaEntrada){
+       	    		return string_equals_ignore_case(unaEntrada->clave, unaClave);
+       	    	}
+
+       	if(tablaEntradas->head){
+
+       		return list_any_satisfy(tablaEntradas, (void*) coincidir);;
+       	}
+       	else{
+       		return false;
+       	}
+
+       }
+
+       t_list *filtrarLista(char *unaClave, t_list *tabla){
+       	t_list *tablaFiltrada = malloc(sizeof(t_list));
+       	int coincidir(tEntrada *unaEntrada){
+           		return string_equals_ignore_case(unaEntrada->clave, unaClave);
+           	}
+       	tablaFiltrada = list_filter(tabla, (void*) coincidir);
+       	return tablaFiltrada;
+
+       }
+
+       void eliminarNodosyValores(char *nombreClave, t_list *tablaEntradas, char **arrayEntradas, int tamanioValor){
+       	t_list *tablaDuplicada = malloc(sizeof(t_list));
+       	t_list *tablaFiltrada = malloc(sizeof(t_list));
+       	tEntrada *bufferEntrada = malloc(sizeof(tEntrada));
+
+       	tablaDuplicada = list_duplicate(tablaEntradas);
+       	tablaFiltrada = filtrarLista(nombreClave, tablaDuplicada);
+
+       	for(int i = 0; i < tablaDuplicada->elements_count; i++){
+       	    		bufferEntrada = list_get(tablaDuplicada, i);
+       	    		int index = bufferEntrada->numeroEntrada;
+       	    		int bytes = bufferEntrada->tamanioAlmacenado;
+       	    		memset(arrayEntradas[index], '\0', bytes);
+       	    	}
+
+       	list_destroy(tablaDuplicada);
+       	list_destroy(tablaFiltrada);
+       	free(bufferEntrada);
+       	eliminarNodos(nombreClave, tablaEntradas);
+
+       	return;
+       }
+       void destruirNodoDeTabla(tEntrada *unaEntrada){
+       	free(unaEntrada);
+       	return;
+       }
+
+
+       void eliminarNodos(char *nombreClave, t_list *tablaEntradas){
+
+       	bool coincidir(tEntrada *unaEntrada){
+       	    	    		return string_equals_ignore_case(unaEntrada->clave, nombreClave);
+       	    	    	}
+       	list_remove_and_destroy_by_condition(tablaEntradas, (void*) coincidir,(void*) destruirNodoDeTabla);
+       	return;
+       }
 
