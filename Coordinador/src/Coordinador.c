@@ -124,7 +124,6 @@
     }
 
     int *gestionarConexion(parametrosConexion *parametros){ //(int* sockfd, int* new_fd)
-        puts("Se disparo un hilo");
         int bytesRecibidos;
                tHeader *headerRecibido = malloc(sizeof(tHeader));
 
@@ -138,7 +137,6 @@
 	   }
 
 	   if (headerRecibido->tipoMensaje == CONECTARSE){
-		puts("Se procede a identificar el proceso");
 		IdentificarProceso(headerRecibido, parametros);
 		free(headerRecibido);
 	   }
@@ -164,6 +162,7 @@
             strcpy(parametros->nombreProceso, headerRecibido->nombreProceso);
             tInstancia * nuevaInstancia = malloc(sizeof(tInstancia));
             nuevaInstancia->informacion = &parametros;
+            //memcpy(nuevaInstancia->informacion,parametros,sizeof(nuevaInstancia->informacion));
             nuevaInstancia->cantidadEntradasMaximas = ENTRADAS;
             nuevaInstancia->entradasUsadas=0;
     		list_add(colaInstancias,(void*)&nuevaInstancia);
@@ -296,7 +295,7 @@
         //while(1);
         puts("Instancia: Hago un sem_wait");
 		printf("Semaforo en direccion: %p\n", (void*)&(parametros->semaforo));
-        sem_wait(parametros->semaforo); // Caundo me avisen que hay una operacion para enviar, la voy a levantar de la cola
+        sem_wait((parametros->semaforo)); // Caundo me avisen que hay una operacion para enviar, la voy a levantar de la cola
         puts("Instancia: Me hicieron un sem_post");
         OperacionAEnviar * operacion = list_take(colaMensajes,1);
         int tamanioValor = strlen(operacion->valor);
@@ -616,17 +615,19 @@
     }
 
     int MandarAlFinalDeLaLista(t_list * lista, tInstancia * instancia){
-    	bool Comparar(tInstancia * instanciaAComparar){
+    	void Notificar(tInstancia * instanciaAComparar){
     		if(instanciaAComparar->informacion->nombreProceso == instancia->informacion->nombreProceso){
     			puts("Voy a hacer el sem_post a la Instancia seleccionada \n");
     			printf("Semaforo en direccion: %p\n", (void*)&(instanciaAComparar->informacion->semaforo));
     			sem_post(&(instanciaAComparar->informacion->semaforo));
     		}
+    	}
+    	bool Comparar(tInstancia * instanciaAComparar){
     		return instanciaAComparar->informacion->new_fd == instancia->informacion->new_fd;
     	}
     	t_list * listaNueva = malloc(sizeof(lista));
     	puts("Voy a iterar la lista");
-    	list_iterate(lista,Comparar);
+    	list_iterate(lista,Notificar);
     	puts("Itere la lista");
     	listaNueva = list_take_and_remove(lista, 1);
     	list_add_all(lista,listaNueva);
@@ -741,6 +742,7 @@
 			entradasUltimaInstancia = KEYS_POSIBLES - ((cantidadInstancias-1) * (rango + 1));
 		}
 
+		// Esto es si la clave no se encuentra en ninguna instancia
 		for (int i = 0; i < cantidadInstancias; i++){
 			if (i!= cantidadInstancias - 1 && restoRango == 0){    // Si no es la ultima instancia debo redondear hacia arriba
 					if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + rango)){
