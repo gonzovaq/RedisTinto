@@ -69,7 +69,6 @@
     int EscucharConexiones(int sockfd){
         int sin_size;
         int new_fd;
-		sem_t * semaforoNuevo;
         struct sockaddr_in direccion_cliente; // información sobre la dirección del cliente
 
         //Inicializamos el mutex
@@ -92,12 +91,22 @@
 
     	            //Para hilos debo crear una estructura de parametros de la funcion que quiera llamar
     				pthread_t tid;
-    				if (sem_init(&semaforoNuevo,0,0) != 0){
+
+    				sem_t semaforoNuevo;
+    				char nombreProceso[TAMANIO_NOMBREPROCESO];
+
+    	            int ret;
+    	            int value;
+    	            int pshared;
+    	            /* initialize a private semaphore */
+    	            pshared = 0;
+    	            value = 0;
+    	            if ((ret = sem_init(&semaforoNuevo,pshared,value)) != 0){
     					perror("semaforo nuevo");
     		        	exit_gracefully(1);
     				} // Inicializo el semaforo en 0
+    				parametrosConexion parametros = {new_fd,&semaforoNuevo,nombreProceso};
 
-    				parametrosConexion parametros = {new_fd,semaforoNuevo};
     				printf("Socket %d \n",new_fd);
     	            int stat = pthread_create(&tid, NULL, (void*)gestionarConexion, (void*)&parametros);//(void*)&parametros -> parametros contendria todos los parametros que usa conexion
     				if (stat != 0){
@@ -154,7 +163,7 @@
     		printf("Se conecto el proceso %d \n", headerRecibido->idProceso);
             strcpy(parametros->nombreProceso, headerRecibido->nombreProceso);
             tInstancia * nuevaInstancia = malloc(sizeof(tInstancia));
-            nuevaInstancia->informacion = parametros;
+            nuevaInstancia->informacion = &parametros;
             nuevaInstancia->cantidadEntradasMaximas = ENTRADAS;
             nuevaInstancia->entradasUsadas=0;
     		list_add(colaInstancias,(void*)&nuevaInstancia);
@@ -210,26 +219,27 @@
 				// sleep(RETARDO);
 
 
-				/*
+
 				//Debo avisar a una Instancia cuando recibo una operacion (QUE NO SEA UN GET)
 				//Agregamos el mensaje a una cola en memoria
+
 				pthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
 				list_add(colaMensajes,(void*)&operacion);
 				pthread_mutex_unlock(&mutex);
-				free(operacion);
+				//free(operacion);
 
+				puts("Voy a seleccionar la Instancia");
 				SeleccionarInstancia(&CLAVE);
-				// Semaforo por si llegaran a entrar mas de un ESI
+				puts("Se selecciono la Instancia");
 
 				free(header);
 
 				//esperamos el resultado para devolver
 				while(list_is_empty(colaResultados)) ; // mientras la cola este vacia no puedo continuar
-				tResultado * resultado = list_take(colaResultados,1);
-				log_info(logger,resultado);
-				*/
-
 				tResultado * resultado = malloc(sizeof(tResultado));
+				resultado = list_take(colaResultados,1);
+				log_info(logger,resultado);
+
 				strcpy(resultado->clave,"PRUEBA");
 				resultado->resultado = OK;
 
@@ -280,20 +290,8 @@
     int *conexionInstancia(parametrosConexion* parametros){
     	//close(new_fd->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
         puts("Instancia conectandose");
-        int handshake;
-		if ((handshake = send(parametros->new_fd, "Hola papa!\n", 14, 0)) <= 0)
-			perror("send");
-        int numbytes,tamanio_buffer=100;
-        char buf[tamanio_buffer]; //Seteo el maximo del buffer en 100 para probar. Debe ser variable.
 
-        if ((numbytes=recv(parametros->new_fd, buf, tamanio_buffer-1, 0)) <= 0) {
-            perror("recv");
-            exit_gracefully(1);
-        }
-
-        buf[numbytes] = '\0';
-        printf("Received: %s\n",buf);
-        free(buf[numbytes]);
+        //while(1);
 
         sem_wait(parametros->semaforo); // Caundo me avisen que hay una operacion para enviar, la voy a levantar de la cola
         OperacionAEnviar * operacion = list_take(colaMensajes,1);
@@ -688,11 +686,21 @@
 
 	int SeleccionarPorEquitativeLoad() {
 		// mientras la cola este vacia no puedo continuarpthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
-		tInstancia * instancia = malloc(sizeof(instancia));
-		instancia = list_get(colaInstancias, 0);
+		tInstancia * instancia = malloc(sizeof(tInstancia));
+		puts("Voy a tomar la 1er Instancia");
+		instancia = list_get(colaInstancias,0);
+		//list_remove_and_destroy_element(colaInstancias, 0,(void*)destruirInstancia);
+		puts("Ya tengo la primer instancia y le voy a hacer un sem_post");
 		sem_post(instancia->informacion->semaforo);
+		puts("Voy a enviar la Instancia al final de la lista");
+		//list_add(colaInstancias,instancia);
 		MandarAlFinalDeLaLista(colaInstancias,instancia);
+		puts("Logre enviar la Instancia al final de la lista");
 		return 1;
+	}
+
+	void destruirInstancia(tInstancia *self) {
+	    free(self);
 	}
 
 	int SeleccionarPorLeastSpaceUsed(){

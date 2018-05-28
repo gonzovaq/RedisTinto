@@ -42,7 +42,7 @@
 typedef struct{
 	int new_fd;
 	sem_t * semaforo;
-	struct node_t * colaProcesos;
+	//struct node_t * colaProcesos;
 	char nombreProceso[TAMANIO_NOMBREPROCESO];
 }parametrosConexion;  // Aqui dejamos los descriptores y un semaforo para los hilos que lo necesiten
 
@@ -183,4 +183,5 @@ static void destruirBloqueo(tBloqueo *bloqueo);
 void RemoverDeLaLista(t_list * lista, char * claveABuscar);
 int MandarAlFinalDeLaLista(t_list * lista, tInstancia * instancia);
 tInstancia* BuscarInstanciaMenosUsada(t_list * lista);
+void destruirInstancia(tInstancia *self);
 
