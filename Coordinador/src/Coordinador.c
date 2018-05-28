@@ -235,7 +235,9 @@
 				free(header);
 
 				//esperamos el resultado para devolver
+				puts("Vamos a ver si hay algun resultado en la cola");
 				while(list_is_empty(colaResultados)) ; // mientras la cola este vacia no puedo continuar
+				puts("No hay resultado en la cola");
 				tResultado * resultado = malloc(sizeof(tResultado));
 				resultado = list_take(colaResultados,1);
 				log_info(logger,resultado);
@@ -292,8 +294,10 @@
         puts("Instancia conectandose");
 
         //while(1);
-
+        puts("Instancia: Hago un sem_wait");
+		printf("Semaforo en direccion: %p\n", (void*)&(parametros->semaforo));
         sem_wait(parametros->semaforo); // Caundo me avisen que hay una operacion para enviar, la voy a levantar de la cola
+        puts("Instancia: Me hicieron un sem_post");
         OperacionAEnviar * operacion = list_take(colaMensajes,1);
         int tamanioValor = strlen(operacion->valor);
         tTipoOperacion tipo = operacion->tipo;
@@ -613,10 +617,18 @@
 
     int MandarAlFinalDeLaLista(t_list * lista, tInstancia * instancia){
     	bool Comparar(tInstancia * instanciaAComparar){
+    		if(instanciaAComparar->informacion->nombreProceso == instancia->informacion->nombreProceso){
+    			puts("Voy a hacer el sem_post a la Instancia seleccionada \n");
+    			printf("Semaforo en direccion: %p\n", (void*)&(instanciaAComparar->informacion->semaforo));
+    			sem_post(&(instanciaAComparar->informacion->semaforo));
+    		}
     		return instanciaAComparar->informacion->new_fd == instancia->informacion->new_fd;
     	}
     	t_list * listaNueva = malloc(sizeof(lista));
-    	listaNueva = list_take_and_remove(lista, Comparar);
+    	puts("Voy a iterar la lista");
+    	list_iterate(lista,Comparar);
+    	puts("Itere la lista");
+    	listaNueva = list_take_and_remove(lista, 1);
     	list_add_all(lista,listaNueva);
     	free(listaNueva);
     	return 1;
@@ -687,15 +699,17 @@
 	int SeleccionarPorEquitativeLoad() {
 		// mientras la cola este vacia no puedo continuarpthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
 		tInstancia * instancia = malloc(sizeof(tInstancia));
-		puts("Voy a tomar la 1er Instancia");
+
 		instancia = list_get(colaInstancias,0);
+
 		//list_remove_and_destroy_element(colaInstancias, 0,(void*)destruirInstancia);
-		puts("Ya tengo la primer instancia y le voy a hacer un sem_post");
-		sem_post(instancia->informacion->semaforo);
-		puts("Voy a enviar la Instancia al final de la lista");
+
+		//sem_post(instancia->informacion->semaforo);
+
 		//list_add(colaInstancias,instancia);
 		MandarAlFinalDeLaLista(colaInstancias,instancia);
-		puts("Logre enviar la Instancia al final de la lista");
+
+		//free(instancia);
 		return 1;
 	}
 
