@@ -92,21 +92,26 @@
     	            //Para hilos debo crear una estructura de parametros de la funcion que quiera llamar
     				pthread_t tid;
 
-    				sem_t semaforoNuevo;
+    				//sem_t * semaforoNuevo = malloc(sizeof(sem_t));
     				char nombreProceso[TAMANIO_NOMBREPROCESO];
 
-    	            int ret;
-    	            int value;
-    	            int pshared;
+    	            //int ret;
+    	            //int value;
+    	            //int pshared;
+    	            int entradasUsadas = 0;
     	            /* initialize a private semaphore */
-    	            pshared = 0;
-    	            value = 0;
-    	            if ((ret = sem_init(&semaforoNuevo,pshared,value)) != 0){
+    	            //pshared = 0;
+    	            //value = 0;
+    	            /*if ((ret = sem_init(&semaforoNuevo,pshared,value)) != 0){
     					perror("semaforo nuevo");
     		        	exit_gracefully(1);
     				} // Inicializo el semaforo en 0
-    				parametrosConexion parametros = {new_fd,&semaforoNuevo,nombreProceso};
-
+    	            */
+    				parametrosConexion parametros;//parametrosConexion parametros = {new_fd,malloc(sizeof(sem_t)),nombreProceso,ENTRADAS,entradasUsadas};
+    				parametros.new_fd = new_fd;
+    				strcpy(parametros.nombreProceso,nombreProceso);
+    				parametros.cantidadEntradasMaximas = ENTRADAS;
+    				parametros.entradasUsadas = 0;
     				printf("Socket %d \n",new_fd);
     	            int stat = pthread_create(&tid, NULL, (void*)gestionarConexion, (void*)&parametros);//(void*)&parametros -> parametros contendria todos los parametros que usa conexion
     				if (stat != 0){
@@ -149,7 +154,7 @@
     	case ESI:
     		printf("Se conecto el proceso %d \n", headerRecibido->idProceso);
             strcpy(parametros->nombreProceso, headerRecibido->nombreProceso);
-    		list_add(colaESIS,(void*)&parametros);
+    		list_add(colaESIS,(void*)parametros);
     		conexionESI(parametros);
     		break;
     	case PLANIFICADOR:
@@ -159,13 +164,30 @@
     		break;
     	case INSTANCIA:
     		printf("Se conecto el proceso %d \n", headerRecibido->idProceso);
-            strcpy(parametros->nombreProceso, headerRecibido->nombreProceso);
-            tInstancia * nuevaInstancia = malloc(sizeof(tInstancia));
-            nuevaInstancia->informacion = &parametros;
+            /*strcpy(parametros->nombreProceso, headerRecibido->nombreProceso);
+            parametrosConexion * nuevaInstancia = malloc(sizeof(int)*2);
+            nuevaInstancia->informacion = parametros;
             //memcpy(nuevaInstancia->informacion,parametros,sizeof(nuevaInstancia->informacion));
             nuevaInstancia->cantidadEntradasMaximas = ENTRADAS;
             nuevaInstancia->entradasUsadas=0;
-    		list_add(colaInstancias,(void*)&nuevaInstancia);
+            printf("Parametros instancia en direccion: %p\n", (void*)&(parametros));
+            printf("parametrosConexion en direccion: %p\n", (void*)&(nuevaInstancia->informacion));
+            */
+    		sem_t * semaforo = malloc(sizeof(sem_t));
+    		parametros->semaforo = semaforo;
+
+            int ret;
+            int value;
+            int pshared;
+            /* initialize a private semaphore */
+            pshared = 0;
+            value = 0;
+            if ((ret = sem_init(parametros->semaforo,pshared,value)) != 0){
+				perror("semaforo nuevo");
+	        	exit_gracefully(1);
+			} // Inicializo el semaforo en 0
+			printf("Semaforo en direccion: %p\n", (void*)&(parametros->semaforo));
+    		list_add(colaInstancias,(void*)parametros);
     		conexionInstancia(parametros);
     		break;
     	default:
@@ -217,13 +239,13 @@
 
 				// sleep(RETARDO);
 
-
-
 				//Debo avisar a una Instancia cuando recibo una operacion (QUE NO SEA UN GET)
 				//Agregamos el mensaje a una cola en memoria
+				printf("ESI: clave de la operacion: %s \n",operacion->clave);
+				printf("ESI: valor de la operacion: %s \n",operacion->valor);
 
 				pthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
-				list_add(colaMensajes,(void*)&operacion);
+				list_add(colaMensajes,(void*)operacion);
 				pthread_mutex_unlock(&mutex);
 				//free(operacion);
 
@@ -263,6 +285,7 @@
     int *conexionPlanificador(parametrosConexion* parametros){
     	//close(new_fd->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
         puts("Planificador conectandose");
+        while(1);
         int mensajeFalopa;
 		if ((mensajeFalopa = send(parametros->new_fd, "Hola papa!\n", 14, 0)) <= 0)
 			perror("send");
@@ -295,15 +318,27 @@
         //while(1);
         puts("Instancia: Hago un sem_wait");
 		printf("Semaforo en direccion: %p\n", (void*)&(parametros->semaforo));
-        sem_wait((parametros->semaforo)); // Caundo me avisen que hay una operacion para enviar, la voy a levantar de la cola
+        sem_wait(parametros->semaforo); // Caundo me avisen que hay una operacion para enviar, la voy a levantar de la cola
         puts("Instancia: Me hicieron un sem_post");
-        OperacionAEnviar * operacion = list_take(colaMensajes,1);
-        int tamanioValor = strlen(operacion->valor);
+        OperacionAEnviar * operacion = list_get(colaMensajes,0);
+        puts("Instancia: levante un mensaje de la cola de mensajes");
+        printf("Instancia: la clave es %s \n",operacion->clave);
+        printf("Instancia: el valor es %s \n",operacion->valor);
+        int tamanioValor;
+        if (operacion->valor == NULL){
+        	tamanioValor=0;
+        }
+        else{
+        tamanioValor = strlen(operacion->valor);
+        }
+        printf("Instancia: el tamanioValor es %d \n",tamanioValor);
         tTipoOperacion tipo = operacion->tipo;
+        puts("Instancia: hago malloc de OperacionTHeader");
         OperaciontHeader * header = malloc(sizeof(OperaciontHeader));  // Creo el header que le voy a enviar a la instancia para que identifique la operacion
         header->tipo = tipo;
         header->tamanioValor = tamanioValor;
 
+        puts("Instancia: Envio header a la instancia");
         // Envio el header a la instancia
         int sendHeader;
 		if ((sendHeader = send(parametros->new_fd, header, sizeof(header), 0)) <= 0){
@@ -313,6 +348,7 @@
 
 		free(header);
 
+        puts("Instancia: Envio clave a la instancia");
 		// Envio la clave
 		int sendClave;
 		if ((sendClave = send(parametros->new_fd, operacion->clave, TAMANIO_CLAVE, 0)) <= 0){
@@ -323,11 +359,13 @@
 
 		if(tipo == OPERACION_SET){
 			int sendSet;
-			if ((sendSet = send(parametros->new_fd, operacion->valor, tamanioValor, 0)) <= 0)
+	        puts("Instancia: Envio valor a la instancia");
+	        if ((sendSet = send(parametros->new_fd, operacion->valor, tamanioValor, 0)) <= 0)
 				perror("send");
 			exit_gracefully(1);
 		}
 
+        puts("Instancia: Espero resuldato de la instancia");
 		// Espero el resultado de la operacion
 		tResultadoOperacion * resultado = malloc(sizeof(tResultadoOperacion));
 		int resultadoRecv;
@@ -336,7 +374,10 @@
             exit_gracefully(1);
         }
 
+        puts("Instancia: recibi el resultado de la instancia");
+
         if (resultado == BLOQUEO){
+            puts("Instancia: el resultado de la instancia fue un bloqueo");
         	tBloqueo esiBloqueado = {1,operacion->clave};
         	list_add(colaBloqueos,(void*)&esiBloqueado);
         	sem_post(planificador->semaforo);
@@ -347,7 +388,7 @@
         free(resultado);
 
         //Debo avisarle al ESI que me invoco el resultado
-        list_add(colaResultados,(void*)&resultadoCompleto);
+        list_add(colaResultados,(void*)resultadoCompleto);
 
 		close(parametros->new_fd);
 		return 1;
@@ -546,7 +587,7 @@
 		// Creamos una cola donde dejamos todas las instancias que se conectan con nosotros y otra para los mensajes recibidos de cualquier ESI
 		int instanciasMaximas = 10;
 		colaInstancias = list_create();
-		//colaInstancias->head = malloc(sizeof(tInstancia) * instanciasMaximas);
+		//colaInstancias->head = malloc(sizeof(parametrosConexion) * instanciasMaximas);
 
 		int mensajesMaximos = 5;
 		colaMensajes = list_create();
@@ -599,12 +640,12 @@
 		return list_any_satisfy(lista,(void*) yaExisteLaClaveYPerteneceAlESI);
     }
 
-    tInstancia* BuscarInstanciaMenosUsada(t_list * lista){
+    parametrosConexion* BuscarInstanciaMenosUsada(t_list * lista){
     	int tamanioLista = list_size(lista);
-    	tInstancia* instancia = malloc(sizeof(tInstancia));
-    	instancia = list_get(lista,0);
+
+    	parametrosConexion* instancia = list_get(lista,0);
     	for (int i = 0; i< tamanioLista; i++){
-    		tInstancia* instanciaAComparar = malloc(sizeof(tInstancia));
+    		parametrosConexion* instanciaAComparar = malloc(sizeof(parametrosConexion));
         	instancia = list_get(lista,i);
         	if (instancia->entradasUsadas > instanciaAComparar->entradasUsadas)
         		instancia = instanciaAComparar;
@@ -614,16 +655,16 @@
     	return instancia;
     }
 
-    int MandarAlFinalDeLaLista(t_list * lista, tInstancia * instancia){
-    	void Notificar(tInstancia * instanciaAComparar){
-    		if(instanciaAComparar->informacion->nombreProceso == instancia->informacion->nombreProceso){
-    			puts("Voy a hacer el sem_post a la Instancia seleccionada \n");
-    			printf("Semaforo en direccion: %p\n", (void*)&(instanciaAComparar->informacion->semaforo));
-    			sem_post(&(instanciaAComparar->informacion->semaforo));
+    int MandarAlFinalDeLaLista(t_list * lista, parametrosConexion * instancia){
+    	void Notificar(parametrosConexion * instanciaAComparar){
+    		if(instanciaAComparar->nombreProceso == instancia->nombreProceso){
+    			//puts("Voy a hacer el sem_post a la Instancia seleccionada \n");
+    			//printf("Semaforo en direccion: %p\n", (void*)&(instanciaAComparar->semaforo));
+    			//sem_post(&(instanciaAComparar->semaforo));
     		}
     	}
-    	bool Comparar(tInstancia * instanciaAComparar){
-    		return instanciaAComparar->informacion->new_fd == instancia->informacion->new_fd;
+    	bool Comparar(parametrosConexion * instanciaAComparar){
+    		return instanciaAComparar->new_fd == instancia->new_fd;
     	}
     	t_list * listaNueva = malloc(sizeof(lista));
     	puts("Voy a iterar la lista");
@@ -699,12 +740,12 @@
 
 	int SeleccionarPorEquitativeLoad() {
 		// mientras la cola este vacia no puedo continuarpthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
-		tInstancia * instancia = malloc(sizeof(tInstancia));
 
-		instancia = list_get(colaInstancias,0);
-
+		parametrosConexion * instancia = list_get(colaInstancias,0);
+		printf("Semaforo de list_get en direccion: %p\n", (void*)&(instancia->semaforo));
 		//list_remove_and_destroy_element(colaInstancias, 0,(void*)destruirInstancia);
-
+		puts("Voy a hacer el sem_post a la Instancia seleccionada \n");
+		sem_post(instancia->semaforo);
 		//sem_post(instancia->informacion->semaforo);
 
 		//list_add(colaInstancias,instancia);
@@ -714,14 +755,12 @@
 		return 1;
 	}
 
-	void destruirInstancia(tInstancia *self) {
+	void destruirInstancia(parametrosConexion *self) {
 	    free(self);
 	}
 
 	int SeleccionarPorLeastSpaceUsed(){
-		tInstancia* instanciasMenosUsadas = malloc(sizeof(tInstancia));
-		instanciasMenosUsadas = BuscarInstanciaMenosUsada(colaInstancias); // Va a buscar la instancia que menos entradas tenga, desempata con fifo
-		free(instanciasMenosUsadas);
+		parametrosConexion* instanciasMenosUsadas = BuscarInstanciaMenosUsada(colaInstancias); // Va a buscar la instancia que menos entradas tenga, desempata con fifo
 		return 1;
 	}
 
@@ -746,18 +785,18 @@
 		for (int i = 0; i < cantidadInstancias; i++){
 			if (i!= cantidadInstancias - 1 && restoRango == 0){    // Si no es la ultima instancia debo redondear hacia arriba
 					if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + rango)){
-						tInstancia * instancia = list_get(colaInstancias, i);
-						sem_post(instancia->informacion->semaforo);
+						parametrosConexion * instancia = list_get(colaInstancias, i);
+						sem_post(instancia->semaforo);
 					}
 				}
 				else if (i!= cantidadInstancias - 1 && restoRango != 0){ // si es la ultima instancia debo recalcular y ver cuantas entradas puedo acepar
 					if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + rango + 1)){
-						tInstancia * instancia = list_get(colaInstancias, i);
-						sem_post(instancia->informacion->semaforo);
+						parametrosConexion * instancia = list_get(colaInstancias, i);
+						sem_post(instancia->semaforo);
 					}else{
 						if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + entradasUltimaInstancia)){
-							tInstancia * instancia = list_get(colaInstancias, i);
-							sem_post(instancia->informacion->semaforo);
+							parametrosConexion * instancia = list_get(colaInstancias, i);
+							sem_post(instancia->semaforo);
 					}
 				}
 			}
