@@ -399,7 +399,7 @@
        void eliminarNodosyValores(char *nombreClave, t_list *tablaEntradas, char **arrayEntradas, int tamanioValor){
        	t_list *tablaDuplicada = malloc(sizeof(t_list));
        	t_list *tablaFiltrada = malloc(sizeof(t_list));
-       	tEntrada *bufferEntrada = malloc(sizeof(tEntrada));
+       	tEntrada *bufferEntrada;
 
        	tablaDuplicada = list_duplicate(tablaEntradas);
        	tablaFiltrada = filtrarLista(nombreClave, tablaDuplicada);
@@ -413,20 +413,23 @@
        	    		int bytes = bufferEntrada->tamanioAlmacenado;
        	    		memset(arrayEntradas[index], '\0', bytes);
        	    		printf("Itere %d en el for de tabla filtrada\n", i);
+       	        	eliminarNodos(nombreClave, tablaEntradas);
 
        	    	}
 
-       	eliminarNodos(nombreClave, tablaEntradas);
+
+       	puts("ELIMINE TODO");
        	list_destroy(tablaDuplicada);
        	list_destroy(tablaFiltrada);
-       	free(bufferEntrada);
+       	//free(bufferEntrada);
 
        	return;
        }
        void destruirNodoDeTabla(tEntrada *unaEntrada){
-
+    	   puts("Entre al destruir nodod");
     	   //free(unaEntrada->clave);
     	   free(unaEntrada);
+    	   puts("libere los 2 nodos");
     	  return;
        }
 
