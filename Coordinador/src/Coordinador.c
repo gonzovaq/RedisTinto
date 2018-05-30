@@ -215,9 +215,9 @@
 				//exit_gracefully(1);
 			}
 
-			puts("INTENTO RECIBIR TAMANIO VALOR");
+			puts("ESI: INTENTO RECIBIR TAMANIO VALOR");
 			int tamanioValor = header->tamanioValor; // Si es un STORE o un GET, el ESI va a enviar 0
-			puts("RECIBI TAMANIO VALOR");
+			puts("ESI: RECIBI TAMANIO VALOR");
 			printf("Tamaño valor: %d \n",tamanioValor);
 			OperacionAEnviar * operacion = malloc(sizeof(tTipoOperacion)+TAMANIO_CLAVE+tamanioValor);
 
@@ -235,7 +235,7 @@
 				free(operacion);
 			}
 			else {
-				puts("El analizar operacion anduvo");
+				puts("ESI: El analizar operacion anduvo");
 
 				// sleep(RETARDO);
 
@@ -249,25 +249,28 @@
 				pthread_mutex_unlock(&mutex);
 				//free(operacion);
 
-				puts("Voy a seleccionar la Instancia");
+				puts("ESI: Voy a seleccionar la Instancia");
 				SeleccionarInstancia(&CLAVE);
-				puts("Se selecciono la Instancia");
+				puts("ESI: Se selecciono la Instancia");
 
 				free(header);
 
 				//esperamos el resultado para devolver
-				puts("Vamos a ver si hay algun resultado en la cola");
+				puts("ESI: Vamos a ver si hay algun resultado en la cola");
 				while(list_is_empty(colaResultados)) ; // mientras la cola este vacia no puedo continuar
-				puts("No hay resultado en la cola");
-				tResultado * resultado = malloc(sizeof(tResultado));
-				resultado = list_take(colaResultados,1);
+				puts("ESI: Hay resultado en la cola");
+
+				pthread_mutex_lock(&mutex);
+				tResultado * resultado  = list_get(colaResultados,0); //Hay que borrar ese resultado
+				pthread_mutex_unlock(&mutex);
+
 				log_info(logger,resultado);
 
 				strcpy(resultado->clave,"PRUEBA");
 				resultado->resultado = OK;
 
 				int sendResultado;
-				puts("Por enviar el resultado");
+				puts("ESI: Por enviar el resultado");
 				if ((sendResultado =send(parametros->new_fd, resultado, sizeof(tResultado), 0)) <= 0){
 					perror("send");
 					exit_gracefully(1);
@@ -320,7 +323,7 @@
 		printf("Semaforo en direccion: %p\n", (void*)&(parametros->semaforo));
         sem_wait(parametros->semaforo); // Caundo me avisen que hay una operacion para enviar, la voy a levantar de la cola
         puts("Instancia: Me hicieron un sem_post");
-        OperacionAEnviar * operacion = list_get(colaMensajes,0);
+        OperacionAEnviar * operacion = list_get(colaMensajes,0); //hay que borrar esa operacion
         puts("Instancia: levante un mensaje de la cola de mensajes");
         printf("Instancia: la clave es %s \n",operacion->clave);
         printf("Instancia: el valor es %s \n",operacion->valor);
@@ -385,10 +388,10 @@
 
         tResultado * resultadoCompleto = {resultado,operacion->clave};
 
-        free(resultado);
-
         //Debo avisarle al ESI que me invoco el resultado
+		pthread_mutex_lock(&mutex);
         list_add(colaResultados,(void*)resultadoCompleto);
+		pthread_mutex_unlock(&mutex);
 
 		close(parametros->new_fd);
 		return 1;
@@ -402,22 +405,22 @@
 
     		switch (header->tipo) {
     		case OPERACION_GET: // PARA EL GET NO HAY QUE ACCEDER A NINGUNA INSTANCIA
-    			puts("MANEJO UN GET");
+    			puts("ESI: MANEJO UN GET");
     			resultadoOperacion = ManejarOperacionGET(parametros, operacion);
-    			puts("YA MANEJE UN GET");
+    			puts("ESI: YA MANEJE UN GET");
     			break;
     		case OPERACION_SET:
-    			puts("MANEJO UN SET");
+    			puts("ESI: MANEJO UN SET");
     			resultadoOperacion = ManejarOperacionSET(tamanioValor, parametros, operacion);
-    			puts("ya maneje un SET");
+    			puts("ESI: ya maneje un SET");
     			break;
     		case OPERACION_STORE:
-    			puts("MANEJO UN STORE");
+    			puts("ESI: MANEJO UN STORE");
     			resultadoOperacion = ManejarOperacionSTORE(parametros, operacion);
-    			puts("YA MANEJE UN STORE");
+    			puts("ESI: YA MANEJE UN STORE");
     			break;
     		default:
-    			puts("ENTRO POR EL DEFAULT");
+    			puts("ESI: ENTRO POR EL DEFAULT");
     			break;
     		}
     		return resultadoOperacion;
@@ -436,11 +439,11 @@
 		}
 
 		clave[strlen(clave)+1] = '\0';
-		printf("Recibi la clave: %s \n", clave);
+		printf("ESI: Recibi la clave: %s \n", clave);
 		strcpy(CLAVE,clave);
 
 		if (!list_is_empty(colaBloqueos) && EncontrarEnLista(colaBloqueos, &clave)){
-			puts("La clave esta bloqueada");
+			puts("ESI: La clave esta bloqueada");
 
 			/*
 			notificacion->tipoNotificacion=BLOQUEO;
@@ -489,7 +492,7 @@
 			exit_gracefully(1);
 		}
 		clave[strlen(clave)+1] = '\0';
-		printf("Recibi la clave: %s\n", clave);
+		printf("ESI: Recibi la clave: %s\n", clave);
 		strcpy(CLAVE,clave);
 
 		tBloqueo *bloqueo = malloc(sizeof(tBloqueo));
@@ -497,7 +500,7 @@
 		strcpy(bloqueo->esi, parametros->nombreProceso);
 
 		if (!(!list_is_empty(colaBloqueos) && LePerteneceLaClave(colaBloqueos, bloqueo))){
-			printf("No se puede realizar un SET sobre la clave: %s debido a que nunca se la solicito \n",clave);
+			printf("ESI: No se puede realizar un SET sobre la clave: %s debido a que nunca se la solicito \n",clave);
 		}
 		free(bloqueo);
 
@@ -541,7 +544,7 @@
 			exit_gracefully(1);
 		}
 		clave[strlen(clave)+1] = '\0';
-		printf("Recibi la clave: %s\n", clave);
+		printf("ESI: Recibi la clave: %s\n", clave);
 		strcpy(CLAVE,clave);
 
 		tBloqueo *bloqueo = malloc(sizeof(tBloqueo));
@@ -549,7 +552,7 @@
 		strcpy(bloqueo->esi, parametros->nombreProceso);
 
 		if (!list_is_empty(colaBloqueos) && LePerteneceLaClave(colaBloqueos, bloqueo)){
-			printf("Se desbloqueo la clave: %s \n",clave);
+			printf("ESI: Se desbloqueo la clave: %s \n",clave);
 			RemoverDeLaLista(colaBloqueos, &clave);
 
 			/*
@@ -561,7 +564,7 @@
 			// LE AVISO AL PLANIFICADOR QUE LA CLAVE SE DESBLOQUEO, DESPUES EL PODRA PLANIFICAR UN ESI BLOQUEADO POR ESTA
 		}
 		else{
-			printf("No se puede realizar un STORE sobre la clave: %s debido a que nunca se la solicito \n",clave);
+			printf("ESI: No se puede realizar un STORE sobre la clave: %s debido a que nunca se la solicito \n",clave);
 		}
 
 		free(bloqueo);
@@ -667,9 +670,9 @@
     		return instanciaAComparar->new_fd == instancia->new_fd;
     	}
     	t_list * listaNueva = malloc(sizeof(lista));
-    	puts("Voy a iterar la lista");
+    	puts("ESI: Voy a iterar la lista");
     	list_iterate(lista,Notificar);
-    	puts("Itere la lista");
+    	puts("ESI: Itere la lista");
     	listaNueva = list_take_and_remove(lista, 1);
     	list_add_all(lista,listaNueva);
     	free(listaNueva);
@@ -729,7 +732,7 @@
 			SeleccionarPorKeyExplicit(&clave);
 			break;
 		default:
-			puts("Hubo un problema al seleccionar la instancia correcta");
+			puts("ESI: Hubo un problema al seleccionar la instancia correcta");
 			exit_gracefully(1);
 		}
 		pthread_mutex_unlock(&mutex);
@@ -742,9 +745,9 @@
 		// mientras la cola este vacia no puedo continuarpthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
 
 		parametrosConexion * instancia = list_get(colaInstancias,0);
-		printf("Semaforo de list_get en direccion: %p\n", (void*)&(instancia->semaforo));
+		printf("ESI: Semaforo de list_get en direccion: %p\n", (void*)&(instancia->semaforo));
 		//list_remove_and_destroy_element(colaInstancias, 0,(void*)destruirInstancia);
-		puts("Voy a hacer el sem_post a la Instancia seleccionada \n");
+		puts("ESI: Voy a hacer el sem_post a la Instancia seleccionada \n");
 		sem_post(instancia->semaforo);
 		//sem_post(instancia->informacion->semaforo);
 
