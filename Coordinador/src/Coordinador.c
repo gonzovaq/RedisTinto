@@ -486,6 +486,99 @@
 //        		free(header3);
 
 
+        //		*************** PRUEBAS HARDCODEADAS *****************
+
+        //		Envio 3 operaciones, 2 sets (con la misma clave para que se pisen los valores) y un get.
+        // 		En la instancia definí que el tamanio de los valores sea 3, si le mando algo de mayor tamannio, guarda lo restante en otra/s entrada/s
+
+//                puts("Declaro el header");
+//                OperaciontHeader *header1 = malloc(sizeof(OperaciontHeader));
+//                header1->tamanioValor = 5;
+//                header1->tipo = OPERACION_SET;
+//                puts("Declare el primero");
+//
+//                OperaciontHeader *header2 = malloc(sizeof(OperaciontHeader));
+//                header2->tamanioValor = 6;
+//                header2->tipo = OPERACION_SET;
+//                puts("Declare el primero");
+//
+//                OperaciontHeader *header3 = malloc(sizeof(OperaciontHeader));
+//                header3->tamanioValor = 0;
+//                header3->tipo = OPERACION_GET;
+//                puts("Declare el primero");
+//
+//                char *unaClave = "Probando claves\0";
+//                char *valor1 = "bbbb\0";
+//                char *valor2 = "bbbbb\0";
+//                char *unGet = "Probando claves\0";
+//
+//                int sendHeader;
+//
+//                puts("Enviando el header");
+//        		if ((sendHeader = send(parametros->new_fd, header1, sizeof(OperaciontHeader), 0)) <= 0){
+//        			puts("Error al send");l
+//        			perror("send");
+//        			exit_gracefully(1);
+//        		}
+//
+//        		puts("Se mando bien el prmer header");
+//
+//
+//
+//        		//clave set 1
+//        				if (send(parametros->new_fd, unaClave, TAMANIO_CLAVE, 0) <= 0){
+//        					perror("send");
+//        					exit_gracefully(1);
+//        				}
+//
+//        				//valor set 1
+//        				if (send(parametros->new_fd, valor1, header1->tamanioValor, 0) <= 0){
+//        					perror("send");
+//        					exit_gracefully(1);
+//        				}
+//        					puts("Se mandaron el seyt y el get");
+//
+//        		free(header1);
+//
+//        		puts("Enviando el header");
+//        		if ((sendHeader = send(parametros->new_fd, header2, sizeof(OperaciontHeader), 0)) <= 0){
+//        		puts("Error al send");
+//        		perror("send");
+//        		exit_gracefully(1);
+//        		}
+//        		puts("MANDE EL SEGUNDO HEADER");
+//
+//        		//clave	set 2
+//        				if (send(parametros->new_fd, unaClave, TAMANIO_CLAVE, 0) <= 0){
+//        					perror("send");
+//        					exit_gracefully(1);
+//        				}
+//
+//        				//valor set 2
+//        				if (send(parametros->new_fd, valor2, header2->tamanioValor, 0) <= 0){
+//        					perror("send");
+//        					exit_gracefully(1);
+//        				}
+//
+//        		free(header2);
+//
+//        		puts("Enviando el header");
+//        		if ((sendHeader = send(parametros->new_fd, header3, sizeof(OperaciontHeader), 0)) <= 0){
+//        		puts("Error al send");
+//        		perror("send");
+//        		exit_gracefully(1);
+//        		}
+//
+//        		//clave get
+//        		if (send(parametros->new_fd, unaClave, TAMANIO_CLAVE, 0) <= 0){
+//        		perror("send");
+//        		exit_gracefully(1);
+//        		}
+//
+//
+//        		free(header3);
+
+
 		close(parametros->new_fd);
 		return 1;
     }
