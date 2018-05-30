@@ -51,13 +51,13 @@ typedef struct{
 }tHeader;
 
 typedef struct{
-	char clave[40];
+	char clave[TAMANIO_CLAVE];
 	int numeroEntrada;
 	int tamanioAlmacenado;
 }tEntrada;
 
 typedef struct{
-	char clave[40];
+	char clave[41];
 	char valor[40];
 }__attribute__((packed))
 tInstruccion;
@@ -93,13 +93,13 @@ int leerConfiguracion();
 int verificarParametrosAlEjecutar(int argc, char *argv[]);
 int conectarSocket(int port);
 int enviarHeader(int sockfd);
-char* recibirMensaje(int sockfd);
+char* recibirMensaje(int sockfd, int bytesRecibidos);
 int enviarMensaje(int sockfd, char* mensaje);
 operacionRecibida *recibirOperacion(int socketCoordinador, int bytesValor);
 void mostrarArray(char **arrayEntradas, int cantidadEntradas);
 OperaciontHeader *recibirHeader(int socketCoordinador);
 
-void agregarEntrada(operacionRecibida *unaOperacion, char ** arrayEntradas, int cantidadEntradas, int tamanioValor, t_list *tablaEntradas);
+void agregarEntrada(operacionRecibida *unaOperacion, char ** arrayEntradas, int cantidadEntradas, int tamanioValor, t_list *tablaEntradas, int tamanioValorRecibido);
 void procesarMensaje(tMensaje *unMensaje, t_list *tablaEntradas);
 void mostrarLista(t_list *miTabla);
 void procesarInstruccion(tMensaje *unMensaje, char **arrayEntradas, int cantidadEntradas, int tamanioValor, t_list *tablaEntradas, int socketCoordinador);
@@ -111,3 +111,5 @@ char *obtenerValor(int longitudMaximaValorBuscado, t_list *tablaEntradas, char *
 t_list* list_duplicate(t_list* self);
 bool validarClaveExistente(char *unaClave, t_list *tablaEntradas);
 t_list *filtrarLista(char *unaClave, t_list *tabla);
+void destruirNodoDeTabla(tEntrada *unaEntrada);
+void eliminarNodos(char *nombreClave, t_list *tablaEntradas);
