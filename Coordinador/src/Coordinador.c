@@ -237,7 +237,7 @@
 			else {
 				puts("ESI: El analizar operacion anduvo");
 
-				// sleep(RETARDO);
+				sleep(RETARDO);
 
 				//Debo avisar a una Instancia cuando recibo una operacion (QUE NO SEA UN GET)
 				//Agregamos el mensaje a una cola en memoria
