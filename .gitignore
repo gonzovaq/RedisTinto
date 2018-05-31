@@ -1,7 +1,13 @@
-# Prerequisites
+# Ignore all
 *
-!*/
+
+# Unignore all with extensions
 !*.*
+
+# Unignore all dirs
+!*/
+
+# Prerequisites
 *.d
 
 # Object files
@@ -10,11 +16,13 @@
 *.obj
 *.elf
 
+# Logs
+*.log
+
 # Linker output
 *.ilk
 *.map
 *.exp
-*.log
 
 # Precompiled Headers
 *.gch
@@ -39,6 +47,7 @@
 *.i*86
 *.x86_64
 *.hex
+*.o
 
 # Debug files
 *.dSYM/
