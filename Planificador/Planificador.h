@@ -10,6 +10,7 @@
 	#include <sys/queue.h>
 	#include <commons/collections/list.h>
 	#include <commons/collections/queue.h>
+	#include <commons/config.h>
 /*
  * Coordinador.h
  *
@@ -17,22 +18,32 @@
  *      Author: utnso
  */
 
-
+#define ARCHIVO_CONFIGURACION "planificador.config"
+/*
 #define PORT 3491 // puerto al que vamos a conectar
 #define PORT_COORDINADOR 3490 // puerto del coordinador, donde nos vamos a conectar
-#define MAXDATASIZE 100 // máximo número de bytes que se pueden leer de una vez
+#define MAXDATASIZE 100 // máximo número de bytes que se pueden leer de una vez*/
 #define TAMANIO_CLAVE 41 //Por enunciado la clave sera de 40 caracteres.
 #define TAMANIO_NOMBREPROCESO 40
 
 struct hostent *he;
 struct sockaddr_in cord_addr; // información de la dirección del Coordinador
-t_queue *ready;
-t_queue *ejecucion;
+	t_queue *ready;
+	t_queue *ejecucion;
+   	t_queue *colaFinalizados;
+   	t_queue *colaEspera;
+    t_queue *colaBloq;
 //ESTO DEBERIA ESTAR EN OTRO .H
 struct parametrosConexion{
 	int new_fd;
 	struct node_t * colaProcesos;
 };
+//**varGlobales**
+int PORT;
+int PORT_COORDINADOR;
+char* IP;
+char* IPCO;
+int MAXDATASIZE;
 
 // Uso de commons en Queue
 typedef struct {
@@ -87,7 +98,7 @@ typedef struct{
 }__attribute__((packed)) tResultado;
 
 
-void LeerArchivoDeConfiguracion();
+int LeerArchivoDeConfiguracion();
 int verificarParametrosAlEjecutar(int argc, char *argv[]);
 void ConectarAlCoordinador(int sockCord, struct sockaddr_in* cord_addr,
 		struct hostent* he);

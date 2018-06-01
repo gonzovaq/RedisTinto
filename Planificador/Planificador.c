@@ -9,11 +9,11 @@
     		  	//Fifo *ultimo = malloc(sizeof(Fifo));
     	        //primero = NULL;
     	       // ultimo = NULL;
-    			t_queue *ready;
+    			/*t_queue *ready;
 				t_queue *ejecucion;
     	   		t_queue *colaFinalizados;
     	   		t_queue *colaEspera;
-    	   		t_queue *colaX;
+    	   		t_queue *colaBloq;*/
     	        fd_set master;   // conjunto maestro de descriptores de fichero
     	        fd_set read_fds; // conjunto temporal de descriptores de fichero para select()
     	        struct sockaddr_in myaddr;     // dirección del servidor
@@ -34,9 +34,10 @@
 								ejecucion=queue_create();
 								colaEspera = queue_create();
 								colaFinalizados = queue_create();
-								colaX = queue_create();
+								colaBloq = queue_create();
 				//finalizamos el creado de colas
     	        // obtener socket para coordinador
+				he=gethostbyname(IPCO);
     	        ConectarAlCoordinador(sockCord, &cord_addr, he);
 
 
@@ -185,7 +186,7 @@
 						printf("ejecuta el esi:%d \n",esi->id);
 						
 						tResultado * resultado = malloc(sizeof(tResultado));
-                   		recibirResultado(esi->fd, resultado);
+                   		recibirResultado(esi, resultado);
 						//queue_push(ejecucion,new_ESI(esi->id,esi->fd));
 						//free(esi);
                     	free(resultado);
@@ -252,7 +253,7 @@
 
     int verificarParametrosAlEjecutar(int argc, char *argv[]){
 
-        if (argc != 2) {
+       /* if (argc != 2) {
         	puts("Error al ejecutar, te faltan parametros.");
             exit(1);
         }
@@ -262,7 +263,7 @@
         	puts("Error al obtener el hostname, te faltan parametros.");
         	perror("gethostbyname");
             exit(1);
-        }
+        }*/
         return 1;
     }
 
@@ -373,7 +374,7 @@
 		return id;
 	}
 
-	void LeerArchivoDeConfiguracion() {
+/*	void LeerArchivoDeConfiguracion() {
 	// Ejemplo para leer archivo de configuracion en formato clave=valor por linea
 	char* token;
 	char* search = "=";
@@ -383,8 +384,8 @@
 	if (file != NULL) {
 		puts("Leyendo archivo de configuracion");
 		char line[128];
-		/* or other suitable maximum line size */while (fgets(line, sizeof line,
-				file) != NULL)/* read a line */
+		 or other suitable maximum line size while (fgets(line, sizeof line,
+				file) != NULL)//
 		{
 			// Token will point to the part before the =.
 			token = strtok(line, search);
@@ -396,7 +397,32 @@
 		fclose(file);
 	} else
 		puts("Archivo de configuracion vacio");
-	}
+	}*/
+
+	int  LeerArchivoDeConfiguracion() {
+
+			// Leer archivo de configuracion con las commons
+			t_config* configuracion;
+
+			configuracion = config_create(ARCHIVO_CONFIGURACION);
+
+			PORT = config_get_int_value(configuracion, "PORT");
+
+			IP = config_get_string_value(configuracion, "IP");
+
+			IPCO =config_get_string_value(configuracion, "IPCO");
+			//puts("entram02");
+			PORT_COORDINADOR = config_get_int_value(configuracion, "PORT_CORDINADOR");
+			//puts("entram03");
+			MAXDATASIZE = config_get_int_value(configuracion, "MAX_DATASIZE");
+			//puts("entram04");
+
+			return 1;
+
+		}
+
+
+
 
 	int obtenerEsi(int socket)
 	{
@@ -414,9 +440,9 @@
 					   }
 	}
 
-	int recibirResultado(int socket, tResultado * resultado){
+	int recibirResultado(t_esi* esi, tResultado * resultado){
     	puts("Vor a recibir el resultado");
-    	recibirResultadoDelEsi(socket,resultado);
+    	recibirResultadoDelEsi(esi->fd,resultado);
 
     	switch(resultado->tipoResultado){
     		case OK:
@@ -425,6 +451,7 @@
     			break;
     		case BLOQUEO:
 				puts("La operación se BLOQUEO");
+				BloquearEsi(esi);
 				break;
     		case ERROR:
 				puts("La operación tiro ERROR");
@@ -436,6 +463,10 @@
     	}
     	return EXIT_SUCCESS;
     }
+void BloquearEsi(t_esi* esi){//hay que ver si es en cola o en lista sino al pedo esta funcion, usariamos directamente agregar a cola
+	AgregarACola(colaBloq,esi);
+
+}
 
 int recibirResultadoDelEsi(int sockfd, tResultado * resultado){
     	int numbytes;
