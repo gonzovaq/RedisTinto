@@ -182,8 +182,9 @@ int LeerArchivoDeConfiguracion();
 int SeleccionarInstancia(char * clave);
 int SeleccionarPorEquitativeLoad();
 static void destruirBloqueo(tBloqueo *bloqueo);
-void RemoverDeLaLista(t_list * lista, char * claveABuscar);
+int RemoverClaveDeLaLista(t_list * lista, char * claveABuscar);
 int MandarAlFinalDeLaLista(t_list * lista, parametrosConexion * instancia);
 parametrosConexion* BuscarInstanciaMenosUsada(t_list * lista);
 void destruirInstancia(parametrosConexion *self);
-
+int ConexionESISinBloqueo(OperacionAEnviar* operacion, parametrosConexion* parametros);
+int EnviarClaveYValorAInstancia(tTipoOperacion tipo, int tamanioValor,parametrosConexion* parametros, OperaciontHeader* header,OperacionAEnviar* operacion);

@@ -225,7 +225,7 @@
 			int resultadoOperacion;
 			resultadoOperacion = AnalizarOperacion(tamanioValor, header, parametros, operacion);
 			printf("%d",resultadoOperacion);
-			if ( resultadoOperacion == 2){
+			if ( resultadoOperacion == 2){ // Que hacemos si hay bloqueo? Debemos avisarle al planificador
 				int sendBloqueo;
 				if ((sendBloqueo =send(parametros->new_fd, BLOQUEO, sizeof(tResultadoOperacion), 0)) <= 0){
 					perror("send");
@@ -237,48 +237,12 @@
 			else {
 				puts("ESI: El analizar operacion anduvo");
 
+				free(header);
 				sleep(RETARDO);
 
 				//Debo avisar a una Instancia cuando recibo una operacion (QUE NO SEA UN GET)
 				//Agregamos el mensaje a una cola en memoria
-				printf("ESI: clave de la operacion: %s \n",operacion->clave);
-				printf("ESI: valor de la operacion: %s \n",operacion->valor);
-
-				pthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
-				list_add(colaMensajes,(void*)operacion);
-				pthread_mutex_unlock(&mutex);
-				//free(operacion);
-
-				puts("ESI: Voy a seleccionar la Instancia");
-				SeleccionarInstancia(&CLAVE);
-				puts("ESI: Se selecciono la Instancia");
-
-				free(header);
-
-				//esperamos el resultado para devolver
-				puts("ESI: Vamos a ver si hay algun resultado en la cola");
-				while(list_is_empty(colaResultados)) ; // mientras la cola este vacia no puedo continuar
-				puts("ESI: Hay resultado en la cola");
-
-				pthread_mutex_lock(&mutex);
-				tResultado * resultado  = list_get(colaResultados,0); //Hay que borrar ese resultado
-				pthread_mutex_unlock(&mutex);
-
-				log_info(logger,resultado);
-
-				strcpy(resultado->clave,"PRUEBA");
-				resultado->resultado = OK;
-
-				int sendResultado;
-				puts("ESI: Por enviar el resultado");
-				if ((sendResultado =send(parametros->new_fd, resultado, sizeof(tResultado), 0)) <= 0){
-					perror("send");
-					exit_gracefully(1);
-				}
-
-				puts("Se envio el resultado");
-
-				free(resultado);
+				ConexionESISinBloqueo(operacion,parametros);
 			}
         }
 		close(parametros->new_fd);
@@ -318,12 +282,12 @@
     	//close(new_fd->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
         puts("Instancia conectandose");
 
-        //while(1);
+        while(1){ // Debo atajar cuando una instancia se me desconecta
         puts("Instancia: Hago un sem_wait");
 		printf("Semaforo en direccion: %p\n", (void*)&(parametros->semaforo));
         sem_wait(parametros->semaforo); // Caundo me avisen que hay una operacion para enviar, la voy a levantar de la cola
         puts("Instancia: Me hicieron un sem_post");
-        OperacionAEnviar * operacion = list_get(colaMensajes,0); //hay que borrar esa operacion
+        OperacionAEnviar * operacion = list_remove(colaMensajes,0); //hay que borrar esa operacion
         puts("Instancia: levante un mensaje de la cola de mensajes");
         printf("Instancia: la clave es %s \n",operacion->clave);
         printf("Instancia: el valor es %s \n",operacion->valor);
@@ -341,34 +305,9 @@
         header->tipo = tipo;
         header->tamanioValor = tamanioValor;
 
-        puts("Instancia: Envio header a la instancia");
-        // Envio el header a la instancia
-        int sendHeader;
-		if ((sendHeader = send(parametros->new_fd, header, sizeof(header), 0)) <= 0){
-			perror("send");
-			exit_gracefully(1);
-		}
+        EnviarClaveYValorAInstancia(tipo, tamanioValor, parametros, header,	operacion);
 
-		free(header);
-
-        puts("Instancia: Envio clave a la instancia");
-		// Envio la clave
-		int sendClave;
-		if ((sendClave = send(parametros->new_fd, operacion->clave, TAMANIO_CLAVE, 0)) <= 0){
-			perror("send");
-			exit_gracefully(1);
-		}
-
-
-		if(tipo == OPERACION_SET){
-			int sendSet;
-	        puts("Instancia: Envio valor a la instancia");
-	        if ((sendSet = send(parametros->new_fd, operacion->valor, tamanioValor, 0)) <= 0)
-				perror("send");
-			exit_gracefully(1);
-		}
-
-        puts("Instancia: Espero resuldato de la instancia");
+        puts("Instancia: Espero resultado de la instancia");
 		// Espero el resultado de la operacion
 		tResultadoOperacion * resultado = malloc(sizeof(tResultadoOperacion));
 		int resultadoRecv;
@@ -388,10 +327,13 @@
 
         tResultado * resultadoCompleto = {resultado,operacion->clave};
 
+		free(operacion->valor);
+
         //Debo avisarle al ESI que me invoco el resultado
 		pthread_mutex_lock(&mutex);
         list_add(colaResultados,(void*)resultadoCompleto);
 		pthread_mutex_unlock(&mutex);
+
 
         //		*************** PRUEBAS HARDCODEADAS *****************
 
@@ -485,7 +427,7 @@
 //
 //        		free(header3);
 
-
+        }
 		close(parametros->new_fd);
 		return 1;
     }
@@ -646,7 +588,7 @@
 
 		if (!list_is_empty(colaBloqueos) && LePerteneceLaClave(colaBloqueos, bloqueo)){
 			printf("ESI: Se desbloqueo la clave: %s \n",clave);
-			RemoverDeLaLista(colaBloqueos, &clave);
+			RemoverClaveDeLaLista(colaBloqueos, &clave);
 
 			/*
 			notificacion->tipoNotificacion=BLOQUEO;
@@ -677,6 +619,43 @@
 		//free(StoreALoguear);
 
 		return 1;
+	}
+
+	int ConexionESISinBloqueo(OperacionAEnviar* operacion,
+			parametrosConexion* parametros) {
+		//Debo avisar a una Instancia cuando recibo una operacion (QUE NO SEA UN GET)
+		//Agregamos el mensaje a una cola en memoria
+		printf("ESI: clave de la operacion: %s \n", operacion->clave);
+		printf("ESI: valor de la operacion: %s \n", operacion->valor);
+		pthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
+		list_add(colaMensajes, (void*) operacion);
+		pthread_mutex_unlock(&mutex);
+		//free(operacion);
+		puts("ESI: Voy a seleccionar la Instancia");
+		SeleccionarInstancia(&CLAVE);
+		puts("ESI: Se selecciono la Instancia");
+		//esperamos el resultado para devolver
+		puts("ESI: Vamos a ver si hay algun resultado en la cola");
+		while (list_is_empty(colaResultados))
+			;
+
+		// mientras la cola este vacia no puedo continuarputs("ESI: Hay resultado en la cola");
+		pthread_mutex_lock(&mutex);
+		tResultado* resultado = list_remove(colaResultados, 0);
+		//Hay que borrar ese resultadopthread_mutex_unlock(&mutex);
+		log_info(logger, resultado);
+		strcpy(resultado->clave, "PRUEBA");
+		resultado->resultado = OK;
+		int sendResultado;
+		puts("ESI: Por enviar el resultado");
+		if ((sendResultado = send(parametros->new_fd, resultado, sizeof(tResultado),
+				0)) <= 0) {
+			perror("send");
+			exit_gracefully(1);
+		}
+		puts("Se envio el resultado");
+		free(resultado);
+		return EXIT_SUCCESS;
 	}
 
 	int InicializarListasYColas() {
@@ -808,6 +787,40 @@
 		return 1;
 	}
 
+	int EnviarClaveYValorAInstancia(tTipoOperacion tipo, int tamanioValor,
+			parametrosConexion* parametros, OperaciontHeader* header,
+			OperacionAEnviar* operacion) {
+
+		puts("Instancia: Envio header a la instancia");
+		// Envio el header a la instancia
+		int sendHeader;
+		if ((sendHeader = send(parametros->new_fd, header, sizeof(header), 0))
+				<= 0) {
+			perror("send");
+			exit_gracefully(1);
+		}
+		free(header);
+		puts("Instancia: Envio clave a la instancia");
+		// Envio la clave
+		int sendClave;
+		if ((sendClave = send(parametros->new_fd, operacion->clave, TAMANIO_CLAVE,
+				0)) <= 0) {
+			perror("send");
+			exit_gracefully(1);
+		}
+		if (tipo == OPERACION_SET) {
+			int sendSet;
+			puts("Instancia: Envio valor a la instancia");
+			if ((sendSet = send(parametros->new_fd, operacion->valor, tamanioValor,
+					0)) <= 0)
+				perror("send");
+
+			exit_gracefully(1);
+		}
+
+		return EXIT_SUCCESS;
+	}
+
 	int SeleccionarInstancia(char* clave) {
 		while (list_is_empty(colaInstancias));
 
@@ -900,17 +913,18 @@
 		return 1;
 	}
 
-	static void destruirBloqueo(tBloqueo *bloqueo) {
-		printf("Vor a borrar la clave %s \n",bloqueo->clave);
-	    free(bloqueo);
-	}
-
-	void RemoverDeLaLista(t_list * lista, char * claveABuscar){
+	int RemoverClaveDeLaLista(t_list * lista, char * claveABuscar){
 		bool yaExisteLaClave(tBloqueo *bloqueo){
 			printf("Comparando la clave %s con %s \n", claveABuscar, bloqueo->clave);
 			return string_equals_ignore_case(bloqueo->clave,claveABuscar);
 		}
 		list_remove_and_destroy_by_condition(colaBloqueos,yaExisteLaClave,(void*)destruirBloqueo);
+		return EXIT_SUCCESS;
+	}
+
+	static void destruirBloqueo(tBloqueo *bloqueo) {
+		printf("Vor a borrar la clave %s \n",bloqueo->clave);
+	    free(bloqueo);
 	}
 
 	int verificarValidez(int sockfd){
