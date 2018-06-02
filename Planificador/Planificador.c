@@ -9,11 +9,11 @@
     		  	//Fifo *ultimo = malloc(sizeof(Fifo));
     	        //primero = NULL;
     	       // ultimo = NULL;
-    			/*t_queue *ready;
+    			t_queue *ready;
 				t_queue *ejecucion;
     	   		t_queue *colaFinalizados;
     	   		t_queue *colaEspera;
-    	   		t_queue *colaBloq;*/
+    	   		t_queue *colaX;
     	        fd_set master;   // conjunto maestro de descriptores de fichero
     	        fd_set read_fds; // conjunto temporal de descriptores de fichero para select()
     	        struct sockaddr_in myaddr;     // dirección del servidor
@@ -34,10 +34,9 @@
 								ejecucion=queue_create();
 								colaEspera = queue_create();
 								colaFinalizados = queue_create();
-								colaBloq = queue_create();
+								colaX = queue_create();
 				//finalizamos el creado de colas
     	        // obtener socket para coordinador
-				he=gethostbyname(IPCO);
     	        ConectarAlCoordinador(sockCord, &cord_addr, he);
 
 
@@ -104,7 +103,6 @@
     	        	dos conjuntos de descriptores de fichero: master y read_fds.
     	        	El primero, master, contiene todos los descriptores de fichero que están actualmente conectados,
     	        	incluyendo el descriptor de socket que está escuchando para nuevas conexiones.
-
     	        	La razón por la cual uso el conjunto master es que select()
     	        	va a cambiar el conjunto que le paso para reflejar que sockets están listos para lectura.
     	        	Como tengo que recordar las conexiones activas entre cada llamada de select(),
@@ -141,7 +139,7 @@
 									
 									
     	                        }
-    	                    } /*else {
+							 } /*else {
     	                        // gestionar datos de un cliente
 								puts("Entre a gestion de clientes");
     	                        if ((nbytes = recv(i, buf, sizeof(buf), 0)) <= 0) {
@@ -155,7 +153,23 @@
     	                            close(i); // bye!
 									
     	                            FD_CLR(i, &master); // eliminar del conjunto maestro
-    	                        } */else {
+    	                        } else {/*
+    	                        // gestionar datos de un cliente
+								puts("Entre a gestion de clientes");
+								tResultado resultado = malloc(sizeof(resultado));
+								if((numbytes=recv(sockfd, resultado, sizeof(tResultado), 0)) <= 0){
+    	                       // if ((nbytes = recv(i, buf, sizeof(buf), 0)) <= 0) {
+    	                            // error o conexión cerrada por el cliente
+    	                            if (nbytes == 0) {
+    	                                // conexión cerrada
+    	                                printf("selectserver: socket %d hung up\n", i);
+    	                            } else {
+    	                                perror("recv de gestion de cliente");
+    	                            }
+    	                            close(i); // bye!
+									
+    	                            FD_CLR(i, &master); // eliminar del conjunto maestro
+    	                        } else {
     	                            // tenemos datos de algún cliente
     	                            for(j = 0; j <= fdmax; j++) {
     	                                // ¡enviar a todo el mundo!
@@ -168,12 +182,13 @@
     	                                    }
     	                                }
     	                            }
-    	                        }
-    	                    } // Esto es ¡TAN FEO!
-    	                
+    	                        }*/
+    	                     // Esto es ¡TAN FEO!
+						}
+					}
 						//Planificar
 					int f_ejecutar=0;//Flag para mandar de ready a ejecucion.
-					puts("voy a verificar las colas");
+					//puts("voy a verificar las colas");
 					if(queue_is_empty(ejecucion)==0)
 					{
 						puts("Entre a ejecucion");
@@ -186,7 +201,14 @@
 						printf("ejecuta el esi:%d \n",esi->id);
 						
 						tResultado * resultado = malloc(sizeof(tResultado));
-                   		recibirResultado(esi, resultado);
+                   		int re=recibirResultado(esi->fd, resultado);
+						if(re==-5)
+						{
+							queue_pop(ejecucion);
+							free(esi);
+							f_ejecutar=1;
+							puts("Dame otro esi");
+						}
 						//queue_push(ejecucion,new_ESI(esi->id,esi->fd));
 						//free(esi);
                     	free(resultado);
@@ -207,17 +229,17 @@
 						}
 						puts("Ready no vacia");
 					}
-    	            }
+    	            
+				
 				}
-					
-    	        //}
+    	        
 				
     	        return 0;
     }
     int EnviarConfirmacion (t_esi * esi){
     	puts("enviando informacion al esi \n");
     	char *confirmacion = "EJECUTATE";
-	    if (send(esi->fd, confirmacion , strlen("EJECUTATE"), 0) <= 0){
+	    if (send(esi->fd, confirmacion , sizeof(confirmacion), 0) <= 0){
 		   printf("Error al enviar ejecucion al ESI (%d) a direccion (%d) \n ",esi->id, esi->fd);
 		   perror("Send");
 
@@ -253,7 +275,7 @@
 
     int verificarParametrosAlEjecutar(int argc, char *argv[]){
 
-       /* if (argc != 2) {
+        if (argc != 2) {
         	puts("Error al ejecutar, te faltan parametros.");
             exit(1);
         }
@@ -263,7 +285,7 @@
         	puts("Error al obtener el hostname, te faltan parametros.");
         	perror("gethostbyname");
             exit(1);
-        }*/
+        }
         return 1;
     }
 
@@ -374,6 +396,7 @@
 		return id;
 	}
 
+	
 /*	void LeerArchivoDeConfiguracion() {
 	// Ejemplo para leer archivo de configuracion en formato clave=valor por linea
 	char* token;
@@ -421,9 +444,6 @@
 
 		}
 
-
-
-
 	int obtenerEsi(int socket)
 	{
 		int bytesRecibidos;
@@ -440,21 +460,23 @@
 					   }
 	}
 
-	int recibirResultado(t_esi* esi, tResultado * resultado){
+	int recibirResultado(int socket, tResultado * resultado){
     	puts("Vor a recibir el resultado");
-    	recibirResultadoDelEsi(esi->fd,resultado);
+    	recibirResultadoDelEsi(socket,resultado);
 
     	switch(resultado->tipoResultado){
     		case OK:
     			puts("La operación salio OK"); //EN ESTOS CASE DEBERIA LOGGEAR O ALGO ASI, PREGUNTAR MAS ADELANTE
-				
     			break;
     		case BLOQUEO:
 				puts("La operación se BLOQUEO");
-				BloquearEsi(esi);
 				break;
     		case ERROR:
 				puts("La operación tiro ERROR");
+				break;
+			case CHAU:
+				puts("Cerro el esi");
+				return -5;
 				break;
     		default:
     			puts("ERROR AL RECIBIR EL RESULTADO");
@@ -463,18 +485,14 @@
     	}
     	return EXIT_SUCCESS;
     }
-void BloquearEsi(t_esi* esi){//hay que ver si es en cola o en lista sino al pedo esta funcion, usariamos directamente agregar a cola
-	AgregarACola(colaBloq,esi);
-
-}
 
 int recibirResultadoDelEsi(int sockfd, tResultado * resultado){
     	int numbytes;
 
 
         if ((numbytes=recv(sockfd, resultado, sizeof(tResultado), 0)) <= 0) {
-            perror("recv");
-            exit(1);
+            perror("esi desconectado");
+            //exit(1);
         }
         puts("Recibi el resultado");
 		printf("Resultado: %d \n",resultado->tipoResultado);
@@ -485,14 +503,11 @@ int recibirResultadoDelEsi(int sockfd, tResultado * resultado){
 	///////////////
 	/*
 		void *gestionarConexion(int socket){ //(int* sockfd, int* new_fd)
-
 		        int bytesRecibidos;
 		               tHeader *headerRecibido = malloc(sizeof(tHeader));
-
 				   if ((bytesRecibidos = recv(socket, headerRecibido, sizeof(tHeader), 0)) == -1){
 					perror("recv");
 					exit(1);
-
 				   }
 				   //fprintf("Mensaje : %s",headerRecibido->tipoMensaje);
 				   if (headerRecibido->tipoMensaje == CONECTARSE){
@@ -500,7 +515,6 @@ int recibirResultadoDelEsi(int sockfd, tResultado * resultado){
 					free(headerRecibido);
 				   }
 		    }
-
 		 void IdentificarProceso(tHeader* headerRecibido,
 		    		int socket) {
 		    	switch (headerRecibido->tipoProceso) {
@@ -516,8 +530,6 @@ int recibirResultadoDelEsi(int sockfd, tResultado * resultado){
 		    	}
 		    }
 			
-
-
 		    void readyEsi(int socket,int id){
 		        puts("ESI conectando");
 				t_esi *esi=malloc(2*sizeof(int));
@@ -557,18 +569,13 @@ int recibirResultadoDelEsi(int sockfd, tResultado * resultado){
 		    void Encolar(Fifo*ultimo,int EsiId){  //agrega al final de la cola
 		    	while(ultimo->sgt != NULL)
 		    	         ultimo=ultimo->sgt;
-
-
 		        Fifo *nodo;
 		        nodo->pid=EsiId;
 		        nodo->sgt=NULL;
-
 		        ultimo->sgt = nodo;
-
 		        ultimo = nodo;
 		    }
 		    void DesEncolar(){
-
 		    }
 			void mostrarCola()
 			{	

@@ -89,7 +89,8 @@ typedef struct{
 typedef enum{
 	OK = 1,
 	BLOQUEO = 2,
-	ERROR = 3
+	ERROR = 3,
+	CHAU=0
 }tResultadoOperacion;
 
 typedef struct{

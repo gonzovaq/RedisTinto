@@ -231,8 +231,13 @@
                     enviarValidez(socket_coordinador, &validez);
                     exit(EXIT_FAILURE);
                 }
-
+				
         }
+		puts("Chau planificador!");
+		tResultado * resultado = malloc(sizeof(tResultado));
+		resultado->tipoResultado=CHAU;
+		enviarResultado(socket_planificador,resultado);
+        free(resultado);
         fclose(file);
         if (line){
             free(line);
@@ -246,7 +251,7 @@
     	puts("llega al recibir ejecucion");
     	char *buffer = malloc(strlen("EJECUTATE"));
     	int tengoPermiso = 0;
-    	if(recv(socket_planificador,buffer,strlen("EJECUTATE"),0) <= 0){
+    	if(recv(socket_planificador,buffer,sizeof(buffer),0) <= 0){
     		perror("error al recibir orden de ejecucion");
     		exit(EXIT_FAILURE);
     	}
