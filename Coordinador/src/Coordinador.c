@@ -134,6 +134,12 @@
         int bytesRecibidos;
                tHeader *headerRecibido = malloc(sizeof(tHeader));
 
+		   parametrosConexion *parametrosNuevos = malloc(sizeof(parametrosConexion));
+		   parametrosNuevos->new_fd = parametros->new_fd;
+			strcpy(parametrosNuevos->nombreProceso,parametros->nombreProceso);
+			parametrosNuevos->cantidadEntradasMaximas = ENTRADAS;
+			parametrosNuevos->entradasUsadas = 0;
+
         puts("Se espera un identificador");
 
 	   if ((bytesRecibidos = recv(parametros->new_fd, headerRecibido, sizeof(tHeader), 0)) <= 0){
@@ -221,7 +227,7 @@
 			int tamanioValor = header->tamanioValor; // Si es un STORE o un GET, el ESI va a enviar 0
 			puts("ESI: RECIBI TAMANIO VALOR");
 			printf("ESI: Tamaño valor: %d \n",tamanioValor);
-			OperacionAEnviar * operacion = malloc(sizeof(tTipoOperacion)+TAMANIO_CLAVE+tamanioValor);
+			OperacionAEnviar * operacion = malloc(sizeof(OperacionAEnviar));//+TAMANIO_CLAVE+tamanioValor);
 
 			// Si la operacion devuelve 1 todo salio bien, si devuelve 2 hubo un bloqueo y le avisamos al ESI
 			int resultadoOperacion;
@@ -246,6 +252,8 @@
 				//Agregamos el mensaje a una cola en memoria
 				ConexionESISinBloqueo(operacion,parametros);
 			}
+
+			free(operacion);
         }
 		close(parametros->new_fd);
 		return EXIT_SUCCESS;
@@ -568,7 +576,8 @@
 		}
 		free(bloqueo);
 
-		char valor[tamanioValor];
+		char *valor = malloc(sizeof(tamanioValor));
+		//char valor[tamanioValor];
 		if (( recvValor = recv(parametros->new_fd, valor, tamanioValor + 1, 0)) <= 0) {
 			perror("recv");
 			log_info(logger, "TID %d  Mensaje: ERROR en ESI",
@@ -579,7 +588,8 @@
 		printf("ESI: Recibi el valor: %s \n", valor);
 		operacion->tipo = OPERACION_SET;
 		strcpy(operacion->clave,clave);
-		operacion->valor = valor;
+		operacion->valor= valor;
+		printf("ESI: El valor dentro de operacion es %s \n",operacion->valor);
 		char* SetALoguear[5+strlen(clave)+strlen(valor)+1];
 		strcpy(SetALoguear, "SET ");
 		puts(SetALoguear);
@@ -660,6 +670,9 @@
 		list_add(colaMensajes, (void*) operacion);
 		pthread_mutex_unlock(&mutex);
 		//free(operacion);
+
+		if(operacion->tipo != OPERACION_GET){
+
 		puts("ESI: Voy a seleccionar la Instancia");
 		SeleccionarInstancia(&CLAVE);
 		puts("ESI: Se selecciono la Instancia");
@@ -671,10 +684,7 @@
 		// mientras la cola este vacia no puedo continuarputs("ESI: Hay resultado en la cola");
 		pthread_mutex_lock(&mutex);
 		tResultado* resultado = list_remove(colaResultados, 0);
-		//Hay que borrar ese resultadopthread_mutex_unlock(&mutex);
-		log_info(logger, resultado);
-		strcpy(resultado->clave, "PRUEBA");
-		resultado->resultado = OK;
+
 		int sendResultado;
 		puts("ESI: Por enviar el resultado");
 		if ((sendResultado = send(parametros->new_fd, resultado, sizeof(tResultado),
@@ -684,6 +694,23 @@
 		}
 		puts("ESI: Se envio el resultado");
 		free(resultado);
+		}
+		else {
+			tResultado* resultado = malloc(sizeof(tResultado));
+
+			strcpy(resultado->clave, operacion->clave);
+			resultado->resultado = OK;
+			int sendResultado;
+			puts("ESI: Por enviar el resultado");
+			if ((sendResultado = send(parametros->new_fd, resultado, sizeof(tResultado),
+					0)) <= 0) {
+				perror("send");
+				exit_gracefully(1);
+			}
+			puts("ESI: Se envio el resultado");
+			free(resultado);
+		}
+
 		return EXIT_SUCCESS;
 	}
 
@@ -830,7 +857,7 @@
 		puts("Instancia: Envio header a la instancia");
 		// Envio el header a la instancia
 		int sendHeader;
-		if ((sendHeader = send(parametros->new_fd, header, sizeof(header), 0))
+		if ((sendHeader = send(parametros->new_fd, header, sizeof(OperaciontHeader), 0))
 				<= 0) {
 			perror("send");
 			exit_gracefully(1);
