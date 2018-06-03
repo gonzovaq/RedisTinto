@@ -7,10 +7,12 @@
 
 #include "Coordinador.h"
 
-    int main(void)
+    int main(int argc, char *argv[])
     {
+    	verificarParametrosAlEjecutar(argc, argv);
+
     	// Leer archivo de configuracion con las commons
-    	LeerArchivoDeConfiguracion();
+    	LeerArchivoDeConfiguracion(argv);
     	printf("Mi ip es: %s \n",IP);
 
     	InicializarListasYColas();
@@ -789,10 +791,11 @@
         while(wait(NULL) > 0);
     }
 
-	int  LeerArchivoDeConfiguracion() {
+	int  LeerArchivoDeConfiguracion(char *argv[]) {
 		// Leer archivo de configuracion con las commons
+
 		t_config* configuracion;
-		configuracion = config_create(ARCHIVO_CONFIGURACION);
+		configuracion = config_create(argv[1]);
 		PUERTO = config_get_int_value(configuracion, "port");
 		IP = config_get_string_value(configuracion, "ip");
 		ALGORITMO_CONFIG = config_get_string_value(configuracion,
@@ -974,6 +977,16 @@
 		free(validez);
 		return EXIT_SUCCESS;
 	}
+
+    int verificarParametrosAlEjecutar(int argc, char *argv[]){
+
+        if (argc != 2) {//argc es la cantidad de parametros que recibe el main.
+        	puts("Error al ejecutar, para correr este proceso deberias ejecutar: ./Coordinador \"nombreArchivo\"");
+            exit(1);
+        }
+
+        return EXIT_SUCCESS;
+    }
 
 
 	// CERRAR CONEXIONES
