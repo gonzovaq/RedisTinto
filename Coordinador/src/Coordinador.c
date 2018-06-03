@@ -146,7 +146,7 @@
 		free(headerRecibido);
 	   }
 
-		return 1;
+		return EXIT_SUCCESS;
     }
 
     int IdentificarProceso(tHeader* headerRecibido, parametrosConexion* parametros) {
@@ -268,14 +268,41 @@
         printf("Received: %s\n",buf);
         free(buf[numbytes]);
 
+        //Abro otro hilo para escuchar sus comandos solicitados por consola
+        pthread_t tid;
+        int stat = pthread_create(&tid, NULL, (void*)escucharMensajesDelPlanificador, (void*)&parametros);
+		if (stat != 0){
+			puts("error al generar el hilo");
+			perror("thread");
+			//continue;
+		}
+		pthread_detach(tid); //Con esto decis que cuando el hilo termine libere sus recursos
+
         // Le avisamos al planificador cada clave que se bloquee y desbloquee
         while(1){
         	sem_wait(planificador->semaforo); // Me van a avisar si se produce algun bloqueo
-        	send(parametros->new_fd,notificacion,sizeof(notificacion),0);
+        	//tNotificacionPlanificador* resultado = list_remove(colaMensajesParaPlanificador, 0);
+        	send(parametros->new_fd,notificacion,sizeof(tNotificacionPlanificador),0);
         }
 
 		close(parametros->new_fd);
 		return 1;
+    }
+
+    int *escucharMensajesDelPlanificador(parametrosConexion* parametros){
+    	while(1){
+    		/* Aca vamos a Escuchar todos los mensajes que solicite el planificador, hay que ver cuales son y vemos que hacemos
+    		 *
+			int recvHeader;
+			if ((recvHeader = recv(parametros->new_fd, header, sizeof(OperaciontHeader), 0)) <= 0) {
+				perror("recv");
+				log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
+				close(parametros->new_fd);
+				//exit_gracefully(1);
+				*/
+			}
+
+    	return EXIT_SUCCESS;
     }
 
     int *conexionInstancia(parametrosConexion* parametros){
@@ -480,12 +507,12 @@
 		if (!list_is_empty(colaBloqueos) && EncontrarEnLista(colaBloqueos, &clave)){
 			puts("ESI: La clave esta bloqueada");
 
-			/*
+
 			notificacion->tipoNotificacion=BLOQUEO;
 			strcpy(notificacion->clave,clave);
 			strcpy(notificacion->esi, parametros->nombreProceso);
 			sem_post(planificador->semaforo);
-			 */
+
 			return 2;
 		} // ACA HAY QUE AVISARLE AL PLANIFICDOR DEL BLOQUEO PARA QUE FRENE AL ESI
 
@@ -590,12 +617,12 @@
 			printf("ESI: Se desbloqueo la clave: %s \n",clave);
 			RemoverClaveDeLaLista(colaBloqueos, &clave);
 
-			/*
-			notificacion->tipoNotificacion=BLOQUEO;
+
+			notificacion->tipoNotificacion=DESBLOQUEO;
 			strcpy(notificacion->clave,clave);
 			strcpy(notificacion->esi, parametros->nombreProceso);
 			sem_post(planificador->semaforo);
-			*/
+
 			// LE AVISO AL PLANIFICADOR QUE LA CLAVE SE DESBLOQUEO, DESPUES EL PODRA PLANIFICAR UN ESI BLOQUEADO POR ESTA
 		}
 		else{
@@ -659,6 +686,9 @@
 	}
 
 	int InicializarListasYColas() {
+
+		notificacion = malloc(sizeof(tNotificacionPlanificador));
+
 		// Creamos una cola donde dejamos todas las instancias que se conectan con nosotros y otra para los mensajes recibidos de cualquier ESI
 		int instanciasMaximas = 10;
 		colaInstancias = list_create();
@@ -677,6 +707,8 @@
 		//colaESIS->head = malloc(sizeof(parametrosConexion) * esisMaximos);
 
 		colaBloqueos = list_create();
+
+		//colaMensajesParaPlanificador = list_create();
 		//colaBloqueos->head = malloc(TBLOQUEO * ENTRADAS);
 
 		return 1;
@@ -691,6 +723,7 @@
        free(colaResultados->head);
        free(colaESIS->head);
        free(colaBloqueos->head);
+       free(notificacion);
 
 		return return_nr;
      }

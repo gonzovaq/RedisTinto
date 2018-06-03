@@ -153,6 +153,7 @@ t_list* colaESIS;
 t_list* colaMensajes;
 t_list* colaResultados;
 t_list* colaBloqueos;
+//t_list* colaMensajesParaPlanificador;
 
 pthread_mutex_t mutex;
 
@@ -169,6 +170,7 @@ int *gestionarConexion(parametrosConexion *parametros);
 int *conexionESI(parametrosConexion* parametros);
 int *conexionPlanificador(parametrosConexion* parametros);
 int *conexionInstancia(parametrosConexion* parametros);
+int *escucharMensajesDelPlanificador(parametrosConexion* parametros);
 int AnalizarOperacion(int tamanioValor,OperaciontHeader* header, parametrosConexion* parametros,
 		OperacionAEnviar* operacion);
 int ManejarOperacionGET(parametrosConexion* parametros, OperacionAEnviar* operacion);
