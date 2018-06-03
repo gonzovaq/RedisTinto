@@ -8,6 +8,7 @@
         //Before
     	verificarParametrosAlEjecutar(argc, argv);
     	leerConfiguracion();
+    	he = gethostbyname(IPCO);
     	archivoConScripts = leerArchivo(argv);
 
 
@@ -23,45 +24,37 @@
     }
 
 
-    int leerConfiguracion(){
-    	char *token;
-    	char *search = "=";
-    	FILE *file = fopen ( filename, "r" );
-    	if ( file != NULL )
-    	{
-    		puts("Leyendo archivo de configuracion");
-    	  char line [ 128 ]; /* or other suitable maximum line size */
-    	  while ( fgets ( line, sizeof line, file ) != NULL ) /* read a line */
-    	  {
-    	    // Token will point to the part before the =.
-    	    token = strtok(line, search);
-    	    puts(token);
-    	    // Token will point to the part after the =.
-    	    token = strtok(NULL, search);
-    	    puts(token);
-    	  }
-    	  fclose ( file );
-    	}
-    	else {
-    		puts("Archivo de configuracion vacio");
-    	}
+	int  leerConfiguracion() {
 
-    	return EXIT_SUCCESS;
-    }
+			// Leer archivo de configuracion con las commons
+			t_config* configuracion;
+
+			configuracion = config_create(ARCHIVO_CONFIGURACION);
+
+			PORT_COORDINADOR= config_get_int_value(configuracion, "PORTCO");
+			PORT_PLANIFICADOR = config_get_int_value(configuracion, "PORTPL");
+
+			IPPL = config_get_string_value(configuracion, "IPPL");
+
+			IPCO =config_get_string_value(configuracion, "IPCO");
+
+			return 1;
+
+		}
 
     int verificarParametrosAlEjecutar(int argc, char *argv[]){
 
-        if (argc != 3) {//argc es la cantidad de parametros que recibe el main.
+        if (argc != 2) {//argc es la cantidad de parametros que recibe el main.
         	puts("Error al ejecutar, para correr este proceso deberias ejecutar: ./ESI ubuntu-server \"nombreArchivo\"");
             exit(1);
         }
 
 
-        if ((he=gethostbyname(argv[1])) == NULL) {  // obtener información de máquina
+     /*   if ((he=gethostbyname(argv[1])) == NULL) {  // obtener información de máquina
         	puts("Error al obtener el hostname, te faltan parametros.");
         	perror("gethostbyname");
             exit(1);
-        }
+        }*/
         return EXIT_SUCCESS;
     }
 
@@ -167,7 +160,7 @@
     	//va a tener que enviarle los scripts al coordinador (siempre y cuando el planificador me lo indique)
 
     	FILE * file;
-        file = fopen(argv[2], "r");
+        file = fopen(argv[1], "r");
         if (file == NULL){
             perror("Error al abrir el archivo: ");
             exit(EXIT_FAILURE);
