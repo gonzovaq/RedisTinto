@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdbool.h>
 #include <errno.h>
 #include <string.h>
 #include <netdb.h>
@@ -86,6 +87,11 @@ typedef struct {
 	char* valor;
 }__attribute__((packed)) operacionRecibida;
 
+typedef enum{
+	CIRCULAR = 1
+}tAlgoritmoReemplazo;
+
+
 
 
 int main(int argc, char *argv[]);
@@ -104,7 +110,7 @@ void procesarMensaje(tMensaje *unMensaje, t_list *tablaEntradas);
 void mostrarLista(t_list *miTabla);
 void procesarInstruccion(tMensaje *unMensaje, char **arrayEntradas, int cantidadEntradas, int tamanioValor, t_list *tablaEntradas, int socketCoordinador);
 int calcularLongitudMaxValorBuscado(char *unaClave,t_list *tablaEntradas);
-int calcularIteracion(int valorSobrePasado, int tamanioValor);
+int calcularEntradasNecesarias(int valorSobrePasado, int tamanioValor);
 void agregarNodoAtabla(t_list *tablaEntradas, int nroEntradaStorage, int tamanioAlmacenado, char *nombreClave);
 char *obtenerValor(int longitudMaximaValorBuscado, t_list *tablaEntradas, char *claveBuscada,char **arrayEntradas,int tamanioValor);
 
@@ -113,3 +119,7 @@ bool validarClaveExistente(char *unaClave, t_list *tablaEntradas);
 t_list *filtrarLista(char *unaClave, t_list *tabla);
 void destruirNodoDeTabla(tEntrada *unaEntrada);
 void eliminarNodos(char *nombreClave, t_list *tablaEntradas);
+bool validarEntradaLibre(char **arrayEntradas, int cantidadEntradas);
+void eliminarEntradasStorageCircular(char **arrayEntradas, int cantidadEntradasABorrar);
+void eliminarNodoPorIndex(t_list *tablaEntradas, int index);
+int calcularEntradasABorrar(char **arrayEntradas, int entradasNecesarias);

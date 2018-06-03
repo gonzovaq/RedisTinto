@@ -3,18 +3,27 @@
     struct hostent *he;
     struct sockaddr_in their_addr; // información de la dirección de destino
 
+    int cantidadEntradas = 0;
+    int tamanioValor = 0;
+    int posicionPunteroCirc = 0;
+    t_list *tablaEntradas;
+    int algoritmoReemplazo = 1;
+
     int main(int argc, char *argv[])
     {
 
-    	int cantidadEntradas = 8;
-    	int tamanioValor = 3;
-    	t_list *tablaEntradas = list_create();
+    	cantidadEntradas = 3;
+    	tamanioValor = 3;
+    	tablaEntradas = list_create();
+
 
     	char **arrayEntradas = malloc(cantidadEntradas * sizeof(char*));
 
     	for (int i= 0; i < cantidadEntradas; i++){
     		arrayEntradas[i] = calloc(tamanioValor, sizeof(char));
     	}
+//    	char *punteroCIRC = malloc(sizeof(char*));
+//     	punteroCIRC = arrayEntradas[posicionPunteroCirc];
 
     	int socketCoordinador;
         int longitudMaximaValorBuscado;
@@ -28,7 +37,7 @@
 
 
         while(1){
-        	OperaciontHeader *headerRecibido;
+        	OperaciontHeader *headerRecibido = malloc(sizeof(OperaciontHeader)); // El malloc esta en recibir header
         	headerRecibido = recibirHeader(socketCoordinador);
         	tamanioValorRecibido = headerRecibido->tamanioValor;
         	char *bufferClave;
@@ -39,10 +48,16 @@
 
         	bufferClave = recibirMensaje(socketCoordinador, TAMANIO_CLAVE);
 
-        	tamanioValorRecibido = headerRecibido->tamanioValor;
+
 
         	if (headerRecibido->tipo == OPERACION_SET){
-        		bufferValor = recibirMensaje(socketCoordinador, tamanioValorRecibido);
+
+
+            	if(validarClaveExistente(bufferClave, tablaEntradas) == true){
+            		eliminarNodosyValores(bufferClave, tablaEntradas, arrayEntradas);
+            	    	}
+            	bufferValor = recibirMensaje(socketCoordinador, tamanioValorRecibido);
+            	tamanioValorRecibido = headerRecibido->tamanioValor;
         		memcpy(operacion->clave, bufferClave, strlen(bufferClave) + 1);
         		operacion->valor = bufferValor;
         		agregarEntrada(operacion, arrayEntradas, cantidadEntradas, tamanioValor, tablaEntradas, tamanioValorRecibido);
@@ -50,12 +65,24 @@
         		//free(operacion);
         		free(bufferClave);
         		free(bufferValor);
-        	}
+            	mostrarArray(arrayEntradas, cantidadEntradas);
+             	printf("Cantidad de elementos en mi tabla de entradas: %d\n", list_size(tablaEntradas));
+             	printf("LO QUE ME MUSTRA EL PUNTERO CIRCULAR %s\n", arrayEntradas[posicionPunteroCirc]);
+             	printf("POSICION PUNTERO CIRCULAR: %d\n", posicionPunteroCirc);
+        		}
+
 
         	if (headerRecibido->tipo == OPERACION_GET){
-        		longitudMaximaValorBuscado = calcularLongitudMaxValorBuscado(bufferClave,tablaEntradas);
+        		printf("Buffer claveeeee %s\n",bufferClave);
+        		if(validarClaveExistente(bufferClave, tablaEntradas) == true)
+        		{
+        			puts("ENCONTROOOOOOOOOOOOOOOOOOOOOOOOO");
+        		}
+        		longitudMaximaValorBuscado = calcularLongitudMaxValorBuscado(bufferClave,tablaEntradas); //Cantidad de entradas para ese valor (despues multiplico por TamanioValor)
+        		printf("Longitud maxima valor buscado: %d\n", longitudMaximaValorBuscado);
         		valorGet = obtenerValor(longitudMaximaValorBuscado, tablaEntradas, bufferClave,arrayEntradas, tamanioValor);
         		printf("A ver que pija sdale: %s\n", valorGet);
+        		puts("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
         		enviarValorGet(socketCoordinador, valorGet);
         		free(valorGet);
         		free(headerRecibido);
@@ -63,11 +90,8 @@
         		free(bufferClave);
         	}
 
-        	mostrarArray(arrayEntradas, cantidadEntradas);
-         	printf("Cantidad de elementos en mi tabla de entradas: %d\n", list_size(tablaEntradas));
+        	}
 
-        }
-    	printf("Tabla de entradas: %d\n", tablaEntradas->elements_count);
 
         close(socketCoordinador);
         return 0;
@@ -164,7 +188,7 @@
     }
 
     int enviarValorGet(int socketCoordinador, char *valorGet){
-    	int tamanioValorGet = strlen(valorGet) + 1;
+    	int tamanioValorGet = strlen(valorGet);
     	OperaciontHeader *header = malloc(tamanioValorGet);
 
     	header->tipo = GET;
@@ -181,8 +205,7 @@
     		perror("Send");
     	}
 
-
-
+    	puts("MANDE TODO BIEN");
     	return 1;
     }
 
@@ -245,64 +268,97 @@
 
     	char *claveRecibida = calloc(41, 1);
     	strcpy(claveRecibida, unaOperacion->clave); // Copio toda la clave
+//
+//    	if(validarClaveExistente(claveRecibida, tablaEntradas) == true){
+//    		eliminarNodosyValores(claveRecibida, tablaEntradas, arrayEntradas);
+//    	    	}
 
-    	if(validarClaveExistente(claveRecibida, tablaEntradas) == true){
-    	    puts("Entcontro clave repetyida");
-    		eliminarNodosyValores(claveRecibida, tablaEntradas, arrayEntradas);
-    	    	}
 
-    	if(tamanioValorRecibido > tamanioValor){
-    		int vecesAIterar = calcularIteracion(tamanioValorRecibido, tamanioValor);
-    		printf("Veces  a iterar %d\n", vecesAIterar);
+    	if(tamanioValorRecibido > tamanioValor){ //Si el valor que recibi en el mensaje es mayor al valor establecido para cada entada
+    		int entradasNecesarias = calcularEntradasNecesarias(tamanioValorRecibido, tamanioValor); //Calculo la cantidad de entradas que necesita el valor para guardarse
+    		printf("Entradas necesarias para guardar valor: %d\n", entradasNecesarias);
 			int offset;
 
-			for(int i = 0; i < vecesAIterar; i++){
-				offset = i * tamanioValor;
+			for(int i = 0; i < entradasNecesarias; i++){ //Itero tantas veces como entradas se necesitan para guarar el valor
+				offset = i * tamanioValor; //Para guardar
 
-				for(int j = 0; j < cantidadEntradas; j++){
-
-					if(*(arrayEntradas[j]) == NULL){
+				for(int j = 0; j < cantidadEntradas; j++){ //Recorro desde mi primer entrada
+					int contadorEntradasGuardadas = 0;
+					if(*(arrayEntradas[j]) == NULL){ //Si una entrada no tiene valores, guardo allí
 
 						int bytesRestantes = tamanioValorRecibido - tamanioValor * i;
 
-						if (i == vecesAIterar - 1){
-							memcpy(arrayEntradas[j], valorRecibido + offset, bytesRestantes);
-							agregarNodoAtabla(tablaEntradas, j, bytesRestantes, claveRecibida);
-							break;
+						if (i == entradasNecesarias - 1){ //Si falta guardar el último pedazo del valor
+							memcpy(arrayEntradas[j], valorRecibido + offset, bytesRestantes); //Copio los bytes que quedan guardar
+							agregarNodoAtabla(tablaEntradas, j, bytesRestantes, claveRecibida); //Agrego un nodo por cada pedazo de valor guardado
+							break; //Al hacer el break en el último pedazo de valor, deja de buscar entradas para guardar
 						}
-						else{
+						else{ //Si no es el ultimo pedazo del valor, guardo y luego busco otra entrada para el proximo pedazo
 							memcpy(arrayEntradas[j], valorRecibido + offset, tamanioValor);
 							agregarNodoAtabla(tablaEntradas, j, tamanioValor, claveRecibida);
-							break;
+							contadorEntradasGuardadas++;
+							break; //Sale a buscar la proxima entrada vacia para el proximo pedazo de valor
+						}
+
+					}
+					if(j == cantidadEntradas - 1){// Si llego a la ultima entrada y no hay espacio utilizo un algoritmo de reemplazo
+						int cantidadEntradasPendientes = entradasNecesarias - contadorEntradasGuardadas; //Las entradas que me faltan guardar (Las uso para borrar la misma cantidad de entradas)
+							switch (algoritmoReemplazo){
+								case 1:
+									eliminarEntradasStorageCircular(arrayEntradas, cantidadEntradasPendientes); //Borro las entradas necesarias para guardar el resto del valor
+									i = contadorEntradasGuardadas - 1; //Vuelvo una itearcación atrás para guardar los pedazos de valor que faltan en las entradas borradas
+									break;
+								case 2:
+									//AlgoritmoLFU
+									break;
+								case 3:
+									//El otro algoritmo que no me acuerdo el nombre
+									break;
+							}
 						}
 
 					}
 
 				}
-
-			}
-
 			free(valorRecibido);
 			free(unaOperacion);
-			return;
-    	}
 
-    	else{
-    			for(int i = 0; i < cantidadEntradas; i++){
-    				if(*(arrayEntradas[i]) == NULL){
-    					memcpy(arrayEntradas[i], valorRecibido, tamanioValorRecibido);
-    					break;
-    				}
-    			}
-    			free(unaOperacion);
-    			free(valorRecibido);
+			}
+    		else{  //Si el tamanio del valor recibido entra en una sola entrada
+	    			for(int i = 0; i < cantidadEntradas; i++){ //Recorro mis entradas desde 0 hasta entontrar una vacía para guardar el valor
+	    				if(*(arrayEntradas[i]) == NULL){
+	    				memcpy(arrayEntradas[i], valorRecibido, tamanioValorRecibido);
+						agregarNodoAtabla(tablaEntradas, i, tamanioValorRecibido, claveRecibida);
+						break;
+	    				}
+	    				if(i == cantidadEntradas - 1){ // Si llego a la ultima entrada y no hay espacio utilizo un algoritmo de reemplazo
+	    					switch (algoritmoReemplazo){
+	    						case 1:
+	    							puts("Aca me esta haciendo los memset");
+	    							eliminarEntradasStorageCircular(arrayEntradas, 1);
+	    							i = -1; //Vuelvo a recorrer todas las entradas para guardar el valor
+	    							break;
+	    						case 2:
+	    							//AlgoritmoLFU
+	    							break;
+	    						case 3:
+	    							//El otro algoritmo que no me acuerdo el nombre
+	    							break;
+	    					}
+
+	    				}
+	    			}
+	    	    	free(unaOperacion);
+	    	    	free(valorRecibido);
     		}
 
-   	    return;
- }
 
-    int calcularIteracion(int tamanioValorRecibido, int tamanioValor){
-        if (tamanioValorRecibido % tamanioValor == 0){
+	    	return;
+	    	}
+
+
+    int calcularEntradasNecesarias(int tamanioValorRecibido, int tamanioValor){
+    	if ((tamanioValorRecibido%tamanioValor) == 0){
         	return tamanioValorRecibido / tamanioValor;
         }
         else{
@@ -327,13 +383,15 @@
 
      	list_add(tablaEntradas, (tEntrada *) buffer);
 
+     	printf("CLAVE GUARDADA EN AGREGAR NODO A TABLA: %s\n", buffer->clave);
+
     	return;
      }
 
     void mostrarArray(char **arrayEntradas, int cantidadEntradas){
     	for (int i = 0; i < cantidadEntradas; i++){
     		if(*(arrayEntradas[i]) != NULL){
-    			printf("Valor de la primer entrada: %s\n", arrayEntradas[i]);
+    			printf("Valor de la %d entrada: %s\n", i,arrayEntradas[i]);
     		}
     	}
     return;
@@ -341,6 +399,7 @@
 
     char *obtenerValor(int longitudMaximaValorBuscado, t_list *tablaEntradas, char *claveBuscada,char **arrayEntradas,int tamanioValor){
     	char *valor = malloc(longitudMaximaValorBuscado * tamanioValor + 1);
+    	int tamanioTotalValor = 0;
     	t_list *tablaDuplicada = malloc(sizeof(t_list));
     	tEntrada *bufferEntrada = malloc(sizeof(tEntrada));
 
@@ -355,9 +414,11 @@
     	for(int i = 0; i < tablaDuplicada->elements_count; i++){
     		bufferEntrada = list_get(tablaDuplicada, i);
     		int index = bufferEntrada->numeroEntrada;
-    		memcpy((valor + i * tamanioValor), arrayEntradas[index], tamanioValor);
+    		//memcpy((valor + i * tamanioValor), arrayEntradas[index], tamanioValor);
+    		memcpy((valor + tamanioTotalValor), arrayEntradas[index], bufferEntrada->tamanioAlmacenado);
+    		tamanioTotalValor += bufferEntrada->tamanioAlmacenado;
     	}
-    	valor[longitudMaximaValorBuscado * tamanioValor] = '\0';
+    	valor[tamanioTotalValor] = '\0';
 
     	list_destroy(tablaDuplicada);
     	free(bufferEntrada);
@@ -404,21 +465,17 @@
        	tablaDuplicada = list_duplicate(tablaEntradas);
        	tablaFiltrada = filtrarLista(nombreClave, tablaDuplicada);
 
-       	printf("Elementos en la tabla filtrada %d\n", list_size(tablaFiltrada));
-
 
        	for(int i = 0; i < tablaFiltrada->elements_count; i++){
        	    		bufferEntrada = list_get(tablaFiltrada, i);
        	    		int index = bufferEntrada->numeroEntrada;
        	    		int bytes = bufferEntrada->tamanioAlmacenado;
        	    		memset(arrayEntradas[index], '\0', bytes);
-       	    		printf("Itere %d en el for de tabla filtrada\n", i);
        	        	eliminarNodos(nombreClave, tablaEntradas);
-
        	    	}
 
 
-       	puts("ELIMINE TODO");
+
        	list_destroy(tablaDuplicada);
        	list_destroy(tablaFiltrada);
        	//free(bufferEntrada);
@@ -426,10 +483,8 @@
        	return;
        }
        void destruirNodoDeTabla(tEntrada *unaEntrada){
-    	   puts("Entre al destruir nodod");
     	   //free(unaEntrada->clave);
     	   free(unaEntrada);
-    	   puts("libere los 2 nodos");
     	  return;
        }
 
@@ -443,4 +498,66 @@
 
        	return;
        }
+
+       bool validarEntradaLibre(char **arrayEntradas, int cantidadEntradas){
+    	   int buffer = 0;
+    	   for (int i = 1; i <= cantidadEntradas; i++){
+    		   if(*arrayEntradas[i] == NULL){
+    			   break;
+    		   }
+			   buffer = i;
+    	   }
+    	   if(buffer < cantidadEntradas){
+    		   return true;
+    	   }
+    	   else{
+    		   return false;
+    	   }
+       }
+
+       void eliminarEntradasStorageCircular(char **arrayEntradas, int cantidadEntradasABorrar){
+
+    	   int desplazamientoPunteroCirc = 0;
+    	   for (int i = 0; i < cantidadEntradasABorrar; i++){
+    		   puts("Antes memset");
+    		   memset(arrayEntradas[posicionPunteroCirc], '\0', tamanioValor);
+    		   //memset(punteroCirc + (tamanioValor * i), '\0', tamanioValor);
+    		   puts("Despues memset");
+    		   eliminarNodoPorIndex(tablaEntradas, posicionPunteroCirc);
+    		   posicionPunteroCirc++;
+        	   if (posicionPunteroCirc >= cantidadEntradas){
+        		   posicionPunteroCirc = 0;
+        	   }
+    	   }
+
+
+
+    	   return;
+       }
+
+       int calcularEntradasABorrar(char **arrayEntradas, int entradasNecesarias){
+    	   int contadorEntradasLibres = 0;
+
+    	   for (int i = 0; i < cantidadEntradas; i++){
+    		   if (*arrayEntradas[i] == NULL){
+    			   contadorEntradasLibres++;
+    		   }
+    	   }
+
+    	   if (contadorEntradasLibres >= entradasNecesarias){
+    		   return 0;
+    	   }
+    	   else{
+    		   return entradasNecesarias - contadorEntradasLibres;
+    	   }
+       }
+
+       void eliminarNodoPorIndex(t_list *tablaEntradas, int index){
+          	int coincidir(tEntrada *unaEntrada){
+          	    	    		return unaEntrada->numeroEntrada == index;
+          	    	    	}
+          		list_remove_and_destroy_by_condition(tablaEntradas, (void*) coincidir,(void*) destruirNodoDeTabla);
+
+          	return;
+          }
 
