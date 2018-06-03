@@ -152,18 +152,18 @@
     int IdentificarProceso(tHeader* headerRecibido, parametrosConexion* parametros) {
     	switch (headerRecibido->tipoProceso) {
     	case ESI:
-    		printf("Se conecto el proceso %d \n", headerRecibido->idProceso);
+    		printf("ESI: Se conecto el proceso %d \n", headerRecibido->idProceso);
             strcpy(parametros->nombreProceso, headerRecibido->nombreProceso);
     		list_add(colaESIS,(void*)parametros);
     		conexionESI(parametros);
     		break;
     	case PLANIFICADOR:
-    		printf("Se conecto el proceso %d \n", headerRecibido->idProceso);
+    		printf("Planificador: Se conecto el proceso %d \n", headerRecibido->idProceso);
     		conexionPlanificador(parametros);
     		planificador = parametros;
     		break;
     	case INSTANCIA:
-    		printf("Se conecto el proceso %d \n", headerRecibido->idProceso);
+    		printf("Instancia: Se conecto el proceso %d \n", headerRecibido->idProceso);
             /*strcpy(parametros->nombreProceso, headerRecibido->nombreProceso);
             parametrosConexion * nuevaInstancia = malloc(sizeof(int)*2);
             nuevaInstancia->informacion = parametros;
@@ -186,7 +186,7 @@
 				perror("semaforo nuevo");
 	        	exit_gracefully(1);
 			} // Inicializo el semaforo en 0
-			printf("Semaforo en direccion: %p\n", (void*)&(parametros->semaforo));
+			printf("Instancia: Semaforo en direccion: %p\n", (void*)&(parametros->semaforo));
     		list_add(colaInstancias,(void*)parametros);
     		conexionInstancia(parametros);
     		break;
@@ -218,7 +218,7 @@
 			puts("ESI: INTENTO RECIBIR TAMANIO VALOR");
 			int tamanioValor = header->tamanioValor; // Si es un STORE o un GET, el ESI va a enviar 0
 			puts("ESI: RECIBI TAMANIO VALOR");
-			printf("Tamaño valor: %d \n",tamanioValor);
+			printf("ESI: Tamaño valor: %d \n",tamanioValor);
 			OperacionAEnviar * operacion = malloc(sizeof(tTipoOperacion)+TAMANIO_CLAVE+tamanioValor);
 
 			// Si la operacion devuelve 1 todo salio bien, si devuelve 2 hubo un bloqueo y le avisamos al ESI
@@ -574,7 +574,7 @@
 			exit_gracefully(1);
 		}
 		valor[tamanioValor] = '\0';
-		printf("Recibi el valor: %s \n", valor);
+		printf("ESI: Recibi el valor: %s \n", valor);
 		operacion->tipo = OPERACION_SET;
 		strcpy(operacion->clave,clave);
 		operacion->valor = valor;
@@ -680,7 +680,7 @@
 			perror("send");
 			exit_gracefully(1);
 		}
-		puts("Se envio el resultado");
+		puts("ESI: Se envio el resultado");
 		free(resultado);
 		return EXIT_SUCCESS;
 	}
@@ -969,7 +969,7 @@
 
 		if(validez == OPERACION_INVALIDA){
 			close(sockfd);
-			puts("Se cerró la conexión con el ESI debido a una OPERACION INVALIDA");
+			puts("ESI: Se cerró la conexión con el ESI debido a una OPERACION INVALIDA");
 		}
 		free(validez);
 		return EXIT_SUCCESS;
