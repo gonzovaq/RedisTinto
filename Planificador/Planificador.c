@@ -18,7 +18,7 @@
     	        fd_set read_fds; // conjunto temporal de descriptores de fichero para select()
     	        struct sockaddr_in myaddr;     // dirección del servidor
     	        struct sockaddr_in remoteaddr; // dirección del cliente
-    	        int fdmax;        // número máximo de descriptores de fichero
+			    int fdmax;        // número máximo de descriptores de fichero
     	        int listener;     // descriptor de socket a la escucha
     	        int newfd;        // descriptor de socket de nueva conexión aceptada
     	        int sockCord; 	  // descriptor para conectarnos al Coordinador
@@ -41,14 +41,6 @@
 								he=gethostbyname(IPCO);
     	        ConectarAlCoordinador(sockCord, &cord_addr, he);
 
-
-    	        /*Inicializar cola
-    	        Fifo *nodo;
-    	        nodo->pid = pid;
-    	        nodo->sgt = NULL;
-    	        primero=nodo;
-     	 	 	ultimo=nodo;
-    	        */
     	        puts("Obtenemos listener");
     	        // obtener socket a la escucha
     	        if ((listener = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
@@ -151,14 +143,7 @@
 									 	 }
 	                                   }
 
-								 }
-
-
-
-
-
-
-
+							  	   }
 							 } /*else {
     	                        // gestionar datos de un cliente
 								puts("Entre a gestion de clientes");
@@ -209,51 +194,47 @@
 						//Planificar
 					int f_ejecutar=0;//Flag para mandar de ready a ejecucion.
 					//puts("voy a verificar las colas");
-					if(queue_is_empty(ejecucion)==0)
-					{
-						puts("Entre a ejecucion");
-						printf("Tamanio cola %d \n",queue_size(ejecucion));
-						f_ejecutar=0;
-						t_esi *esi=malloc(sizeof(t_esi));
-						esi = queue_peek(ejecucion);
-						printf("Id del esi a ejecutar: %d \n",esi->id);
-						EnviarConfirmacion(esi);
-						printf("ejecuta el esi:%d \n",esi->id);
-						
-						tResultado * resultado = malloc(sizeof(tResultado));
-                   		int re=recibirResultado(esi->fd, resultado);
-						if(re==-5)
+					if(flagOperar==1){
+						if(queue_is_empty(ejecucion)==0)
 						{
-							queue_pop(ejecucion);
-							free(esi);
-							f_ejecutar=1;
-							printf("EEEEEEEEEEEEEE %d",esi->fd);
-
-
-							puts("Dame otro esi");
-							flagTest=1;
-						}
-						//queue_push(ejecucion,new_ESI(esi->id,esi->fd));
-						//free(esi);
-                    	free(resultado);
-					}
-					else
-					{
-						f_ejecutar=1;//Como esta vacia, pedimos que nos manden un esi de ready
-					}
-					if(queue_is_empty(ready)==0)
-					{
-						if(f_ejecutar==1)
-						{
+							puts("Entre a ejecucion");
+							printf("Tamanio cola %d \n",queue_size(ejecucion));
+							f_ejecutar=0;
 							t_esi *esi=malloc(sizeof(t_esi));
-						    esi = queue_pop(ready);
-							printf("esi de id %d cambiado de cola \n",esi->id);
-							queue_push(ejecucion,new_ESI(esi->id,esi->fd));
-							free(esi);
+							esi = queue_peek(ejecucion);
+							printf("Id del esi a ejecutar: %d \n",esi->id);
+							EnviarConfirmacion(esi);
+							printf("ejecuta el esi:%d \n",esi->id);
+							tResultado * resultado = malloc(sizeof(tResultado));
+							int re=recibirResultado(esi->fd, resultado);
+							if(re==-5)
+							{
+								queue_pop(ejecucion);
+								free(esi);
+								f_ejecutar=1;
+								printf("Ejecuta el esi de fd: %d \n",esi->fd);
+								puts("Dame otro esi");
+								flagTest=1;
+							}
+							free(resultado);
 						}
-						puts("Ready no vacia");
+						else
+						{
+							f_ejecutar=1;//Como esta vacia, pedimos que nos manden un esi de ready
+						}
+						if(queue_is_empty(ready)==0)
+						{
+							if(f_ejecutar==1)
+							{
+								t_esi *esi=malloc(sizeof(t_esi));
+								esi = queue_pop(ready);
+								printf("esi de id %d cambiado de cola \n",esi->id);
+								queue_push(ejecucion,new_ESI(esi->id,esi->fd));
+								free(esi);
+							}
+							puts("Ready no vacia");
+						}
 					}
-    	            
 				
 				}
     	        
@@ -273,6 +254,8 @@
 	   puts("Se envió confirmacion");
 	   return EXIT_SUCCESS;
     }
+
+
 
     void ConectarAlCoordinador(int sockCord, struct sockaddr_in* cord_addr,
     		struct hostent* he) {
@@ -326,16 +309,17 @@
 
 			if(strncmp(linea,"pausar",7)==0)
 			{
-				puts("va a pausar");
+				puts("Planificador pausado");
+				flagOperar=0;
 			}
 			if(strncmp(linea,"cola",4)==0)
 			{
-		
 				mostrarCola();
 			}
 			if(strncmp(linea,"continuar",9)==0)
 			{
-				puts("va a continuar");
+				puts("Continuamos ejecutando");
+				flagOperar=1;
 				puts(linea);
 			}
 			if(strncmp(linea,"bloquear",8)==0)

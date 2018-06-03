@@ -39,6 +39,7 @@ struct parametrosConexion{
 	struct node_t * colaProcesos;
 };
 //**varGlobales**
+int flagOperar=1;
 int PORT;
 int PORT_COORDINADOR;
 char* IP;
