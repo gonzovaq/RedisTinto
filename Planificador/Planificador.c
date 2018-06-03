@@ -27,6 +27,7 @@
     	        int yes=1;        // para setsockopt() SO_REUSEADDR, más abajo
     	        int addrlen;
     	        int i, j;
+    	        int flagTest=0;
     	        FD_ZERO(&master);    // borra los conjuntos maestro y temporal
     	        FD_ZERO(&read_fds);
 				//Creamos las colas que vamos a manejar con las funciones de abajo
@@ -34,9 +35,10 @@
 								ejecucion=queue_create();
 								colaEspera = queue_create();
 								colaFinalizados = queue_create();
-								colaX = queue_create();
+								colaBloq = queue_create();
 				//finalizamos el creado de colas
     	        // obtener socket para coordinador
+								he=gethostbyname(IPCO);
     	        ConectarAlCoordinador(sockCord, &cord_addr, he);
 
 
@@ -139,6 +141,24 @@
 									
 									
     	                        }
+							 }else{
+								 if (flagTest==1){
+									 puts("Cerramos el socket del ESI y lo borramos del conjunto maestro");
+									 if (FD_ISSET(i, &master)) {
+										 flagTest=0;
+										 close(i);
+										 FD_CLR(i, &master);
+									 	 }
+	                                   }
+
+								 }
+
+
+
+
+
+
+
 							 } /*else {
     	                        // gestionar datos de un cliente
 								puts("Entre a gestion de clientes");
@@ -151,7 +171,7 @@
     	                                perror("recv de gestion de cliente");
     	                            }
     	                            close(i); // bye!
-									
+
     	                            FD_CLR(i, &master); // eliminar del conjunto maestro
     	                        } else {/*
     	                        // gestionar datos de un cliente
@@ -185,7 +205,7 @@
     	                        }*/
     	                     // Esto es ¡TAN FEO!
 						}
-					}
+
 						//Planificar
 					int f_ejecutar=0;//Flag para mandar de ready a ejecucion.
 					//puts("voy a verificar las colas");
@@ -207,7 +227,11 @@
 							queue_pop(ejecucion);
 							free(esi);
 							f_ejecutar=1;
+							printf("EEEEEEEEEEEEEE %d",esi->fd);
+
+
 							puts("Dame otro esi");
+							flagTest=1;
 						}
 						//queue_push(ejecucion,new_ESI(esi->id,esi->fd));
 						//free(esi);
@@ -236,6 +260,7 @@
 				
     	        return 0;
     }
+
     int EnviarConfirmacion (t_esi * esi){
     	puts("enviando informacion al esi \n");
     	char *confirmacion = "EJECUTATE";
@@ -275,7 +300,7 @@
 
     int verificarParametrosAlEjecutar(int argc, char *argv[]){
 
-        if (argc != 2) {
+      /*  if (argc != 2) {
         	puts("Error al ejecutar, te faltan parametros.");
             exit(1);
         }
@@ -285,7 +310,7 @@
         	puts("Error al obtener el hostname, te faltan parametros.");
         	perror("gethostbyname");
             exit(1);
-        }
+        }*/
         return 1;
     }
 

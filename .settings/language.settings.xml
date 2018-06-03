@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <project>
-	<configuration id="org.eclipse.linuxtools.cdt.autotools.core.configuration.build.1103380139" name="Build (GNU)">
+	<configuration id="org.eclipse.linuxtools.cdt.autotools.core.configuration.build.1718927730" name="Build (GNU)">
 		<extension point="org.eclipse.cdt.core.LanguageSettingsProvider">
 			<provider copy-of="extension" id="org.eclipse.cdt.ui.UserLanguageSettingsProvider"/>
 			<provider-reference id="org.eclipse.cdt.core.ReferencedProjectsLanguageSettingsProvider" ref="shared-provider"/>
@@ -12,7 +12,7 @@
 			</provider>
 		</extension>
 	</configuration>
-	<configuration id="org.eclipse.linuxtools.cdt.autotools.core.configuration.build.debug.1151634868" name="Debug (GNU)">
+	<configuration id="org.eclipse.linuxtools.cdt.autotools.core.configuration.build.debug.203162970" name="Debug (GNU)">
 		<extension point="org.eclipse.cdt.core.LanguageSettingsProvider">
 			<provider copy-of="extension" id="org.eclipse.cdt.ui.UserLanguageSettingsProvider"/>
 			<provider-reference id="org.eclipse.cdt.core.ReferencedProjectsLanguageSettingsProvider" ref="shared-provider"/>
