@@ -161,7 +161,7 @@ pthread_mutex_t mutex;
 // FUNCIONES
 
 void sigchld_handler(int s);
-int main(void);
+int main(int argc, char *argv[]);
 int EscucharConexiones(int sockfd);
 int IdentificarProceso(tHeader* headerRecibido, parametrosConexion* parametros);
 int configure_logger();
@@ -180,7 +180,7 @@ int InicializarListasYColas();
 bool yaExisteLaClave(void *claveDeLista,char * clave);
 bool EncontrarEnLista(t_list * lista, char * claveABuscar);
 bool LePerteneceLaClave(t_list * lista, tBloqueo * bloqueoBuscado);
-int LeerArchivoDeConfiguracion();
+int LeerArchivoDeConfiguracion(char *argv[]);
 int SeleccionarInstancia(char * clave);
 int SeleccionarPorEquitativeLoad();
 static void destruirBloqueo(tBloqueo *bloqueo);
@@ -190,3 +190,4 @@ parametrosConexion* BuscarInstanciaMenosUsada(t_list * lista);
 void destruirInstancia(parametrosConexion *self);
 int ConexionESISinBloqueo(OperacionAEnviar* operacion, parametrosConexion* parametros);
 int EnviarClaveYValorAInstancia(tTipoOperacion tipo, int tamanioValor,parametrosConexion* parametros, OperaciontHeader* header,OperacionAEnviar* operacion);
+int verificarParametrosAlEjecutar(int argc, char *argv[]);
