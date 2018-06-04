@@ -46,6 +46,7 @@ typedef struct{
 	char nombreProceso[TAMANIO_NOMBREPROCESO];
 	int cantidadEntradasMaximas;
 	int entradasUsadas;
+	int pid;
 }parametrosConexion;  // Aqui dejamos los descriptores y un semaforo para los hilos que lo necesiten
 
 
@@ -117,13 +118,14 @@ typedef struct {
 
 typedef struct {
 	char clave[TAMANIO_CLAVE];
-	char esi[TAMANIO_NOMBREPROCESO];
+	//char esi[TAMANIO_NOMBREPROCESO];
+	int pid;
 }tBloqueo; //podriamos agregar pid?
 
 typedef struct{
 	tResultadoOperacion tipoNotificacion;
 	char clave[TAMANIO_CLAVE];
-	char esi[TAMANIO_NOMBREPROCESO];
+	int pid;
 }tNotificacionPlanificador;
 
 typedef struct{

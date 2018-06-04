@@ -45,7 +45,7 @@
     int verificarParametrosAlEjecutar(int argc, char *argv[]){
 
         if (argc != 2) {//argc es la cantidad de parametros que recibe el main.
-        	puts("Error al ejecutar, para correr este proceso deberias ejecutar: ./ESI ubuntu-server \"nombreArchivo\"");
+        	puts("Error al ejecutar, para correr este proceso deberias ejecutar: ./ESI \"nombreArchivo\"");
             exit(1);
         }
 
@@ -226,7 +226,7 @@
                 }
 				
         }
-		puts("Chau planificador!");
+
 		tResultado * resultado = malloc(sizeof(tResultado));
 		resultado->tipoResultado=CHAU;
 		enviarResultado(socket_planificador,resultado);
@@ -236,6 +236,7 @@
             free(line);
         }
         free(validez);
+        puts("Chau!");
         return EXIT_SUCCESS;
 
     }

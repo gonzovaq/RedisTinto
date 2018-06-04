@@ -114,6 +114,7 @@
     				strcpy(parametros.nombreProceso,nombreProceso);
     				parametros.cantidadEntradasMaximas = ENTRADAS;
     				parametros.entradasUsadas = 0;
+    				parametros.pid = 0;
     				printf("Socket %d \n",new_fd);
     	            int stat = pthread_create(&tid, NULL, (void*)gestionarConexion, (void*)&parametros);//(void*)&parametros -> parametros contendria todos los parametros que usa conexion
     				if (stat != 0){
@@ -140,6 +141,7 @@
 			strcpy(parametrosNuevos->nombreProceso,parametros->nombreProceso);
 			parametrosNuevos->cantidadEntradasMaximas = ENTRADAS;
 			parametrosNuevos->entradasUsadas = 0;
+			parametrosNuevos->pid = 0;
 
         puts("Se espera un identificador");
 
@@ -162,14 +164,29 @@
     	switch (headerRecibido->tipoProceso) {
     	case ESI:
     		printf("ESI: Se conecto el proceso %d \n", headerRecibido->idProceso);
-            strcpy(parametros->nombreProceso, headerRecibido->nombreProceso);
+            parametros->pid = headerRecibido->idProceso;
     		list_add(colaESIS,(void*)parametros);
     		conexionESI(parametros);
     		break;
     	case PLANIFICADOR:
     		printf("Planificador: Se conecto el proceso %d \n", headerRecibido->idProceso);
-    		conexionPlanificador(parametros);
+    		sem_t * semaforoPlanif = malloc(sizeof(sem_t));
+    		parametros->semaforo = semaforoPlanif;
+
+            int retPlanif;
+            int valuePlanif;
+            int psharedPlanif;
+            /* initialize a private semaphore */
+            psharedPlanif = 0;
+            valuePlanif = 0;
+            if ((retPlanif = sem_init(parametros->semaforo,psharedPlanif,valuePlanif)) != 0){
+				perror("semaforo nuevo");
+	        	exit_gracefully(1);
+			} // Inicializo el semaforo en 0
+			printf("Planificador: Semaforo en direccion: %p\n", (void*)&(parametros->semaforo));
+
     		planificador = parametros;
+    		conexionPlanificador(parametros);
     		break;
     	case INSTANCIA:
     		printf("Instancia: Se conecto el proceso %d \n", headerRecibido->idProceso);
@@ -263,27 +280,12 @@
     int *conexionPlanificador(parametrosConexion* parametros){
     	//close(new_fd->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
         puts("Planificador conectandose");
-        while(1);
-        int mensajeFalopa;
-		if ((mensajeFalopa = send(parametros->new_fd, "Hola papa!\n", 14, 0)) <= 0)
-			perror("send");
-        int numbytes,tamanio_buffer=100;
-        char buf[tamanio_buffer]; //Seteo el maximo del buffer en 100 para probar. Debe ser variable.
-
-        if ((numbytes=recv(parametros->new_fd, buf, tamanio_buffer-1, 0)) <= 0) {
-            perror("recv");
-            exit_gracefully(1);
-        }
-
-        buf[numbytes] = '\0';
-        printf("Received: %s\n",buf);
-        free(buf[numbytes]);
 
         //Abro otro hilo para escuchar sus comandos solicitados por consola
         pthread_t tid;
         int stat = pthread_create(&tid, NULL, (void*)escucharMensajesDelPlanificador, (void*)&parametros);
 		if (stat != 0){
-			puts("error al generar el hilo");
+			puts("Planificador: error al generar el hilo");
 			perror("thread");
 			//continue;
 		}
@@ -291,12 +293,15 @@
 
         // Le avisamos al planificador cada clave que se bloquee y desbloquee
         while(1){
+        	puts("Planificador: Espero a que me avisen!");
         	sem_wait(planificador->semaforo); // Me van a avisar si se produce algun bloqueo
+        	puts("Planificador: Hay algo para avisarle al planificador");
         	//tNotificacionPlanificador* resultado = list_remove(colaMensajesParaPlanificador, 0);
         	if (send(parametros->new_fd,notificacion,sizeof(tNotificacionPlanificador),0) <= 0){
-        		puts("Fallo al enviar mensaje al planificador");
+        		puts("Planificador: Fallo al enviar mensaje al planificador");
         		perror("send planificador");
         	}
+        	puts("Planificador: le envie algo al planificador");
         }
 
 		close(parametros->new_fd);
@@ -530,8 +535,10 @@
 
 			notificacion->tipoNotificacion=BLOQUEO;
 			strcpy(notificacion->clave,clave);
-			strcpy(notificacion->esi, parametros->nombreProceso);
+			notificacion->pid = parametros->pid;
+			printf("ESI: le voy a avisar al planificador que se bloqueo la clave: %s \n",clave);
 			sem_post(planificador->semaforo);
+			puts("ESI: Ya le avise al planificador que se bloqueo la clave");
 
 			return 2;
 		} // ACA HAY QUE AVISARLE AL PLANIFICDOR DEL BLOQUEO PARA QUE FRENE AL ESI
@@ -548,7 +555,7 @@
 
 		tBloqueo *bloqueo = malloc(sizeof(tBloqueo));
 		strcpy(bloqueo->clave,clave);
-		strcpy(bloqueo->esi, parametros->nombreProceso);
+		bloqueo->pid = parametros->pid;
 		list_add(colaBloqueos,(void *)bloqueo); // TENGO QUE AVISARLE AL PLANIFICADOR QUE ESTA CLAVE ESTA BLOQUEADA POR ESTE ESI
 
 		/* ACA HAY QUE AVISARLE AL PLANIFICDOR DEL BLOQUEO PARA QUE FRENE AL ESI
@@ -579,7 +586,7 @@
 
 		tBloqueo *bloqueo = malloc(sizeof(tBloqueo));
 		strcpy(bloqueo->clave,clave);
-		strcpy(bloqueo->esi, parametros->nombreProceso);
+		bloqueo->pid = parametros->pid;
 
 		if (!(!list_is_empty(colaBloqueos) && LePerteneceLaClave(colaBloqueos, bloqueo))){
 			printf("ESI: No se puede realizar un SET sobre la clave: %s debido a que nunca se la solicito \n",clave);
@@ -633,19 +640,20 @@
 
 		tBloqueo *bloqueo = malloc(sizeof(tBloqueo));
 		strcpy(bloqueo->clave,clave);
-		strcpy(bloqueo->esi, parametros->nombreProceso);
+		bloqueo->pid = parametros->pid;
 
 		if (!list_is_empty(colaBloqueos) && LePerteneceLaClave(colaBloqueos, bloqueo)){
 			printf("ESI: Se desbloqueo la clave: %s \n",clave);
 
 			notificacion->tipoNotificacion=DESBLOQUEO;
 			strcpy(notificacion->clave,clave);
-			strcpy(notificacion->esi, parametros->nombreProceso);
+			notificacion->pid = parametros->pid;
 
 			RemoverClaveDeLaLista(colaBloqueos, &clave);
 
 			printf("ESI: le voy a avisar al planificador que se desbloqueo la clave: %s \n",clave);
 			sem_post(planificador->semaforo);
+			puts("ESI: Ya le avise al planificador del desbloqueo");
 
 			// LE AVISO AL PLANIFICADOR QUE LA CLAVE SE DESBLOQUEO, DESPUES EL PODRA PLANIFICAR UN ESI BLOQUEADO POR ESTA
 		}
@@ -683,6 +691,7 @@
 		pthread_mutex_unlock(&mutex);
 		//free(operacion);
 
+		puts("ESI: Vamos a chequear el tipo");
 		if(operacion->tipo != OPERACION_GET){
 
 		puts("ESI: Voy a seleccionar la Instancia");
@@ -696,6 +705,7 @@
 		// mientras la cola este vacia no puedo continuarputs("ESI: Hay resultado en la cola");
 		pthread_mutex_lock(&mutex);
 		tResultado* resultado = list_remove(colaResultados, 0);
+		pthread_mutex_unlock(&mutex);
 
 		int sendResultado;
 		printf("ESI: Por enviar el resultado de la clave %s \n",resultado->clave);
@@ -784,7 +794,7 @@
 
     bool LePerteneceLaClave(t_list * lista, tBloqueo * bloqueoBuscado){
 		bool yaExisteLaClaveYPerteneceAlESI(tBloqueo *bloqueo) {
-			return string_equals_ignore_case(bloqueo->esi,bloqueoBuscado->esi) && string_equals_ignore_case(bloqueo->clave,bloqueoBuscado->clave);
+			return (bloqueo->pid == bloqueoBuscado->pid) && string_equals_ignore_case(bloqueo->clave,bloqueoBuscado->clave);
 		}
 		return list_any_satisfy(lista,(void*) yaExisteLaClaveYPerteneceAlESI);
     }
@@ -806,7 +816,7 @@
 
     int MandarAlFinalDeLaLista(t_list * lista, parametrosConexion * instancia){
     	void Notificar(parametrosConexion * instanciaAComparar){
-    		if(instanciaAComparar->nombreProceso == instancia->nombreProceso){
+    		if(instanciaAComparar->pid == instancia->pid){
     			//puts("Voy a hacer el sem_post a la Instancia seleccionada \n");
     			//printf("Semaforo en direccion: %p\n", (void*)&(instanciaAComparar->semaforo));
     			//sem_post(&(instanciaAComparar->semaforo));
@@ -1010,7 +1020,7 @@
 	int verificarValidez(int sockfd){
 		tValidezOperacion *validez = malloc(sizeof(tValidezOperacion));
 		if(recv(sockfd, validez, sizeof(tValidezOperacion), 0) <= 0){
-			perror("Fallo el recibir validez");
+			puts("Se desconecto el ESI (?");
 			return 2;  //Aca salimos
 		}
 
