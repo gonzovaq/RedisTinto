@@ -136,13 +136,14 @@
 
 		   parametrosConexion *parametrosNuevos = malloc(sizeof(parametrosConexion));
 		   parametrosNuevos->new_fd = parametros->new_fd;
+		   printf("El socket es: %d \n", parametrosNuevos->new_fd);
 			strcpy(parametrosNuevos->nombreProceso,parametros->nombreProceso);
 			parametrosNuevos->cantidadEntradasMaximas = ENTRADAS;
 			parametrosNuevos->entradasUsadas = 0;
 
         puts("Se espera un identificador");
 
-	   if ((bytesRecibidos = recv(parametros->new_fd, headerRecibido, sizeof(tHeader), 0)) <= 0){
+	   if ((bytesRecibidos = recv(parametrosNuevos->new_fd, headerRecibido, sizeof(tHeader), 0)) <= 0){
 		perror("recv");
 		log_info(logger, "Mensaje: recv error");//process_get_thread_id()); //asienta error en logger y corta
 		exit_gracefully(1);
@@ -150,7 +151,7 @@
 	   }
 
 	   if (headerRecibido->tipoMensaje == CONECTARSE){
-		IdentificarProceso(headerRecibido, parametros);
+		IdentificarProceso(headerRecibido, parametrosNuevos);
 		free(headerRecibido);
 	   }
 
@@ -292,7 +293,10 @@
         while(1){
         	sem_wait(planificador->semaforo); // Me van a avisar si se produce algun bloqueo
         	//tNotificacionPlanificador* resultado = list_remove(colaMensajesParaPlanificador, 0);
-        	send(parametros->new_fd,notificacion,sizeof(tNotificacionPlanificador),0);
+        	if (send(parametros->new_fd,notificacion,sizeof(tNotificacionPlanificador),0) <= 0){
+        		puts("Fallo al enviar mensaje al planificador");
+        		perror("send planificador");
+        	}
         }
 
 		close(parametros->new_fd);
@@ -344,14 +348,17 @@
 
         EnviarClaveYValorAInstancia(tipo, tamanioValor, parametros, header,	operacion);
 
-        puts("Instancia: Espero resultado de la instancia");
+        //puts("Instancia: Espero resultado de la instancia");
 		// Espero el resultado de la operacion
-		tResultadoOperacion * resultado = malloc(sizeof(tResultadoOperacion));
+		//tResultadoOperacion * resultado = malloc(sizeof(tResultadoOperacion));
+
+		/*
 		int resultadoRecv;
         if ((resultadoRecv = recv(parametros->new_fd, resultado, sizeof(tResultadoOperacion), 0)) <= 0) {
             perror("recv");
             exit_gracefully(1);
         }
+
 
         puts("Instancia: recibi el resultado de la instancia");
 
@@ -361,8 +368,11 @@
         	list_add(colaBloqueos,(void*)&esiBloqueado);
         	sem_post(planificador->semaforo);
         }
+        */
 
-        tResultado * resultadoCompleto = {resultado,operacion->clave};
+        tResultado * resultadoCompleto = malloc(sizeof(tResultado));
+        resultadoCompleto->resultado = OK;
+        strcpy(resultadoCompleto->clave,operacion->clave);
 
 		free(operacion->valor);
 
@@ -627,12 +637,14 @@
 
 		if (!list_is_empty(colaBloqueos) && LePerteneceLaClave(colaBloqueos, bloqueo)){
 			printf("ESI: Se desbloqueo la clave: %s \n",clave);
-			RemoverClaveDeLaLista(colaBloqueos, &clave);
-
 
 			notificacion->tipoNotificacion=DESBLOQUEO;
 			strcpy(notificacion->clave,clave);
 			strcpy(notificacion->esi, parametros->nombreProceso);
+
+			RemoverClaveDeLaLista(colaBloqueos, &clave);
+
+			printf("ESI: le voy a avisar al planificador que se desbloqueo la clave: %s \n",clave);
 			sem_post(planificador->semaforo);
 
 			// LE AVISO AL PLANIFICADOR QUE LA CLAVE SE DESBLOQUEO, DESPUES EL PODRA PLANIFICAR UN ESI BLOQUEADO POR ESTA
@@ -686,7 +698,7 @@
 		tResultado* resultado = list_remove(colaResultados, 0);
 
 		int sendResultado;
-		puts("ESI: Por enviar el resultado");
+		printf("ESI: Por enviar el resultado de la clave %s \n",resultado->clave);
 		if ((sendResultado = send(parametros->new_fd, resultado, sizeof(tResultado),
 				0)) <= 0) {
 			perror("send");
@@ -856,6 +868,9 @@
 
 		puts("Instancia: Envio header a la instancia");
 		// Envio el header a la instancia
+
+		printf("El socket es: %d \n", parametros->new_fd);
+
 		int sendHeader;
 		if ((sendHeader = send(parametros->new_fd, header, sizeof(OperaciontHeader), 0))
 				<= 0) {
@@ -875,10 +890,11 @@
 			int sendSet;
 			puts("Instancia: Envio valor a la instancia");
 			if ((sendSet = send(parametros->new_fd, operacion->valor, tamanioValor,
-					0)) <= 0)
+					0)) <= 0){
 				perror("send");
 
 			exit_gracefully(1);
+			}
 		}
 
 		return EXIT_SUCCESS;
@@ -988,6 +1004,7 @@
 	static void destruirBloqueo(tBloqueo *bloqueo) {
 		printf("Vor a borrar la clave %s \n",bloqueo->clave);
 	    free(bloqueo);
+	    puts("logre borrar la clave");
 	}
 
 	int verificarValidez(int sockfd){
