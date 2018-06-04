@@ -123,3 +123,6 @@ bool validarEntradaLibre(char **arrayEntradas, int cantidadEntradas);
 void eliminarEntradasStorageCircular(char **arrayEntradas, int cantidadEntradasABorrar);
 void eliminarNodoPorIndex(t_list *tablaEntradas, int index);
 int calcularEntradasABorrar(char **arrayEntradas, int entradasNecesarias);
+
+void guardarUnArchivo(char *unaClave, char *valorArchivo);
+void guardarTodasMisClaves(t_list *tablaEntradas, char **arrayEntradas);

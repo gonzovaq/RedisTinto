@@ -8,11 +8,12 @@
     int posicionPunteroCirc = 0;
     t_list *tablaEntradas;
     int algoritmoReemplazo = 1;
+    int cantidadClavesEnTabla = 0;
 
     int main(int argc, char *argv[])
     {
 
-    	cantidadEntradas = 3;
+    	cantidadEntradas = 8;
     	tamanioValor = 3;
     	tablaEntradas = list_create();
 
@@ -38,7 +39,9 @@
 
         while(1){
         	OperaciontHeader *headerRecibido = malloc(sizeof(OperaciontHeader)); // El malloc esta en recibir header
+        	puts("Recibiendo header");
         	headerRecibido = recibirHeader(socketCoordinador);
+        	puts("pase el ultimo recibir headr");
         	tamanioValorRecibido = headerRecibido->tamanioValor;
         	char *bufferClave;
         	char *bufferValor;
@@ -52,9 +55,10 @@
 
         	if (headerRecibido->tipo == OPERACION_SET){
 
-
+        		cantidadClavesEnTabla++;
             	if(validarClaveExistente(bufferClave, tablaEntradas) == true){
             		eliminarNodosyValores(bufferClave, tablaEntradas, arrayEntradas);
+            		cantidadClavesEnTabla--;
             	    	}
             	bufferValor = recibirMensaje(socketCoordinador, tamanioValorRecibido);
             	tamanioValorRecibido = headerRecibido->tamanioValor;
@@ -72,25 +76,39 @@
         		}
 
 
-        	if (headerRecibido->tipo == OPERACION_GET){
-        		printf("Buffer claveeeee %s\n",bufferClave);
-        		if(validarClaveExistente(bufferClave, tablaEntradas) == true)
-        		{
-        			puts("ENCONTROOOOOOOOOOOOOOOOOOOOOOOOO");
-        		}
-        		longitudMaximaValorBuscado = calcularLongitudMaxValorBuscado(bufferClave,tablaEntradas); //Cantidad de entradas para ese valor (despues multiplico por TamanioValor)
-        		printf("Longitud maxima valor buscado: %d\n", longitudMaximaValorBuscado);
-        		valorGet = obtenerValor(longitudMaximaValorBuscado, tablaEntradas, bufferClave,arrayEntradas, tamanioValor);
-        		printf("A ver que pija sdale: %s\n", valorGet);
-        		puts("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-        		enviarValorGet(socketCoordinador, valorGet);
+//        	if (headerRecibido->tipo == OPERACION_GET){
+//        		printf("Buffer claveeeee %s\n",bufferClave);
+//        		if(validarClaveExistente(bufferClave, tablaEntradas) == true)
+//        		{
+//        			puts("ENCONTROOOOOOOOOOOOOOOOOOOOOOOOO");
+//        		}
+//        		longitudMaximaValorBuscado = calcularLongitudMaxValorBuscado(bufferClave,tablaEntradas); //Cantidad de entradas para ese valor (despues multiplico por TamanioValor)
+//        		printf("Longitud maxima valor buscado: %d\n", longitudMaximaValorBuscado);
+//        		valorGet = obtenerValor(longitudMaximaValorBuscado, tablaEntradas, bufferClave,arrayEntradas, tamanioValor);
+//        		printf("A ver que pija sdale: %s\n", valorGet);
+//        		puts("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+//        		enviarValorGet(socketCoordinador, valorGet);
+//        		free(valorGet);
+//        		free(headerRecibido);
+//        		//free(operacion);
+//        		free(bufferClave);
+//        	}
+        	if (headerRecibido->tipo == OPERACION_STORE){
+        		puts("Entrooo en STORE");
+        		longitudMaximaValorBuscado = calcularLongitudMaxValorBuscado(bufferClave, tablaEntradas);
+        		valorGet = obtenerValor(longitudMaximaValorBuscado, tablaEntradas, bufferClave, arrayEntradas, tamanioValor);
+        		guardarUnArchivo(bufferClave, valorGet);
+
         		free(valorGet);
         		free(headerRecibido);
-        		//free(operacion);
         		free(bufferClave);
         	}
+        	guardarTodasMisClaves(tablaEntradas, arrayEntradas);
 
         	}
+
+
+
 
 
         close(socketCoordinador);
@@ -384,6 +402,8 @@
      	list_add(tablaEntradas, (tEntrada *) buffer);
 
      	printf("CLAVE GUARDADA EN AGREGAR NODO A TABLA: %s\n", buffer->clave);
+     	printf("TAMANIO ALMACENADO GUARDADO EN AGREGAR NODO A TABLA: %d\n", buffer->tamanioAlmacenado);
+     	printf("NUMERO ENTRADA GUARDADA EN AGREGAR NODO A TABLA: %d\n", buffer->numeroEntrada);
 
     	return;
      }
@@ -403,25 +423,35 @@
     	t_list *tablaDuplicada = malloc(sizeof(t_list));
     	tEntrada *bufferEntrada = malloc(sizeof(tEntrada));
 
+    	puts("Despues de declarar todo");
+
     	tablaDuplicada = list_duplicate(tablaEntradas);
 
+    	puts("Despues de crear tabla dupliacda");
     	int coincidir(tEntrada *unaEntrada){
     		return string_equals_ignore_case(unaEntrada->clave, claveBuscada);
     	}
 
     	tablaDuplicada = list_filter(tablaDuplicada, (void*) coincidir);
 
+    	puts("despues de filtrar la tabla");
+
     	for(int i = 0; i < tablaDuplicada->elements_count; i++){
+    		puts("Antes de hacer el GET");
     		bufferEntrada = list_get(tablaDuplicada, i);
+    		puts("Antes del index");
     		int index = bufferEntrada->numeroEntrada;
     		//memcpy((valor + i * tamanioValor), arrayEntradas[index], tamanioValor);
+    		puts("Antes del memcpy");
     		memcpy((valor + tamanioTotalValor), arrayEntradas[index], bufferEntrada->tamanioAlmacenado);
+    		puts("Antes del total valor");
     		tamanioTotalValor += bufferEntrada->tamanioAlmacenado;
     	}
+    	puts("Antes de agregar el terminador null");
     	valor[tamanioTotalValor] = '\0';
-
+    	puts("Antes de destruir todo");
     	list_destroy(tablaDuplicada);
-    	free(bufferEntrada);
+    	//free(bufferEntrada);
     	return valor;
     }
 
@@ -560,4 +590,51 @@
 
           	return;
           }
+
+       void guardarUnArchivo(char *unaClave, char *valorArchivo){
+    	   char rutaAGuardar[150] = "/home/utnso/tp-2018-1c-Sistemas-Operactivos/Instancia/\0";
+    	   puts("Antes de hacer strcat");
+    	   strcat(rutaAGuardar, unaClave);
+    	   strcat(rutaAGuardar, ".txt");
+
+
+
+    	   printf("Nombre de la clave a guardar: %s\n", unaClave);
+
+    	   puts("Despues del concat");
+    	   FILE *archivo = fopen(rutaAGuardar, "w");
+    	   if (archivo == NULL){
+    		   puts("Error al abrir el archivo");
+    	   }
+    	   fprintf(archivo, "%s", valorArchivo);
+    	   fclose(archivo);
+    	   return;
+       }
+
+       void guardarTodasMisClaves(t_list *tablaEntradas, char **arrayEntradas){
+    	   t_list *duplicada = malloc(sizeof(t_list));
+    	   duplicada = list_duplicate(tablaEntradas);
+    	   char *bufferClave;
+    	   tEntrada *bufferEntrada;
+    	   int index = 0;
+
+
+
+
+
+
+    	   for (int i = 0; i < cantidadClavesEnTabla;i++){
+        	   bufferEntrada = list_get(duplicada, index);
+        	   bufferClave = bufferEntrada->clave;
+        	   int longitud = calcularLongitudMaxValorBuscado(bufferClave, duplicada);
+    		   puts("Antes del seg fault");
+        	   char *valorGet = obtenerValor(longitud, duplicada, bufferClave, arrayEntradas, tamanioValor);
+    		   puts("Despues");
+        	   guardarUnArchivo(bufferClave, valorGet);
+    		   puts("Guarde un archivo");
+    		   index += longitud;
+    	   }
+    	   return;
+
+       }
 
