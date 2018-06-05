@@ -421,16 +421,19 @@
 			// Espero el resultado de la operacion
 			//tResultadoOperacion * resultado = malloc(sizeof(tResultadoOperacion));
 
-			/*
-			int resultadoRecv;
-			if ((resultadoRecv = recv(parametros->new_fd, resultado, sizeof(tResultadoOperacion), 0)) <= 0) {
-				perror("recv");
-				exit_gracefully(1);
-			}
 
+			int entradasUsadas;
+			if ((recv(parametros->new_fd, (void*)entradasUsadas, sizeof(int), 0)) <= 0) {
+				perror("recv");
+				//exit_gracefully(1);
+				return 1;
+			}
 
 			puts("Instancia: recibi el resultado de la instancia");
 
+			parametros->entradasUsadas = entradasUsadas;
+
+			/*
 			if (resultado == BLOQUEO){
 				puts("Instancia: el resultado de la instancia fue un bloqueo");
 				tBloqueo esiBloqueado = {1,operacion->clave};
