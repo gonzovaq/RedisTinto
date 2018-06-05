@@ -149,6 +149,11 @@ typedef struct{
 	int tamanioEntradas;
 }tInformacionParaLaInstancia;
 
+typedef struct{
+	int entradasUsadas;
+}tEntradasUsadas;
+
+
 
 
 // VARIABLES GLOBALES

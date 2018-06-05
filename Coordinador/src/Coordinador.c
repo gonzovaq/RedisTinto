@@ -422,8 +422,8 @@
 			//tResultadoOperacion * resultado = malloc(sizeof(tResultadoOperacion));
 
 
-			int entradasUsadas;
-			if ((recv(parametros->new_fd, (void*)entradasUsadas, sizeof(int), 0)) <= 0) {
+			tEntradasUsadas *buffer = malloc(sizeof(tEntradasUsadas));
+			if ((recv(parametros->new_fd, buffer, sizeof(tEntradasUsadas), 0)) <= 0) {
 				perror("recv");
 				//exit_gracefully(1);
 				return 1;
@@ -431,7 +431,9 @@
 
 			puts("Instancia: recibi el resultado de la instancia");
 
-			parametros->entradasUsadas = entradasUsadas;
+			parametros->entradasUsadas = buffer->entradasUsadas;
+
+			free(buffer);
 
 			/*
 			if (resultado == BLOQUEO){

@@ -16,7 +16,16 @@
     	//cantidadEntradas = 8;
     	//tamanioValor = 3;
     	tablaEntradas = list_create();
+    	int socketCoordinador;
+        int longitudMaximaValorBuscado;
+        int tamanioValorRecibido;
 
+
+        verificarParametrosAlEjecutar(argc, argv);
+        leerConfiguracion();
+
+        he = gethostbyname(IP);
+        socketCoordinador = conectarmeYPresentarme(PORTCO);
 
     	char **arrayEntradas = malloc(cantidadEntradas * sizeof(char*));
 
@@ -26,15 +35,10 @@
 //    	char *punteroCIRC = malloc(sizeof(char*));
 //     	punteroCIRC = arrayEntradas[posicionPunteroCirc];
 
-    	int socketCoordinador;
-        int longitudMaximaValorBuscado;
-        int tamanioValorRecibido;
 
 
-        verificarParametrosAlEjecutar(argc, argv);
-        leerConfiguracion();
-        he = gethostbyname(IP);
-        socketCoordinador = conectarmeYPresentarme(PORTCO);
+
+
 
 
         while(1){
@@ -42,7 +46,9 @@
         	puts("Recibiendo header");
         	headerRecibido = recibirHeader(socketCoordinador);
         	puts("pase el ultimo recibir headr");
+
         	tamanioValorRecibido = headerRecibido->tamanioValor;
+        	puts("Asigne tamanioValor");
         	char *bufferClave;
         	char *bufferValor;
         	char *valorGet;
@@ -51,20 +57,27 @@
 
         	bufferClave = recibirMensaje(socketCoordinador, TAMANIO_CLAVE);
 
-
+        	puts("REcibi mensaje");
 
         	if (headerRecibido->tipo == OPERACION_SET){
 
         		cantidadClavesEnTabla++;
             	if(validarClaveExistente(bufferClave, tablaEntradas) == true){
+            		puts("Valide clave existente");
             		eliminarNodosyValores(bufferClave, tablaEntradas, arrayEntradas);
+            		puts("Elimine nodos y valores");
             		cantidadClavesEnTabla--;
             	    	}
             	bufferValor = recibirMensaje(socketCoordinador, tamanioValorRecibido);
+            	puts("Recibi el valor del set");
             	tamanioValorRecibido = headerRecibido->tamanioValor;
         		memcpy(operacion->clave, bufferClave, strlen(bufferClave) + 1);
+        		puts("Hice el memcpy");
         		operacion->valor = bufferValor;
         		agregarEntrada(operacion, arrayEntradas, cantidadEntradas, tamanioValor, tablaEntradas, tamanioValorRecibido);
+        		puts("Agregue la entrada");
+
+        		enviarRespuestaSet(socketCoordinador, tablaEntradas, bufferClave);
         		free(headerRecibido);
         		//free(operacion);
         		free(bufferClave);
@@ -98,6 +111,8 @@
         		longitudMaximaValorBuscado = calcularLongitudMaxValorBuscado(bufferClave, tablaEntradas);
         		valorGet = obtenerValor(longitudMaximaValorBuscado, tablaEntradas, bufferClave, arrayEntradas, tamanioValor);
         		guardarUnArchivo(bufferClave, valorGet);
+        		enviarRespuestaStore(socketCoordinador);
+
 
         		free(valorGet);
         		free(headerRecibido);
@@ -266,6 +281,28 @@
     	return 1;
     }
 
+    int enviarRespuestaSet(int socketCoordinador,t_list *tablaEntradas, char *bufferClave){
+    	tEntradasUsadas *buffer = malloc(sizeof(tEntradasUsadas));
+    	buffer->entradasUsadas = calcularLongitudMaxValorBuscado(bufferClave, tablaEntradas);
+
+    	if(send(socketCoordinador, buffer, sizeof(tEntradasUsadas), 0)){
+    		puts("Error al enviar las entradas usadas");
+    		perror("Send");
+    	}
+    	free(buffer);
+    	return 1;
+    }
+
+    int enviarRespuestaStore(int socketCoordinador){
+    	tEntradasUsadas *buffer = malloc(sizeof(tEntradasUsadas));
+    	buffer->entradasUsadas = 0;
+       	if(send(socketCoordinador, buffer, sizeof(tEntradasUsadas), 0)){
+        		puts("Error al enviar las entradas usadas");
+        		perror("Send");
+        	}
+        	free(buffer);
+        	return 1;
+    }
 
     char *recibirMensaje(int socketCoordinador, int bytesARecibir){
         char* buf = malloc(bytesARecibir) ; //Seteo el maximo del buffer en 100 para probar. Debe ser variable.
@@ -322,9 +359,12 @@
     	char *valorRecibido = malloc(tamanioValorRecibido);
     	memcpy(valorRecibido, unaOperacion->valor, tamanioValorRecibido);
 
+    	puts("Hice el memcpy del valorRecibido");
 
     	char *claveRecibida = calloc(41, 1);
     	strcpy(claveRecibida, unaOperacion->clave); // Copio toda la clave
+
+    	puts("HIce el strcpy de la claveRecibida");
 //
 //    	if(validarClaveExistente(claveRecibida, tablaEntradas) == true){
 //    		eliminarNodosyValores(claveRecibida, tablaEntradas, arrayEntradas);
@@ -333,6 +373,7 @@
 
     	if(tamanioValorRecibido > tamanioValor){ //Si el valor que recibi en el mensaje es mayor al valor establecido para cada entada
     		int entradasNecesarias = calcularEntradasNecesarias(tamanioValorRecibido, tamanioValor); //Calculo la cantidad de entradas que necesita el valor para guardarse
+    		puts("Calcule entradas neceasrias");
     		printf("Entradas necesarias para guardar valor: %d\n", entradasNecesarias);
 			int offset;
 
@@ -342,7 +383,7 @@
 				for(int j = 0; j < cantidadEntradas; j++){ //Recorro desde mi primer entrada
 					int contadorEntradasGuardadas = 0;
 					if(*(arrayEntradas[j]) == NULL){ //Si una entrada no tiene valores, guardo allí
-
+						puts("Pasé el primer IF arrayEntradas");
 						int bytesRestantes = tamanioValorRecibido - tamanioValor * i;
 
 						if (i == entradasNecesarias - 1){ //Si falta guardar el último pedazo del valor
@@ -383,9 +424,13 @@
 			}
     		else{  //Si el tamanio del valor recibido entra en una sola entrada
 	    			for(int i = 0; i < cantidadEntradas; i++){ //Recorro mis entradas desde 0 hasta entontrar una vacía para guardar el valor
+	    				puts("Antes del iF");
 	    				if(*(arrayEntradas[i]) == NULL){
+	    					puts("Pasé el primer if arrayentradas");
 	    				memcpy(arrayEntradas[i], valorRecibido, tamanioValorRecibido);
+	    				puts("Hice el memcpy");
 						agregarNodoAtabla(tablaEntradas, i, tamanioValorRecibido, claveRecibida);
+						puts("Agregué el nodo a la tabla");
 						break;
 	    				}
 	    				if(i == cantidadEntradas - 1){ // Si llego a la ultima entrada y no hay espacio utilizo un algoritmo de reemplazo
@@ -676,4 +721,5 @@
     	   return;
 
        }
+
 
