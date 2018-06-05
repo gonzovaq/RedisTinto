@@ -387,62 +387,74 @@
 		free(informacion);
 
         while(1){ // Debo atajar cuando una instancia se me desconecta
-        puts("Instancia: Hago un sem_wait");
-		printf("Semaforo en direccion: %p\n", (void*)&(parametros->semaforo));
-        sem_wait(parametros->semaforo); // Caundo me avisen que hay una operacion para enviar, la voy a levantar de la cola
-        puts("Instancia: Me hicieron un sem_post");
-        OperacionAEnviar * operacion = list_remove(colaMensajes,0); //hay que borrar esa operacion
-        puts("Instancia: levante un mensaje de la cola de mensajes");
-        printf("Instancia: la clave es %s \n",operacion->clave);
-        printf("Instancia: el valor es %s \n",operacion->valor);
-        int tamanioValor;
-        if (operacion->valor == NULL){
-        	tamanioValor=0;
-        }
-        else{
-        tamanioValor = strlen(operacion->valor);
-        }
-        printf("Instancia: el tamanioValor es %d \n",tamanioValor);
-        tTipoOperacion tipo = operacion->tipo;
-        puts("Instancia: hago malloc de OperacionTHeader");
-        OperaciontHeader * header = malloc(sizeof(OperaciontHeader));  // Creo el header que le voy a enviar a la instancia para que identifique la operacion
-        header->tipo = tipo;
-        header->tamanioValor = tamanioValor;
+			puts("Instancia: Hago un sem_wait");
+			printf("Semaforo en direccion: %p\n", (void*)&(parametros->semaforo));
+			sem_wait(parametros->semaforo); // Caundo me avisen que hay una operacion para enviar, la voy a levantar de la cola
+			puts("Instancia: Me hicieron un sem_post");
+			OperacionAEnviar * operacion = list_remove(colaMensajes,0); //hay que borrar esa operacion
+			puts("Instancia: levante un mensaje de la cola de mensajes");
+			printf("Instancia: la clave es %s \n",operacion->clave);
+			printf("Instancia: el valor es %s \n",operacion->valor);
+			int tamanioValor;
 
-        EnviarClaveYValorAInstancia(tipo, tamanioValor, parametros, header,	operacion);
+			if (operacion->valor == NULL){
+				tamanioValor=0;
+			}
+			else{
+				tamanioValor = strlen(operacion->valor);
+			}
 
-        //puts("Instancia: Espero resultado de la instancia");
-		// Espero el resultado de la operacion
-		//tResultadoOperacion * resultado = malloc(sizeof(tResultadoOperacion));
+			printf("Instancia: el tamanioValor es %d \n",tamanioValor);
+			tTipoOperacion tipo = operacion->tipo;
+			puts("Instancia: hago malloc de OperacionTHeader");
+			OperaciontHeader * header = malloc(sizeof(OperaciontHeader));  // Creo el header que le voy a enviar a la instancia para que identifique la operacion
+			header->tipo = tipo;
+			header->tamanioValor = tamanioValor;
 
-		/*
-		int resultadoRecv;
-        if ((resultadoRecv = recv(parametros->new_fd, resultado, sizeof(tResultadoOperacion), 0)) <= 0) {
-            perror("recv");
-            exit_gracefully(1);
-        }
+			int conexion = EnviarClaveYValorAInstancia(tipo, tamanioValor, parametros, header,	operacion);
+			if (conexion==2){
+				puts("Desaparecio una Instancia");
+				return 1;
+			}
+
+			//puts("Instancia: Espero resultado de la instancia");
+			// Espero el resultado de la operacion
+			//tResultadoOperacion * resultado = malloc(sizeof(tResultadoOperacion));
 
 
-        puts("Instancia: recibi el resultado de la instancia");
+			tEntradasUsadas *buffer = malloc(sizeof(tEntradasUsadas));
+			if ((recv(parametros->new_fd, buffer, sizeof(tEntradasUsadas), 0)) <= 0) {
+				perror("recv");
+				//exit_gracefully(1);
+				return 1;
+			}
 
-        if (resultado == BLOQUEO){
-            puts("Instancia: el resultado de la instancia fue un bloqueo");
-        	tBloqueo esiBloqueado = {1,operacion->clave};
-        	list_add(colaBloqueos,(void*)&esiBloqueado);
-        	sem_post(planificador->semaforo);
-        }
-        */
+			puts("Instancia: recibi el resultado de la instancia");
 
-        tResultado * resultadoCompleto = malloc(sizeof(tResultado));
-        resultadoCompleto->resultado = OK;
-        strcpy(resultadoCompleto->clave,operacion->clave);
+			parametros->entradasUsadas = buffer->entradasUsadas;
 
-		free(operacion->valor);
+			free(buffer);
 
-        //Debo avisarle al ESI que me invoco el resultado
-		pthread_mutex_lock(&mutex);
-        list_add(colaResultados,(void*)resultadoCompleto);
-		pthread_mutex_unlock(&mutex);
+			/*
+			if (resultado == BLOQUEO){
+				puts("Instancia: el resultado de la instancia fue un bloqueo");
+				tBloqueo esiBloqueado = {1,operacion->clave};
+				list_add(colaBloqueos,(void*)&esiBloqueado);
+				sem_post(planificador->semaforo);
+			}
+			*/
+
+			puts("Preparamos el resultado");
+			tResultado * resultadoCompleto = malloc(sizeof(tResultado));
+			resultadoCompleto->resultado = OK;
+			strcpy(resultadoCompleto->clave,operacion->clave);
+
+			free(operacion->valor);
+
+			//Debo avisarle al ESI que me invoco el resultado
+			pthread_mutex_lock(&mutex);
+			list_add(colaResultados,(void*)resultadoCompleto);
+			pthread_mutex_unlock(&mutex);
 
 
         //		*************** PRUEBAS HARDCODEADAS *****************
@@ -793,47 +805,65 @@
 
 
 		puts("ESI: Voy a seleccionar la Instancia");
-		SeleccionarInstancia(&CLAVE);
+		int seleccionInstancia = SeleccionarInstancia(&CLAVE);
 		puts("ESI: Se selecciono la Instancia");
 		if(operacion->tipo != OPERACION_GET){
-		//esperamos el resultado para devolver
-		puts("ESI: Vamos a ver si hay algun resultado en la cola");
-		while (list_is_empty(colaResultados))
-			;
+			//esperamos el resultado para devolver
+			puts("ESI: Vamos a ver si hay algun resultado en la cola");
+			while (list_is_empty(colaResultados));
+			puts("ESI: Tenemos un resultado en la cola");
+			// mientras la cola este vacia no puedo continuarputs("ESI: Hay resultado en la cola");
+			pthread_mutex_lock(&mutex);
+			tResultado* resultado = list_remove(colaResultados, 0);
+			pthread_mutex_unlock(&mutex);
 
-		// mientras la cola este vacia no puedo continuarputs("ESI: Hay resultado en la cola");
-		pthread_mutex_lock(&mutex);
-		tResultado* resultado = list_remove(colaResultados, 0);
-		pthread_mutex_unlock(&mutex);
-
-		int sendResultado;
-		printf("ESI: Por enviar el resultado de la clave %s \n",resultado->clave);
-		if ((sendResultado = send(parametros->new_fd, resultado, sizeof(tResultado),
-				0)) <= 0) {
-			close(parametros->new_fd);
-			perror("send");
-			//exit_gracefully(1);
-			return 1;
-		}
-		puts("ESI: Se envio el resultado");
-		free(resultado);
-		}
-		else {
-			tResultado* resultado = malloc(sizeof(tResultado));
-
-			strcpy(resultado->clave, operacion->clave);
-			resultado->resultado = OK;
 			int sendResultado;
-			puts("ESI: Por enviar el resultado");
+			printf("ESI: Por enviar el resultado de la clave %s \n",resultado->clave);
 			if ((sendResultado = send(parametros->new_fd, resultado, sizeof(tResultado),
 					0)) <= 0) {
-				perror("send");
 				close(parametros->new_fd);
-				//exit_gracefully(1); todo: que pasa aca?
+				perror("send");
+				//exit_gracefully(1);
 				return 1;
 			}
 			puts("ESI: Se envio el resultado");
 			free(resultado);
+		}
+		else {
+			if(seleccionInstancia==2){
+				tResultado* resultado = malloc(sizeof(tResultado));
+
+				strcpy(resultado->clave, operacion->clave);
+				resultado->resultado = ERROR;
+				int sendResultado;
+				puts("ESI: Por enviar el resultado");
+				if ((sendResultado = send(parametros->new_fd, resultado, sizeof(tResultado),
+						0)) <= 0) {
+					perror("send");
+					close(parametros->new_fd);
+					//exit_gracefully(1); todo: que pasa aca?
+					return 1;
+				}
+				puts("ESI: Se envio el resultado");
+				free(resultado);
+			}
+			else{
+				tResultado* resultado = malloc(sizeof(tResultado));
+
+				strcpy(resultado->clave, operacion->clave);
+				resultado->resultado = OK;
+				int sendResultado;
+				puts("ESI: Por enviar el resultado");
+				if ((sendResultado = send(parametros->new_fd, resultado, sizeof(tResultado),
+						0)) <= 0) {
+					perror("send");
+					close(parametros->new_fd);
+					//exit_gracefully(1); todo: que pasa aca?
+					return 1;
+				}
+				puts("ESI: Se envio el resultado");
+				free(resultado);
+			}
 		}
 
 		return EXIT_SUCCESS;
@@ -1001,6 +1031,14 @@
 		return 1;
 	}
 
+	int RemoverInstanciaDeLaLista(parametrosConexion* parametros){
+		bool sonLasMismasnstancias(parametrosConexion * parametrosAComparar){
+			return parametrosAComparar->pid == parametros->pid;
+		}
+		list_remove_and_destroy_by_condition(colaInstancias,(void*)sonLasMismasnstancias,(void*)destruirInstancia);
+		return 1;
+	}
+
 	int EnviarClaveYValorAInstancia(tTipoOperacion tipo, int tamanioValor,
 			parametrosConexion* parametros, OperaciontHeader* header,
 			OperacionAEnviar* operacion) {
@@ -1013,26 +1051,36 @@
 		int sendHeader;
 		if ((sendHeader = send(parametros->new_fd, header, sizeof(OperaciontHeader), 0))
 				<= 0) {
+			puts("Fallo al enviar el header");
 			perror("send");
-			exit_gracefully(1);
+			//exit_gracefully(1);
+			RemoverInstanciaDeLaLista(parametros);
+			close(parametros->new_fd);
+			return 2;
 		}
 		free(header);
 		puts("Instancia: Envio clave a la instancia");
 		// Envio la clave
 		int sendClave;
-		if ((sendClave = send(parametros->new_fd, operacion->clave, TAMANIO_CLAVE,
-				0)) <= 0) {
+		if ((sendClave = send(parametros->new_fd, operacion->clave, TAMANIO_CLAVE,0)) <= 0) {
+			puts("Fallo al enviar la clave");
 			perror("send");
-			exit_gracefully(1);
+			//exit_gracefully(1);
+			RemoverInstanciaDeLaLista(parametros);
+			close(parametros->new_fd);
+			return 2;
 		}
+
 		if (tipo == OPERACION_SET) {
 			int sendSet;
 			puts("Instancia: Envio valor a la instancia");
-			if ((sendSet = send(parametros->new_fd, operacion->valor, tamanioValor,
-					0)) <= 0){
+			if ((sendSet = send(parametros->new_fd, operacion->valor, tamanioValor, 0)) <= 0){
 				perror("send");
 
-			exit_gracefully(1);
+			//exit_gracefully(1);
+				RemoverInstanciaDeLaLista(parametros);
+				close(parametros->new_fd);
+				return 2;
 			}
 		}
 
@@ -1041,19 +1089,19 @@
 
 	int SeleccionarInstancia(char* clave) {
 		while (list_is_empty(colaInstancias));
-
+		int resultado;
 		// mientras la cola este vacia no puedo continuar
 
 		pthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
 		switch (ALGORITMO){
 		case EL: ; // Si no se deja un statement vacio rompe
-			SeleccionarPorEquitativeLoad(clave);
+		resultado = SeleccionarPorEquitativeLoad(clave);
 			break;
 		case LSU:
-			SeleccionarPorLeastSpaceUsed(clave);
+			resultado = SeleccionarPorLeastSpaceUsed(clave);
 			break;
 		case KE:
-			SeleccionarPorKeyExplicit(clave);
+			resultado = SeleccionarPorKeyExplicit(clave);
 			break;
 		default:
 			puts("ESI: Hubo un problema al seleccionar la instancia correcta");
@@ -1062,7 +1110,7 @@
 		pthread_mutex_unlock(&mutex);
 		//saco la primer instancia de la cola pero luego tengo que deolverla a la colasem_post(instancia->semaforo); // Le aviso al semaforo de la instancia de que puede operar (el semaforo es el tid)
 
-		return 1;
+		return resultado;
 	}
 
 	int SeleccionarPorEquitativeLoad(char* clave) {
@@ -1070,42 +1118,50 @@
 		parametrosConexion * instancia;
 
 		if(OPERACION_ACTUAL == OPERACION_GET){
-		instancia = list_get(colaInstancias,0);
-		printf("ESI: Agrego la clave %s a una instancia \n",clave);
-		list_add(instancia->claves,clave);
-		MandarAlFinalDeLaLista(colaInstancias,instancia);
+			instancia = list_get(colaInstancias,0);
+			printf("ESI: Agrego la clave %s a una instancia \n",clave);
+			list_add(instancia->claves,clave);
+			MandarAlFinalDeLaLista(colaInstancias,instancia);
 		}
 		else{
-		instancia = BuscarInstanciaQuePoseeLaClave(clave);
-		printf("ESI: Semaforo de list_get en direccion: %p\n", (void*)&(instancia->semaforo));
-		//list_remove_and_destroy_element(colaInstancias, 0,(void*)destruirInstancia);
-		puts("ESI: Voy a hacer el sem_post a la Instancia seleccionada \n");
-		sem_post(instancia->semaforo);
-		//sem_post(instancia->informacion->semaforo);
+			instancia = BuscarInstanciaQuePoseeLaClave(clave);
 
-		//list_add(colaInstancias,instancia);
+			if (instancia == NULL){ //Hay que ver si devuelve NULL, esto es en caso de que se desconecte la instancia
+				puts("Se desconecto la instancia");
+				return 2;
+			}
 
+			printf("ESI: Semaforo de list_get en direccion: %p\n", (void*)&(instancia->semaforo));
+			//list_remove_and_destroy_element(colaInstancias, 0,(void*)destruirInstancia);
+			puts("ESI: Voy a hacer el sem_post a la Instancia seleccionada \n");
+			sem_post(instancia->semaforo);
+			//sem_post(instancia->informacion->semaforo);
+
+			//list_add(colaInstancias,instancia);
 		}
 
 		//free(instancia);
 		return 1;
 	}
 
-	void destruirInstancia(parametrosConexion *self) {
-	    free(self);
-	}
-
 	int SeleccionarPorLeastSpaceUsed(char * clave){
-		parametrosConexion* instanciasMenosUsadas;
+		parametrosConexion* instanciaMenosUsada;
+
 		if(OPERACION_ACTUAL == OPERACION_GET){
-			instanciasMenosUsadas = BuscarInstanciaMenosUsada(colaInstancias); // Va a buscar la instancia que menos entradas tenga, desempata con fifo
+			instanciaMenosUsada = BuscarInstanciaMenosUsada(colaInstancias); // Va a buscar la instancia que menos entradas tenga, desempata con fifo
 		}
 		else{
-			instanciasMenosUsadas = BuscarInstanciaQuePoseeLaClave(clave);
-			printf("ESI: Semaforo de list_get en direccion: %p\n", (void*)&(instanciasMenosUsadas->semaforo));
+			instanciaMenosUsada = BuscarInstanciaQuePoseeLaClave(clave);
+
+			if (instanciaMenosUsada == NULL){ //Hay que ver si devuelve NULL, esto es en caso de que se desconecte la instancia
+				puts("Se desconecto la instancia");
+				return 2;
+			}
+
+			printf("ESI: Semaforo de list_get en direccion: %p\n", (void*)&(instanciaMenosUsada->semaforo));
 			//list_remove_and_destroy_element(colaInstancias, 0,(void*)destruirInstancia);
 			puts("ESI: Voy a hacer el sem_post a la Instancia seleccionada \n");
-			sem_post(instanciasMenosUsadas->semaforo);
+			sem_post(instanciaMenosUsada->semaforo);
 		}
 		return 1;
 	}
@@ -1151,6 +1207,12 @@
 		}
 		else {
 			instancia = BuscarInstanciaQuePoseeLaClave(clave);
+
+			if (instancia == NULL){ //Hay que ver si devuelve NULL, esto es en caso de que se desconecte la instancia
+				puts("Se desconecto la instancia");
+				return 2;
+			}
+
 			printf("ESI: Semaforo de list_get en direccion: %p\n", (void*)&(instancia->semaforo));
 			//list_remove_and_destroy_element(colaInstancias, 0,(void*)destruirInstancia);
 			puts("ESI: Voy a hacer el sem_post a la Instancia seleccionada \n");
@@ -1172,6 +1234,12 @@
 		printf("Vor a borrar la clave %s \n",bloqueo->clave);
 	    free(bloqueo);
 	    puts("logre borrar la clave");
+	}
+
+	static void destruirInstancia(parametrosConexion * parametros){
+		puts("Elimino una instancia");
+		free(parametros);
+		puts("Falle al eliminar una instanca");
 	}
 
 	int verificarValidez(int sockfd){

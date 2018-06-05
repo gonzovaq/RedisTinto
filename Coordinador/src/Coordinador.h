@@ -149,6 +149,11 @@ typedef struct{
 	int tamanioEntradas;
 }tInformacionParaLaInstancia;
 
+typedef struct{
+	int entradasUsadas;
+}tEntradasUsadas;
+
+
 
 
 // VARIABLES GLOBALES
@@ -206,13 +211,14 @@ int SeleccionarPorEquitativeLoad(char * clave);
 int SeleccionarPorLeastSpaceUsed(char * clave);
 int SeleccionarPorKeyExplicit(char* clave);
 static void destruirBloqueo(tBloqueo *bloqueo);
+static void destruirInstancia(parametrosConexion * parametros);
 int RemoverClaveDeLaLista(t_list * lista, char * claveABuscar);
 int MandarAlFinalDeLaLista(t_list * lista, parametrosConexion * instancia);
 parametrosConexion* BuscarInstanciaMenosUsada(t_list * lista);
-void destruirInstancia(parametrosConexion *self);
 int ConexionESISinBloqueo(OperacionAEnviar* operacion, parametrosConexion* parametros);
 int EnviarClaveYValorAInstancia(tTipoOperacion tipo, int tamanioValor,parametrosConexion* parametros, OperaciontHeader* header,OperacionAEnviar* operacion);
 int verificarParametrosAlEjecutar(int argc, char *argv[]);
 bool laClaveTuvoUnGETPrevio(char * clave,parametrosConexion * parametros);
+int RemoverInstanciaDeLaLista(parametrosConexion* parametros);
 
 
