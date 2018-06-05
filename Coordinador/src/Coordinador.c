@@ -258,7 +258,7 @@
 				puts("ESI: El analizar operacion anduvo");
 
 				free(header);
-				sleep(RETARDO);
+				sleep(RETARDO/100);
 
 				//Debo avisar a una Instancia cuando recibo una operacion (QUE NO SEA UN GET)
 				//Agregamos el mensaje a una cola en memoria
