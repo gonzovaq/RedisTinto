@@ -12,7 +12,7 @@
 
     int main(int argc, char *argv[])
     {
-
+    	puts("Iniciando");
     	//cantidadEntradas = 8;
     	//tamanioValor = 3;
     	tablaEntradas = list_create();
@@ -159,7 +159,9 @@
 
 			// Leer archivo de configuracion con las commons
 			t_config* configuracion;
-			char * path = "/home/utnso/workspace/tp-2018-1c-Sistemas-Operactivos/Instancia/Instancia.config";
+			char * path = "Instancia.config";
+
+			puts("Leemos el archivo de configuracion");
 
 			configuracion = config_create(path);
 
@@ -169,6 +171,8 @@
 			Name = config_get_string_value(configuracion, "NombreInstancia");
 			Algoritmo = config_get_string_value(configuracion, "Algoritmo");
 			PuntoMontaje = config_get_string_value(configuracion, "PuntoMontaje");
+
+			puts("Se leyo el archivo de configuracion");
 
 			return 1;
 
