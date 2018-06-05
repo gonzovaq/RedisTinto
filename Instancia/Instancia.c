@@ -33,8 +33,8 @@
 
         verificarParametrosAlEjecutar(argc, argv);
         leerConfiguracion();
-
-        socketCoordinador = conectarmeYPresentarme(PORT);
+        he = gethostbyname(IP);
+        socketCoordinador = conectarmeYPresentarme(PORTCO);
 
 
         while(1){
@@ -116,7 +116,7 @@
     }
 
     int verificarParametrosAlEjecutar(int argc, char *argv[]){
-    	if (argc != 2) {
+    /*	if (argc != 2) {
     		puts("Error al ejecutar, te faltan parametros.");
     	    exit(1);
     	 }
@@ -126,11 +126,11 @@
     	    puts("Error al obtener el hostname, te faltan parametros.");
     	    perror("gethostbyname");
     	    exit(1);
-    	 }
+    	 }*/
     	 return 1;
     }
 
-    int leerConfiguracion(){
+ /*   int leerConfiguracion(){
     	char *token;
     	char *search = "=";
     	static const char filename[] = "/home/utnso/workspace2/tp-2018-1c-Sistemas-Operactivos/Instancia/configuracion.config";
@@ -138,8 +138,8 @@
     	if ( file != NULL )
     	{
     		puts("Leyendo archivo de configuracion");
-    	    char line [ 128 ]; /* or other suitable maximum line size */
-    	    while ( fgets ( line, sizeof line, file ) != NULL ) /* read a line */
+    	    char line [ 128 ]; /* or other suitable maximum line size
+    	    while ( fgets ( line, sizeof line, file ) != NULL )  read a line
     	    {
     	    // Token will point to the part before the =.
     	    	token = strtok(line, search);
@@ -154,7 +154,25 @@
     		 puts("Archivo de configuracion vacio");
 
         	return 1;
-        }
+        }*/
+	int leerConfiguracion() {
+
+			// Leer archivo de configuracion con las commons
+			t_config* configuracion;
+			char * path = "/home/utnso/workspace/tp-2018-1c-Sistemas-Operactivos/Instancia/Instancia.config";
+
+			configuracion = config_create(path);
+
+			PORTCO = config_get_int_value(configuracion, "PUERTO_COORDINADOR");
+			IP = config_get_string_value(configuracion, "IP");
+			Intervalo = config_get_int_value(configuracion, "Intervalo");
+			Name = config_get_string_value(configuracion, "NombreInstancia");
+			Algoritmo = config_get_string_value(configuracion, "Algoritmo");
+			PuntoMontaje = config_get_string_value(configuracion, "PuntoMontaje");
+
+			return 1;
+
+		}
 
     int conectarmeYPresentarme(int port){
     	int socketCoordinador;

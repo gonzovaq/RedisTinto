@@ -45,11 +45,15 @@ int PORT_COORDINADOR;
 char* IP;
 char* IPCO;
 int MAXDATASIZE;
+float EstimacionIni;
+int Alfa;
 
 // Uso de commons en Queue
 typedef struct {
       int id;
       int fd;
+      int cont;
+      float Estimacion;
 }t_esi;
 
 
@@ -57,6 +61,8 @@ static t_esi * new_ESI(int id,int fd){
 	t_esi *new = malloc(sizeof(t_esi));
 	new->id = id;
 	new->fd = fd;
+	new->cont = 0;
+	new->Estimacion=EstimacionIni;
 	return new;
 }
 

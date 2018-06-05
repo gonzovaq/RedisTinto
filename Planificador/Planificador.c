@@ -232,11 +232,25 @@ bool cmp (int a)
 							printf("ejecuta el esi:%d \n",esi->id);
 							tResultado * resultado = malloc(sizeof(tResultado));
 							int re=recibirResultado(esi->fd, resultado);
+							if (re==1){
+								esi->cont++;
+								printf("Contador De ESI %d  Estimacion %f \n",esi->cont, esi->Estimacion);
+							}
 							if(re==-5)
 							{
 								queue_pop(ejecucion);
 								//free(esi->id);
 								//free(esi->fd);
+							    //EstimacionEsi(esi);
+
+
+								printf("ALFA : %d     EstINI : %f ESI cont :  %d \n",Alfa,EstimacionIni,esi->cont);
+
+
+								EstimacionEsi(esi);
+								esi->cont=0;
+								printf("Contador De ESI %d  Estimacion %f \n",esi->cont, esi->Estimacion);
+
 								free(esi);
 								f_ejecutar=1;
 								printf("Ejecuta el esi de fd: %d \n",esi->fd);
@@ -462,31 +476,6 @@ bool cmp (int a)
 		return id;
 	}
 
-	
-/*	void LeerArchivoDeConfiguracion() {
-	// Ejemplo para leer archivo de configuracion en formato clave=valor por linea
-	char* token;
-	char* search = "=";
-	static const char filename[] =
-			"/home/utnso/workspace2/tp-2018-1c-Sistemas-Operactivos/Coordinador/src/configuracion.config";
-	FILE* file = fopen(filename, "r");
-	if (file != NULL) {
-		puts("Leyendo archivo de configuracion");
-		char line[128];
-		 or other suitable maximum line size while (fgets(line, sizeof line,
-				file) != NULL)//
-		{
-			// Token will point to the part before the =.
-			token = strtok(line, search);
-			puts(token);
-			// Token will point to the part after the =.
-			token = strtok(NULL, search);
-			puts(token);
-		}
-		fclose(file);
-	} else
-		puts("Archivo de configuracion vacio");
-	}*/
 
 	int  LeerArchivoDeConfiguracion() {
 
@@ -505,10 +494,19 @@ bool cmp (int a)
 			//puts("entram03");
 			MAXDATASIZE = config_get_int_value(configuracion, "MAX_DATASIZE");
 			//puts("entram04");
+			EstimacionIni = config_get_int_value(configuracion, "Estimacion");
+			Alfa = config_get_int_value(configuracion, "Alfa");
 
 			return 1;
 
 		}
+ void EstimacionEsi (t_esi* esi){ //float EstimacionEsi (t_esi* esi)
+
+
+		esi->Estimacion= ((0.01*Alfa*esi->cont)+((1-(Alfa*0.01))*EstimacionIni));
+
+		//return (esi);
+	}
 
 	int obtenerEsi(int socket)
 	{
@@ -535,7 +533,9 @@ bool cmp (int a)
 
     	switch(resultado->tipoResultado){
     		case OK:
-    			puts("La operación salio OK"); //EN ESTOS CASE DEBERIA LOGGEAR O ALGO ASI, PREGUNTAR MAS ADELANTE
+    			puts("La operación salio OK");
+    			//EN ESTOS CASE DEBERIA LOGGEAR O ALGO ASI, PREGUNTAR MAS ADELANTE
+    			return 1;
     			break;
     		case BLOQUEO:
 				puts("La operación se BLOQUEO");
