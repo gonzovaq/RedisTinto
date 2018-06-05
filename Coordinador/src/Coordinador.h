@@ -47,6 +47,7 @@ typedef struct{
 	int cantidadEntradasMaximas;
 	int entradasUsadas;
 	int pid;
+	t_list * claves;
 }parametrosConexion;  // Aqui dejamos los descriptores y un semaforo para los hilos que lo necesiten
 
 
@@ -148,6 +149,7 @@ int RETARDO;
 t_log * logger;
 tNotificacionPlanificador * notificacion;
 char CLAVE[TAMANIO_CLAVE];
+tTipoOperacion OPERACION_ACTUAL;
 
 parametrosConexion * planificador;
 t_list* colaInstancias;
@@ -155,6 +157,7 @@ t_list* colaESIS;
 t_list* colaMensajes;
 t_list* colaResultados;
 t_list* colaBloqueos;
+t_list* clavesTomadas;
 //t_list* colaMensajesParaPlanificador;
 
 pthread_mutex_t mutex;
@@ -184,7 +187,9 @@ bool EncontrarEnLista(t_list * lista, char * claveABuscar);
 bool LePerteneceLaClave(t_list * lista, tBloqueo * bloqueoBuscado);
 int LeerArchivoDeConfiguracion(char *argv[]);
 int SeleccionarInstancia(char * clave);
-int SeleccionarPorEquitativeLoad();
+int SeleccionarPorEquitativeLoad(char * clave);
+int SeleccionarPorLeastSpaceUsed(char * clave);
+int SeleccionarPorKeyExplicit(char* clave);
 static void destruirBloqueo(tBloqueo *bloqueo);
 int RemoverClaveDeLaLista(t_list * lista, char * claveABuscar);
 int MandarAlFinalDeLaLista(t_list * lista, parametrosConexion * instancia);
@@ -193,3 +198,6 @@ void destruirInstancia(parametrosConexion *self);
 int ConexionESISinBloqueo(OperacionAEnviar* operacion, parametrosConexion* parametros);
 int EnviarClaveYValorAInstancia(tTipoOperacion tipo, int tamanioValor,parametrosConexion* parametros, OperaciontHeader* header,OperacionAEnviar* operacion);
 int verificarParametrosAlEjecutar(int argc, char *argv[]);
+bool laClaveTuvoUnGETPrevio(char * clave);
+
+

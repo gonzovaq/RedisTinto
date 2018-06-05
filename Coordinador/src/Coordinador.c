@@ -213,6 +213,7 @@
 	        	exit_gracefully(1);
 			} // Inicializo el semaforo en 0
 			printf("Instancia: Semaforo en direccion: %p\n", (void*)&(parametros->semaforo));
+			parametros->claves = list_create();
     		list_add(colaInstancias,(void*)parametros);
     		conexionInstancia(parametros);
     		break;
@@ -251,16 +252,8 @@
 			int resultadoOperacion;
 			resultadoOperacion = AnalizarOperacion(tamanioValor, header, parametros, operacion);
 			printf("%d",resultadoOperacion);
-			if ( resultadoOperacion == 2){ // Que hacemos si hay bloqueo? Debemos avisarle al planificador
-				int sendBloqueo;
-				if ((sendBloqueo =send(parametros->new_fd, BLOQUEO, sizeof(tResultadoOperacion), 0)) <= 0){
-					perror("send");
-					exit_gracefully(1);
-				}
-				free(header);
-				free(operacion);
-			}
-			else {
+			switch (resultadoOperacion){
+			case 1:
 				puts("ESI: El analizar operacion anduvo");
 
 				free(header);
@@ -269,9 +262,31 @@
 				//Debo avisar a una Instancia cuando recibo una operacion (QUE NO SEA UN GET)
 				//Agregamos el mensaje a una cola en memoria
 				ConexionESISinBloqueo(operacion,parametros);
-			}
+				free(operacion);
+				break;
+			case 2: // Que hacemos si hay bloqueo? Debemos avisarle al planificador
 
-			free(operacion);
+				if ((send(parametros->new_fd, BLOQUEO, sizeof(tResultadoOperacion), 0)) <= 0){
+					perror("send");
+					//exit_gracefully(1);
+				}
+				free(header);
+				free(operacion);
+				break;
+			case 3:
+				puts("ESI: Error en la soliciud");
+
+				if ((send(parametros->new_fd, ERROR, sizeof(tResultadoOperacion), 0)) <= 0){
+					perror("send");
+					//exit_gracefully(1);
+				}
+				free(header);
+				free(operacion);
+				break;
+			default:
+				puts("ESI Fallo al ver el resultado de la operacion");
+				break;
+			}
         }
 		close(parametros->new_fd);
 		return EXIT_SUCCESS;
@@ -515,6 +530,8 @@
 
 	int ManejarOperacionGET(parametrosConexion* parametros, OperacionAEnviar* operacion) {
 
+		OPERACION_ACTUAL = OPERACION_GET;
+
 		char clave[TAMANIO_CLAVE];
 		int recvClave;
 
@@ -542,6 +559,7 @@
 
 			return 2;
 		} // ACA HAY QUE AVISARLE AL PLANIFICDOR DEL BLOQUEO PARA QUE FRENE AL ESI
+		list_add(clavesTomadas,clave);
 
 		operacion->tipo = OPERACION_GET;
 		strcpy(operacion->clave,clave);
@@ -572,6 +590,8 @@
 
 	int ManejarOperacionSET(int tamanioValor, parametrosConexion* parametros, OperacionAEnviar* operacion) {
 
+		OPERACION_ACTUAL = OPERACION_SET;
+
 		char clave[TAMANIO_CLAVE];
 		int recvClave, recvValor;
 		if ((recvClave = recv(parametros->new_fd, clave, TAMANIO_CLAVE, 0)) <= 0) {
@@ -582,6 +602,20 @@
 		}
 		clave[strlen(clave)+1] = '\0';
 		printf("ESI: Recibi la clave: %s\n", clave);
+
+		if (!laClaveTuvoUnGETPrevio(clave)){
+			puts("ESI: La clave nunca tuvo un GET");
+
+			notificacion->tipoNotificacion=ERROR;
+			strcpy(notificacion->clave,clave);
+			notificacion->pid = parametros->pid;
+			printf("ESI: le voy a avisar al planificador que hay que abortar al ESI por no hacer GET sobre: %s \n",clave);
+			sem_post(planificador->semaforo);
+			puts("ESI: Ya le avise al planificador que aborte el ESI");
+
+			return 3;
+		}
+
 		strcpy(CLAVE,clave);
 
 		tBloqueo *bloqueo = malloc(sizeof(tBloqueo));
@@ -625,6 +659,8 @@
 
 	int ManejarOperacionSTORE(parametrosConexion* parametros, OperacionAEnviar* operacion) {
 
+		OPERACION_ACTUAL = OPERACION_STORE;
+
 		char clave[TAMANIO_CLAVE];
 		int resultadoRecv;
 
@@ -636,6 +672,20 @@
 		}
 		clave[strlen(clave)+1] = '\0';
 		printf("ESI: Recibi la clave: %s\n", clave);
+
+		if (!laClaveTuvoUnGETPrevio(clave)){
+			puts("ESI: La clave nunca tuvo un GET");
+
+			notificacion->tipoNotificacion=ERROR;
+			strcpy(notificacion->clave,clave);
+			notificacion->pid = parametros->pid;
+			printf("ESI: le voy a avisar al planificador que hay que abortar al ESI por no hacer GET sobre: %s \n",clave);
+			sem_post(planificador->semaforo);
+			puts("ESI: Ya le avise al planificador que aborte el ESI");
+
+			return 3;
+		}
+
 		strcpy(CLAVE,clave);
 
 		tBloqueo *bloqueo = malloc(sizeof(tBloqueo));
@@ -692,11 +742,12 @@
 		//free(operacion);
 
 		puts("ESI: Vamos a chequear el tipo");
-		if(operacion->tipo != OPERACION_GET){
+
 
 		puts("ESI: Voy a seleccionar la Instancia");
 		SeleccionarInstancia(&CLAVE);
 		puts("ESI: Se selecciono la Instancia");
+		if(operacion->tipo != OPERACION_GET){
 		//esperamos el resultado para devolver
 		puts("ESI: Vamos a ver si hay algun resultado en la cola");
 		while (list_is_empty(colaResultados))
@@ -759,6 +810,8 @@
 
 		colaBloqueos = list_create();
 
+		clavesTomadas = list_create();
+
 		//colaMensajesParaPlanificador = list_create();
 		//colaBloqueos->head = malloc(TBLOQUEO * ENTRADAS);
 
@@ -797,6 +850,24 @@
 			return (bloqueo->pid == bloqueoBuscado->pid) && string_equals_ignore_case(bloqueo->clave,bloqueoBuscado->clave);
 		}
 		return list_any_satisfy(lista,(void*) yaExisteLaClaveYPerteneceAlESI);
+    }
+
+    bool laClaveTuvoUnGETPrevio(char * clave){
+    	bool existeLaClave(char * claveAComparar){
+    		return string_equals_ignore_case(clave,claveAComparar);
+    	}
+    	return list_any_satisfy(clavesTomadas,existeLaClave);
+    }
+
+    parametrosConexion* BuscarInstanciaQuePoseeLaClave(char * clave){
+    	bool tieneLaClave(char * claveAComparar){
+    		printf("ESI: Buscando instancia, comparando la clave %s con %s \n", clave, claveAComparar);
+    		return string_equals_ignore_case(clave,claveAComparar);
+    	}
+    	bool lePerteneceLaClave(parametrosConexion * parametros){
+    		return list_any_satisfy(parametros->claves,tieneLaClave);
+    	}
+    	return list_find(colaInstancias,(void*) lePerteneceLaClave);
     }
 
     parametrosConexion* BuscarInstanciaMenosUsada(t_list * lista){
@@ -918,13 +989,13 @@
 		pthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
 		switch (ALGORITMO){
 		case EL: ; // Si no se deja un statement vacio rompe
-			SeleccionarPorEquitativeLoad();
+			SeleccionarPorEquitativeLoad(clave);
 			break;
 		case LSU:
-			SeleccionarPorLeastSpaceUsed();
+			SeleccionarPorLeastSpaceUsed(clave);
 			break;
 		case KE:
-			SeleccionarPorKeyExplicit(&clave);
+			SeleccionarPorKeyExplicit(clave);
 			break;
 		default:
 			puts("ESI: Hubo un problema al seleccionar la instancia correcta");
@@ -936,10 +1007,18 @@
 		return 1;
 	}
 
-	int SeleccionarPorEquitativeLoad() {
+	int SeleccionarPorEquitativeLoad(char* clave) {
 		// mientras la cola este vacia no puedo continuarpthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
+		parametrosConexion * instancia;
 
-		parametrosConexion * instancia = list_get(colaInstancias,0);
+		if(OPERACION_ACTUAL == OPERACION_GET){
+		instancia = list_get(colaInstancias,0);
+		printf("ESI: Agrego la clave %s a una instancia \n",clave);
+		list_add(instancia->claves,clave);
+		MandarAlFinalDeLaLista(colaInstancias,instancia);
+		}
+		else{
+		instancia = BuscarInstanciaQuePoseeLaClave(clave);
 		printf("ESI: Semaforo de list_get en direccion: %p\n", (void*)&(instancia->semaforo));
 		//list_remove_and_destroy_element(colaInstancias, 0,(void*)destruirInstancia);
 		puts("ESI: Voy a hacer el sem_post a la Instancia seleccionada \n");
@@ -947,7 +1026,8 @@
 		//sem_post(instancia->informacion->semaforo);
 
 		//list_add(colaInstancias,instancia);
-		MandarAlFinalDeLaLista(colaInstancias,instancia);
+
+		}
 
 		//free(instancia);
 		return 1;
@@ -957,7 +1037,7 @@
 	    free(self);
 	}
 
-	int SeleccionarPorLeastSpaceUsed(){
+	int SeleccionarPorLeastSpaceUsed(char * clave){
 		parametrosConexion* instanciasMenosUsadas = BuscarInstanciaMenosUsada(colaInstancias); // Va a buscar la instancia que menos entradas tenga, desempata con fifo
 		return 1;
 	}
