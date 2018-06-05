@@ -116,12 +116,11 @@ typedef struct{
 
 int LeerArchivoDeConfiguracion();
 int verificarParametrosAlEjecutar(int argc, char *argv[]);
-void ConectarAlCoordinador(int sockCord, struct sockaddr_in* cord_addr,
-		struct hostent* he);
+void ConectarAlCoordinador(int sockCord, struct sockaddr_in* cord_addr,struct hostent* he);
 void *ejecutarConsola();
-
-	t_esi *buscarEsi(t_queue *lista,int id);
-
-	void destruirEsi(t_esi *unEsi);
+t_esi *buscarEsi(t_queue *lista,int id);
+void destruirEsi(t_esi *unEsi);
 void *gestionarConexion(int socket);
 void *conexionESI(int *new_fd);
+
+void ordenarEsis(t_queue *cola);

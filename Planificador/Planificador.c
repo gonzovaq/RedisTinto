@@ -243,10 +243,7 @@ bool cmp (int a)
 								//free(esi->fd);
 							    //EstimacionEsi(esi);
 
-
 								printf("ALFA : %d     EstINI : %f ESI cont :  %d \n",Alfa,EstimacionIni,esi->cont);
-
-
 								EstimacionEsi(esi);
 								esi->cont=0;
 								printf("Contador De ESI %d  Estimacion %f \n",esi->cont, esi->Estimacion);
@@ -268,6 +265,7 @@ bool cmp (int a)
 							if(f_ejecutar==1)
 							{
 								t_esi *esi=malloc(sizeof(t_esi));
+								ordenarEsis(ready);
 								esi = queue_pop(ready);
 								printf("Id del esi a buscar:%d \n",esi->id);
 								printf("esi de id %d cambiado de cola \n",esi->id);
@@ -289,6 +287,20 @@ bool cmp (int a)
 
 	}
 	*/
+void ordenarEsis(t_queue *cola)
+	{
+		int compare(t_esi *esi1,t_esi *esi2)
+		{
+			float resul;
+			resul= esi2->Estimacion-esi1->Estimacion;
+			return resul;
+		}
+
+		list_sort(cola->elements,(void *)compare);
+		return cola;
+		
+	}
+	
 	t_esi *buscarEsi(t_queue *lista,int id)
 	{
 		int coincidir(t_esi *unEsi){
@@ -539,6 +551,7 @@ bool cmp (int a)
     			break;
     		case BLOQUEO:
 				puts("La operación se BLOQUEO");
+				return 2;
 				break;
     		case ERROR:
 				puts("La operación tiro ERROR");
