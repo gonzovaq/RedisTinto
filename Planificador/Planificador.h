@@ -65,6 +65,20 @@ static void ESI_destroy (t_esi * self){
 	free(self->fd);
 	free (self);
 }
+typedef enum{
+	OK = 1,
+	BLOQUEO = 2,
+	ERROR = 3,
+	DESBLOQUEO = 4,
+	CHAU=0
+}tResultadoOperacion;
+
+typedef struct{
+	tResultadoOperacion tipoNotificacion;
+	char clave[TAMANIO_CLAVE];
+	int pid;
+}tNotificacionPlanificador;
+
 
 
 // fin de uso de commons para queue
@@ -87,12 +101,6 @@ typedef struct{
 	char nombreProceso[TAMANIO_NOMBREPROCESO];
 }tHeader;
 
-typedef enum{
-	OK = 1,
-	BLOQUEO = 2,
-	ERROR = 3,
-	CHAU=0
-}tResultadoOperacion;
 
 typedef struct{
 	tResultadoOperacion tipoResultado;
@@ -106,6 +114,8 @@ void ConectarAlCoordinador(int sockCord, struct sockaddr_in* cord_addr,
 		struct hostent* he);
 void *ejecutarConsola();
 
+	t_esi *buscarEsi(t_queue *lista,int id);
 
+	void destruirEsi(t_esi *unEsi);
 void *gestionarConexion(int socket);
 void *conexionESI(int *new_fd);

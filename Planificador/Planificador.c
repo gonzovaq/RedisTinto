@@ -1,5 +1,8 @@
 	#include "Planificador.h"
-
+bool cmp (int a)
+{
+	return a;
+}
     int main(int argc, char *argv[])
     {
     	LeerArchivoDeConfiguracion();
@@ -10,6 +13,7 @@
     	        //primero = NULL;
     	       // ultimo = NULL;
     			t_queue *ready;
+				t_queue *test;
 				t_queue *ejecucion;
     	   		t_queue *colaFinalizados;
     	   		t_queue *colaEspera;
@@ -126,7 +130,9 @@
     	                            }
     	                            printf("selectserver: new connection from %s on "
     	                                "socket %d \n", inet_ntoa(remoteaddr.sin_addr), newfd);
+									
 									int idEsi=obtenerEsi(newfd);
+									
 									queue_push(ready,new_ESI(idEsi,newfd));
 																		
 									printf("Esi id %d conectado y puesto en cola \n",idEsi);
@@ -134,7 +140,27 @@
 									
     	                        }
 							 }else{
-								 if (flagTest==1){
+								 if(i==sockCord){				
+									 
+										puts("Aca escuchamos al cordi");			 
+									tNotificacionPlanificador *notificacion = malloc(sizeof(tNotificacionPlanificador));
+									  int numbytes;
+									if ((numbytes=recv(sockCord, notificacion, sizeof(tNotificacionPlanificador), 0)) <= 0) {
+										perror("No hay nada que haya enviado el cordi");
+										//exit(1);
+									}else{
+										printf("coordi nos dijo que pid: %d se desbloqueo \n ",notificacion->pid);
+										
+										/* TODO:
+										* debo buscar el esi en la cola de bloqueados y sacarlo 
+										* para aniadirlo a la cola de ready
+										*/
+									}
+									
+
+								}
+								else{
+								 if (flagTest==1&&i!=sockCord){
 									 puts("Cerramos el socket del ESI y lo borramos del conjunto maestro");
 									 if (FD_ISSET(i, &master)) {
 										 flagTest=0;
@@ -143,7 +169,7 @@
 									 	 }
 	                                   }
 
-							  	   }
+							  	   }}
 							 } /*else {
     	                        // gestionar datos de un cliente
 								puts("Entre a gestion de clientes");
@@ -158,7 +184,7 @@
     	                            close(i); // bye!
 
     	                            FD_CLR(i, &master); // eliminar del conjunto maestro
-    	                        } else {/*
+    	                        }} else {
     	                        // gestionar datos de un cliente
 								puts("Entre a gestion de clientes");
 								tResultado resultado = malloc(sizeof(resultado));
@@ -190,7 +216,6 @@
     	                        }*/
     	                     // Esto es ¡TAN FEO!
 						}
-
 						//Planificar
 					int f_ejecutar=0;//Flag para mandar de ready a ejecucion.
 					//puts("voy a verificar las colas");
@@ -210,6 +235,8 @@
 							if(re==-5)
 							{
 								queue_pop(ejecucion);
+								//free(esi->id);
+								//free(esi->fd);
 								free(esi);
 								f_ejecutar=1;
 								printf("Ejecuta el esi de fd: %d \n",esi->fd);
@@ -228,6 +255,7 @@
 							{
 								t_esi *esi=malloc(sizeof(t_esi));
 								esi = queue_pop(ready);
+								printf("Id del esi a buscar:%d \n",esi->id);
 								printf("esi de id %d cambiado de cola \n",esi->id);
 								queue_push(ejecucion,new_ESI(esi->id,esi->fd));
 								free(esi);
@@ -242,6 +270,21 @@
     	        return 0;
     }
 
+/*	float estimar(t_esi esi,float alpha)
+	{
+
+	}
+	*/
+	t_esi *buscarEsi(t_queue *lista,int id)
+	{
+		int coincidir(t_esi *unEsi){
+          	    	    		return unEsi->id == id;
+          	    	    	}
+		t_esi *esi=malloc(sizeof(t_esi));
+		esi=list_find(lista->elements,(void*)coincidir);
+		return esi;
+		//free(esi);
+	}
     int EnviarConfirmacion (t_esi * esi){
     	puts("enviando informacion al esi \n");
     	char *confirmacion = "EJECUTATE";
@@ -255,8 +298,22 @@
 	   return EXIT_SUCCESS;
     }
 
+	void destruirEsi(t_esi *unEsi){
+    	   //free(unaEntrada->clave);
+    	   free(unEsi);
+    	  return;
+       }
+	void eliminarEsiPorId(t_queue *lista, int pid){
+          	int coincidir(t_esi *unEsi){
+          	    	    		return unEsi->id == pid;
+          	    	    	}
+							  
+          		list_remove_and_destroy_by_condition(lista->elements, (void*) coincidir,(void*) destruirEsi);
 
+          	return;
+          }
 
+	
     void ConectarAlCoordinador(int sockCord, struct sockaddr_in* cord_addr,
     		struct hostent* he) {
     	// obtener socket para coordinador
@@ -456,15 +513,18 @@
 	int obtenerEsi(int socket)
 	{
 		int bytesRecibidos;
-						   tHeader *headerRecibido = malloc(sizeof(tHeader));
-					   if ((bytesRecibidos = recv(socket, headerRecibido, sizeof(tHeader), 0)) == -1){
+						tHeader *headerRecibido = malloc(sizeof(tHeader));
+					    if ((bytesRecibidos = recv(socket, headerRecibido, sizeof(tHeader), 0)) == -1){
 						perror("recv");
 						exit(1);
-
 					   }
 					   //fprintf("Mensaje : %s",headerRecibido->tipoMensaje);
 					   if (headerRecibido->tipoMensaje == CONECTARSE){
-						free(headerRecibido);
+						/*free(&headerRecibido->tipoMensaje);
+						free(&headerRecibido->tipoProceso);
+						free(headerRecibido->nombreProceso);
+						free(headerRecibido->idProceso);
+						free(headerRecibido);*/
 						return(headerRecibido->idProceso);
 					   }
 	}
@@ -501,6 +561,7 @@ int recibirResultadoDelEsi(int sockfd, tResultado * resultado){
 
         if ((numbytes=recv(sockfd, resultado, sizeof(tResultado), 0)) <= 0) {
             perror("esi desconectado");
+			resultado->tipoResultado=CHAU;
             //exit(1);
         }
         puts("Recibi el resultado");
@@ -619,10 +680,16 @@ int enviarHeader(int sockfd){
 			   if (send(sockfd, header, sizeof(tHeader), 0) == -1){
 				   puts("Error al enviar mi identificador");
 				   perror("Send");
+				   //free(&header->tipoMensaje);
+				   //free(&header->tipoProceso);
+				 //  free(header->idProceso);
 				   free(header);
 				   exit(1);
 			   }
 			   puts("Se envió mi identificador");
+			   //free(&header->tipoMensaje);
+			   //free(&header->tipoProceso);
+			   //free(header->idProceso);
 			   free(header);
 			   return EXIT_SUCCESS;
     }
