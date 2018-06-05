@@ -165,6 +165,7 @@
     	case ESI:
     		printf("ESI: Se conecto el proceso %d \n", headerRecibido->idProceso);
             parametros->pid = headerRecibido->idProceso;
+            parametros->claves = list_create();
     		list_add(colaESIS,(void*)parametros);
     		conexionESI(parametros);
     		break;
@@ -602,8 +603,8 @@
 		}
 		clave[strlen(clave)+1] = '\0';
 		printf("ESI: Recibi la clave: %s\n", clave);
-
-		if (!laClaveTuvoUnGETPrevio(clave)){
+		/* TODO
+		if (!laClaveTuvoUnGETPrevio(clave,parametros)){
 			puts("ESI: La clave nunca tuvo un GET");
 
 			notificacion->tipoNotificacion=ERROR;
@@ -615,6 +616,7 @@
 
 			return 3;
 		}
+		*/
 
 		strcpy(CLAVE,clave);
 
@@ -673,7 +675,8 @@
 		clave[strlen(clave)+1] = '\0';
 		printf("ESI: Recibi la clave: %s\n", clave);
 
-		if (!laClaveTuvoUnGETPrevio(clave)){
+		/*
+		if (!laClaveTuvoUnGETPrevio(clave,parametros)){
 			puts("ESI: La clave nunca tuvo un GET");
 
 			notificacion->tipoNotificacion=ERROR;
@@ -685,6 +688,7 @@
 
 			return 3;
 		}
+		*/
 
 		strcpy(CLAVE,clave);
 
@@ -852,11 +856,16 @@
 		return list_any_satisfy(lista,(void*) yaExisteLaClaveYPerteneceAlESI);
     }
 
-    bool laClaveTuvoUnGETPrevio(char * clave){
+    bool laClaveTuvoUnGETPrevio(char * clave, parametrosConexion * parametros){
     	bool existeLaClave(char * claveAComparar){
     		return string_equals_ignore_case(clave,claveAComparar);
     	}
-    	return list_any_satisfy(clavesTomadas,existeLaClave);
+    	if(list_is_empty(parametros->claves)){
+    		puts("ESI: la lista de las claves esta vacia");
+    		return false;
+    	}
+    	puts("ESI: la lista de las claves no esta vacia");
+    	return list_any_satisfy(parametros->claves,existeLaClave);
     }
 
     parametrosConexion* BuscarInstanciaQuePoseeLaClave(char * clave){

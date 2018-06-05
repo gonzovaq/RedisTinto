@@ -198,6 +198,6 @@ void destruirInstancia(parametrosConexion *self);
 int ConexionESISinBloqueo(OperacionAEnviar* operacion, parametrosConexion* parametros);
 int EnviarClaveYValorAInstancia(tTipoOperacion tipo, int tamanioValor,parametrosConexion* parametros, OperaciontHeader* header,OperacionAEnviar* operacion);
 int verificarParametrosAlEjecutar(int argc, char *argv[]);
-bool laClaveTuvoUnGETPrevio(char * clave);
+bool laClaveTuvoUnGETPrevio(char * clave,parametrosConexion * parametros);
 
 
