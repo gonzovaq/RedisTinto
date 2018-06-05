@@ -16,14 +16,24 @@
 #include <sys/socket.h>
 #include <commons/string.h>
 #include <commons/collections/list.h>
+#include <commons/config.h>
 
 
-#define PORT 3490 // puerto al que vamos a conectar
+#define ARCHIVO_CONFIGURACION "Instancia.config"
+
+//#define PORT 3490 // puerto al que vamos a conectar
 
 #define MAXDATASIZE 100 // máximo número de bytes que se pueden leer de una vez
 #define TAMANIO_NOMBREPROCESO 40
 #define TAMANIO_CLAVE 41
 
+// Var Globales
+char* IP;
+int PORTCO;
+char *Algoritmo;
+char *PuntoMontaje;
+char *Name;
+int Intervalo;
 
 
 // Enums
@@ -97,8 +107,6 @@ typedef struct{
 	int tamanioEntradas;
 }tInformacionParaLaInstancia;
 
-
-// Var Globales
 
 
 
