@@ -326,16 +326,41 @@
 
     int *escucharMensajesDelPlanificador(parametrosConexion* parametros){
     	while(1){
-    		/* Aca vamos a Escuchar todos los mensajes que solicite el planificador, hay que ver cuales son y vemos que hacemos
-    		 *
-			int recvHeader;
-			if ((recvHeader = recv(parametros->new_fd, header, sizeof(OperaciontHeader), 0)) <= 0) {
-				perror("recv");
-				log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
+    		// Aca vamos a Escuchar todos los mensajes que solicite el planificador, hay que ver cuales son y vemos que hacemos
+    		tSolicitudesDeConsola * solicitud = malloc(sizeof(tSolicitudesDeConsola));
+			if ((recv(parametros->new_fd, solicitud, sizeof(tSolicitudesDeConsola), 0)) <= 0) {
+				//perror("recv");
+				//log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
 				close(parametros->new_fd);
 				//exit_gracefully(1);
-				*/
 			}
+
+			switch(*solicitud){
+			case LISTAR:
+				/*
+				char clave[TAMANIO_CLAVE];
+				if ((recv(parametros->new_fd, clave, sizeof(TAMANIO_CLAVE), 0)) <= 0) {
+					perror("recv");
+					log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
+					close(parametros->new_fd);
+				}
+				int cantidadDeESIS;
+				t_list * ESISQueSolicitaronLaClave;
+				ESISQueSolicitaronLaClave = list_create();
+				cantidadDeESIS = list_size(colaESIS);
+				parametrosConexion* parametrosESI;
+				for(int i = 0;i<cantidadDeESIS;i++){
+					parametrosESI = list_get(colaESIS,i);
+				}
+				*/
+				break;
+			default:
+				//puts("Planificador: Me envio cualquier cosa");
+				break;
+			}
+
+			free(solicitud);
+		}
 
     	return EXIT_SUCCESS;
     }
@@ -550,17 +575,18 @@
 		if (!list_is_empty(colaBloqueos) && EncontrarEnLista(colaBloqueos, &clave)){
 			puts("ESI: La clave esta bloqueada");
 
-
+			/* No es necesario avisarle el bloqueo porque se lo esta avisando el ESI
 			notificacion->tipoNotificacion=BLOQUEO;
 			strcpy(notificacion->clave,clave);
 			notificacion->pid = parametros->pid;
 			printf("ESI: le voy a avisar al planificador que se bloqueo la clave: %s \n",clave);
 			sem_post(planificador->semaforo);
 			puts("ESI: Ya le avise al planificador que se bloqueo la clave");
-
+			*/
 			return 2;
 		} // ACA HAY QUE AVISARLE AL PLANIFICDOR DEL BLOQUEO PARA QUE FRENE AL ESI
 		list_add(clavesTomadas,clave);
+		list_add(parametros->claves,clave);
 
 		operacion->tipo = OPERACION_GET;
 		strcpy(operacion->clave,clave);
@@ -603,7 +629,7 @@
 		}
 		clave[strlen(clave)+1] = '\0';
 		printf("ESI: Recibi la clave: %s\n", clave);
-		/* TODO
+
 		if (!laClaveTuvoUnGETPrevio(clave,parametros)){
 			puts("ESI: La clave nunca tuvo un GET");
 
@@ -616,7 +642,7 @@
 
 			return 3;
 		}
-		*/
+
 
 		strcpy(CLAVE,clave);
 
@@ -675,7 +701,6 @@
 		clave[strlen(clave)+1] = '\0';
 		printf("ESI: Recibi la clave: %s\n", clave);
 
-		/*
 		if (!laClaveTuvoUnGETPrevio(clave,parametros)){
 			puts("ESI: La clave nunca tuvo un GET");
 
@@ -688,8 +713,6 @@
 
 			return 3;
 		}
-		*/
-
 		strcpy(CLAVE,clave);
 
 		tBloqueo *bloqueo = malloc(sizeof(tBloqueo));
@@ -1047,46 +1070,65 @@
 	}
 
 	int SeleccionarPorLeastSpaceUsed(char * clave){
-		parametrosConexion* instanciasMenosUsadas = BuscarInstanciaMenosUsada(colaInstancias); // Va a buscar la instancia que menos entradas tenga, desempata con fifo
+		parametrosConexion* instanciasMenosUsadas;
+		if(OPERACION_ACTUAL == OPERACION_GET){
+			instanciasMenosUsadas = BuscarInstanciaMenosUsada(colaInstancias); // Va a buscar la instancia que menos entradas tenga, desempata con fifo
+		}
+		else{
+			instanciasMenosUsadas = BuscarInstanciaQuePoseeLaClave(clave);
+			printf("ESI: Semaforo de list_get en direccion: %p\n", (void*)&(instanciasMenosUsadas->semaforo));
+			//list_remove_and_destroy_element(colaInstancias, 0,(void*)destruirInstancia);
+			puts("ESI: Voy a hacer el sem_post a la Instancia seleccionada \n");
+			sem_post(instanciasMenosUsadas->semaforo);
+		}
 		return 1;
 	}
 
 	int SeleccionarPorKeyExplicit(char* clave){
-		int cantidadInstancias = list_size(colaInstancias);
-		char primerCaracter = clave[0];
-		int x = 0;
-		while (clave[x] < 97 && clave[x] > 122){ // Busco el primer caracter en minuscula
-			primerCaracter = clave[x];
-			x++;
-		}
+		parametrosConexion * instancia;
+		if(OPERACION_ACTUAL == OPERACION_GET){
+			int cantidadInstancias = list_size(colaInstancias);
+			char primerCaracter = clave[0];
+			int x = 0;
+			while (clave[x] < 97 && clave[x] > 122){ // Busco el primer caracter en minuscula
+				primerCaracter = clave[x];
+				x++;
+			}
 
-		int posicionLetraEnASCII = primerCaracter - 97;
-		int rango = KEYS_POSIBLES/cantidadInstancias;
-		int restoRango = KEYS_POSIBLES%cantidadInstancias;
-		int entradasUltimaInstancia;
-		if (restoRango !=0){
-			entradasUltimaInstancia = KEYS_POSIBLES - ((cantidadInstancias-1) * (rango + 1));
-		}
+			int posicionLetraEnASCII = primerCaracter - 97;
+			int rango = KEYS_POSIBLES/cantidadInstancias;
+			int restoRango = KEYS_POSIBLES%cantidadInstancias;
+			int entradasUltimaInstancia;
+			if (restoRango !=0){
+				entradasUltimaInstancia = KEYS_POSIBLES - ((cantidadInstancias-1) * (rango + 1));
+			}
 
-		// Esto es si la clave no se encuentra en ninguna instancia
-		for (int i = 0; i < cantidadInstancias; i++){
-			if (i!= cantidadInstancias - 1 && restoRango == 0){    // Si no es la ultima instancia debo redondear hacia arriba
-					if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + rango)){
-						parametrosConexion * instancia = list_get(colaInstancias, i);
-						sem_post(instancia->semaforo);
-					}
-				}
-				else if (i!= cantidadInstancias - 1 && restoRango != 0){ // si es la ultima instancia debo recalcular y ver cuantas entradas puedo acepar
-					if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + rango + 1)){
-						parametrosConexion * instancia = list_get(colaInstancias, i);
-						sem_post(instancia->semaforo);
-					}else{
-						if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + entradasUltimaInstancia)){
-							parametrosConexion * instancia = list_get(colaInstancias, i);
+			for (int i = 0; i < cantidadInstancias; i++){
+				if (i!= cantidadInstancias - 1 && restoRango == 0){    // Si no es la ultima instancia debo redondear hacia arriba
+						if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + rango)){
+							instancia = list_get(colaInstancias, i);
 							sem_post(instancia->semaforo);
+						}
+					}
+					else if (i!= cantidadInstancias - 1 && restoRango != 0){ // si es la ultima instancia debo recalcular y ver cuantas entradas puedo aceptar
+						if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + rango + 1)){
+							instancia = list_get(colaInstancias, i);
+							sem_post(instancia->semaforo);
+						}else{
+							if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + entradasUltimaInstancia)){
+								instancia = list_get(colaInstancias, i);
+								sem_post(instancia->semaforo);
+						}
 					}
 				}
 			}
+		}
+		else {
+			instancia = BuscarInstanciaQuePoseeLaClave(clave);
+			printf("ESI: Semaforo de list_get en direccion: %p\n", (void*)&(instancia->semaforo));
+			//list_remove_and_destroy_element(colaInstancias, 0,(void*)destruirInstancia);
+			puts("ESI: Voy a hacer el sem_post a la Instancia seleccionada \n");
+			sem_post(instancia->semaforo);
 		}
 		return 1;
 	}

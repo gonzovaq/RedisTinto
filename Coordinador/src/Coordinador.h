@@ -70,6 +70,10 @@ typedef enum{
 }tTipoOperacion;
 
 typedef enum{
+	LISTAR = 1
+}tSolicitudesDeConsola;
+
+typedef enum{
 	OK = 1,
 	BLOQUEO = 2,
 	ERROR = 3,
@@ -135,6 +139,11 @@ typedef struct{
 	int entradasUsadas;
 }tInstancia;
 
+typedef struct{
+	parametrosConexion * informacion;
+	char clave[TAMANIO_CLAVE];
+}tProcesoBloqueadoEsperandoClave;
+
 
 
 // VARIABLES GLOBALES
@@ -158,6 +167,7 @@ t_list* colaMensajes;
 t_list* colaResultados;
 t_list* colaBloqueos;
 t_list* clavesTomadas;
+t_list* procesosBloqueadosEsperandoClave;
 //t_list* colaMensajesParaPlanificador;
 
 pthread_mutex_t mutex;
