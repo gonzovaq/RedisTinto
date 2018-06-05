@@ -13,8 +13,8 @@
     int main(int argc, char *argv[])
     {
 
-    	cantidadEntradas = 8;
-    	tamanioValor = 3;
+    	//cantidadEntradas = 8;
+    	//tamanioValor = 3;
     	tablaEntradas = list_create();
 
 
@@ -182,9 +182,26 @@
 
     	enviarHeader(socketCoordinador);
 
+    	recibirConfiguracion(socketCoordinador);
+
     	return socketCoordinador;
 
     	}
+
+    int recibirConfiguracion(int sockeCoordinador){
+    	tInformacionParaLaInstancia * informacion = malloc(sizeof(tInformacionParaLaInstancia));
+
+    	if((recv(sockeCoordinador, informacion, sizeof(tInformacionParaLaInstancia), 0)) <= 0){
+    		perror("Fallo al recibir la configuracion");
+    	}
+
+    	cantidadEntradas = informacion->entradas;
+    	tamanioValor = informacion->tamanioEntradas;
+    	free(informacion);
+    	printf("La cantidad de entradas que manejo es %d y tienen un tamanio de %d \n", cantidadEntradas,tamanioValor);
+
+    	return EXIT_SUCCESS;
+    }
 
     int enviarHeader(int socketCoordinador){
     	int pid = getpid(); //Los procesos podrian pasarle sus PID al coordinador para que los tenga identificados

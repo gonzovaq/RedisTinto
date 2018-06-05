@@ -369,6 +369,16 @@
     	//close(new_fd->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
         puts("Instancia conectandose");
 
+        tInformacionParaLaInstancia * informacion = malloc(sizeof(tInformacionParaLaInstancia));
+        informacion->entradas = ENTRADAS;
+        informacion->tamanioEntradas = TAMANIO_ENTRADAS;
+		if ((send(parametros->new_fd, informacion, sizeof(tInformacionParaLaInstancia), 0))
+				<= 0) {
+			perror("send");
+			//exit_gracefully(1);
+		}
+		free(informacion);
+
         while(1){ // Debo atajar cuando una instancia se me desconecta
         puts("Instancia: Hago un sem_wait");
 		printf("Semaforo en direccion: %p\n", (void*)&(parametros->semaforo));

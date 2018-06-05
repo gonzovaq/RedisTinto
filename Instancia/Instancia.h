@@ -26,7 +26,7 @@
 
 
 
-//ESTO DEBERIA ESTAR EN OTRO .H
+// Enums
 
 typedef enum{
 	ESI = 1,
@@ -43,6 +43,17 @@ typedef enum{
 	STORE = 4
 }tTipoDeMensaje;
 
+typedef enum{
+	OPERACION_GET = 1,
+	OPERACION_SET = 2,
+	OPERACION_STORE = 3
+}tTipoOperacion;
+
+typedef enum{
+	CIRCULAR = 1
+}tAlgoritmoReemplazo;
+
+// Structs
 
 typedef struct{
 	tTipoDeProceso tipoProceso;
@@ -69,12 +80,6 @@ typedef struct{
 }__attribute__((packed))
 tMensaje;
 
-typedef enum{
-	OPERACION_GET = 1,
-	OPERACION_SET = 2,
-	OPERACION_STORE = 3
-}tTipoOperacion;
-
 typedef struct {
   tTipoOperacion tipo;
   int tamanioValor;
@@ -87,12 +92,17 @@ typedef struct {
 	char* valor;
 }__attribute__((packed)) operacionRecibida;
 
-typedef enum{
-	CIRCULAR = 1
-}tAlgoritmoReemplazo;
+typedef struct{
+	int entradas;
+	int tamanioEntradas;
+}tInformacionParaLaInstancia;
+
+
+// Var Globales
 
 
 
+// Contratos de las funciones
 
 int main(int argc, char *argv[]);
 int leerConfiguracion();
@@ -104,6 +114,7 @@ int enviarMensaje(int sockfd, char* mensaje);
 operacionRecibida *recibirOperacion(int socketCoordinador, int bytesValor);
 void mostrarArray(char **arrayEntradas, int cantidadEntradas);
 OperaciontHeader *recibirHeader(int socketCoordinador);
+int recibirConfiguracion(int sockeCoordinador);
 
 void agregarEntrada(operacionRecibida *unaOperacion, char ** arrayEntradas, int cantidadEntradas, int tamanioValor, t_list *tablaEntradas, int tamanioValorRecibido);
 void procesarMensaje(tMensaje *unMensaje, t_list *tablaEntradas);

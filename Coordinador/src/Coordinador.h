@@ -144,6 +144,11 @@ typedef struct{
 	char clave[TAMANIO_CLAVE];
 }tProcesoBloqueadoEsperandoClave;
 
+typedef struct{
+	int entradas;
+	int tamanioEntradas;
+}tInformacionParaLaInstancia;
+
 
 
 // VARIABLES GLOBALES
