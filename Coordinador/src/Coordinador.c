@@ -148,16 +148,17 @@
 	   if ((bytesRecibidos = recv(parametrosNuevos->new_fd, headerRecibido, sizeof(tHeader), 0)) <= 0){
 		perror("recv");
 		log_info(logger, "Mensaje: recv error");//process_get_thread_id()); //asienta error en logger y corta
-		exit_gracefully(1);
+		//exit_gracefully(1);
 					//exit(1);
 	   }
 
 	   if (headerRecibido->tipoMensaje == CONECTARSE){
 		IdentificarProceso(headerRecibido, parametrosNuevos);
-		free(headerRecibido);
 	   }
+	   free(parametrosNuevos);
+	   free(headerRecibido);
 
-		return EXIT_SUCCESS;
+	   return EXIT_SUCCESS;
     }
 
     int IdentificarProceso(tHeader* headerRecibido, parametrosConexion* parametros) {
@@ -188,6 +189,7 @@
 
     		planificador = parametros;
     		conexionPlanificador(parametros);
+    		free(semaforoPlanif);
     		break;
     	case INSTANCIA:
     		printf("Instancia: Se conecto el proceso %d \n", headerRecibido->idProceso);
@@ -217,6 +219,7 @@
 			parametros->claves = list_create();
     		list_add(colaInstancias,(void*)parametros);
     		conexionInstancia(parametros);
+    		free(semaforo);
     		break;
     	default:
     		puts("Error al intentar conectar un proceso");
@@ -240,6 +243,8 @@
 				perror("recv");
 				log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
 				close(parametros->new_fd);
+				free(header);
+				return 1;
 				//exit_gracefully(1);
 			}
 
@@ -263,7 +268,7 @@
 				//Debo avisar a una Instancia cuando recibo una operacion (QUE NO SEA UN GET)
 				//Agregamos el mensaje a una cola en memoria
 				ConexionESISinBloqueo(operacion,parametros);
-				free(operacion);
+
 				break;
 			case 2: // Que hacemos si hay bloqueo? Debemos avisarle al planificador
 
@@ -272,7 +277,7 @@
 					//exit_gracefully(1);
 				}
 				free(header);
-				free(operacion);
+
 				break;
 			case 3:
 				puts("ESI: Error en la soliciud");
@@ -282,12 +287,13 @@
 					//exit_gracefully(1);
 				}
 				free(header);
-				free(operacion);
+
 				break;
 			default:
 				puts("ESI Fallo al ver el resultado de la operacion");
 				break;
 			}
+			free(operacion);
         }
 		close(parametros->new_fd);
 		return EXIT_SUCCESS;
@@ -303,6 +309,7 @@
 		if (stat != 0){
 			puts("Planificador: error al generar el hilo");
 			perror("thread");
+			return 1;
 			//continue;
 		}
 		pthread_detach(tid); //Con esto decis que cuando el hilo termine libere sus recursos
@@ -575,7 +582,8 @@
 			perror("recv");
 			log_info(logger, "TID %d  Mensaje: ERROR en ESI",
 					process_get_thread_id());
-			exit_gracefully(1);
+			return 3;
+			//exit_gracefully(1);
 		}
 
 		clave[strlen(clave)+1] = '\0';
@@ -635,7 +643,8 @@
 			perror("recv");
 			log_info(logger, "TID %d  Mensaje: ERROR en ESI",
 					process_get_thread_id());
-			exit_gracefully(1);
+			return 3;
+			//exit_gracefully(1);
 		}
 		clave[strlen(clave)+1] = '\0';
 		printf("ESI: Recibi la clave: %s\n", clave);
@@ -671,7 +680,8 @@
 			perror("recv");
 			log_info(logger, "TID %d  Mensaje: ERROR en ESI",
 					process_get_thread_id());
-			exit_gracefully(1);
+			return 3;
+			//exit_gracefully(1);
 		}
 		valor[tamanioValor] = '\0';
 		printf("ESI: Recibi el valor: %s \n", valor);
@@ -706,7 +716,8 @@
 			perror("recv");
 			log_info(logger, "TID %d  Mensaje: ERROR en ESI",
 					process_get_thread_id());
-			exit_gracefully(1);
+			//exit_gracefully(1);
+			return 3;
 		}
 		clave[strlen(clave)+1] = '\0';
 		printf("ESI: Recibi la clave: %s\n", clave);
@@ -799,8 +810,10 @@
 		printf("ESI: Por enviar el resultado de la clave %s \n",resultado->clave);
 		if ((sendResultado = send(parametros->new_fd, resultado, sizeof(tResultado),
 				0)) <= 0) {
+			close(parametros->new_fd);
 			perror("send");
-			exit_gracefully(1);
+			//exit_gracefully(1);
+			return 1;
 		}
 		puts("ESI: Se envio el resultado");
 		free(resultado);
@@ -815,7 +828,9 @@
 			if ((sendResultado = send(parametros->new_fd, resultado, sizeof(tResultado),
 					0)) <= 0) {
 				perror("send");
-				exit_gracefully(1);
+				close(parametros->new_fd);
+				//exit_gracefully(1); todo: que pasa aca?
+				return 1;
 			}
 			puts("ESI: Se envio el resultado");
 			free(resultado);
@@ -859,12 +874,13 @@
 
        log_destroy(logger);
        exit(return_nr);
-       free(colaInstancias->head);
-       free(colaMensajes->head);
-       free(colaResultados->head);
-       free(colaESIS->head);
-       free(colaBloqueos->head);
+       free(colaInstancias);
+       free(colaMensajes);
+       free(colaResultados);
+       free(colaESIS);
+       free(colaBloqueos);
        free(notificacion);
+       free(clavesTomadas);
 
 		return return_nr;
      }
