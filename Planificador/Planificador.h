@@ -31,8 +31,7 @@ struct sockaddr_in cord_addr; // información de la dirección del Coordinador
 	t_queue *ready;
 	t_queue *ejecucion;
    	t_queue *colaFinalizados;
-   	t_queue *colaEspera;
-    t_queue *colaBloq;
+    t_queue *bloqueados;
 //ESTO DEBERIA ESTAR EN OTRO .H
 struct parametrosConexion{
 	int new_fd;

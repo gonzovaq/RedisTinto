@@ -16,7 +16,7 @@ bool cmp (int a)
 				t_queue *test;
 				t_queue *ejecucion;
     	   		t_queue *colaFinalizados;
-    	   		t_queue *colaEspera;
+    	   		t_queue *bloqueados;
     	   		t_queue *colaX;
     	        fd_set master;   // conjunto maestro de descriptores de fichero
     	        fd_set read_fds; // conjunto temporal de descriptores de fichero para select()
@@ -31,15 +31,14 @@ bool cmp (int a)
     	        int yes=1;        // para setsockopt() SO_REUSEADDR, más abajo
     	        int addrlen;
     	        int i, j;
-    	        int flagTest=0;
+    	        int flagEjecutar=0;
     	        FD_ZERO(&master);    // borra los conjuntos maestro y temporal
     	        FD_ZERO(&read_fds);
 				//Creamos las colas que vamos a manejar con las funciones de abajo
 								ready = queue_create();
 								ejecucion=queue_create();
-								colaEspera = queue_create();
 								colaFinalizados = queue_create();
-								colaBloq = queue_create();
+								bloqueados = queue_create();
 				//finalizamos el creado de colas
     	        // obtener socket para coordinador
 								he=gethostbyname(IPCO);
@@ -160,10 +159,10 @@ bool cmp (int a)
 
 								}
 								else{
-								 if (flagTest==1&&i!=sockCord){
+								 if (flagEjecutar==1 && i!=sockCord){
 									 puts("Cerramos el socket del ESI y lo borramos del conjunto maestro");
 									 if (FD_ISSET(i, &master)) {
-										 flagTest=0;
+										 flagEjecutar=0;
 										 close(i);
 										 FD_CLR(i, &master);
 									 	 }
@@ -232,6 +231,14 @@ bool cmp (int a)
 							printf("ejecuta el esi:%d \n",esi->id);
 							tResultado * resultado = malloc(sizeof(tResultado));
 							int re=recibirResultado(esi->fd, resultado);
+							if(re==2)
+							{
+								queue_pop(ejecucion);
+								EstimacionEsi(esi);
+								printf("Esi de id:%d entro a bloqueados \n",esi->id);
+								queue_push(bloqueados,esi);
+								flagEjecutar=1;
+							}
 							if (re==1){
 								esi->cont++;
 								printf("Contador De ESI %d  Estimacion %f \n",esi->cont, esi->Estimacion);
@@ -252,7 +259,7 @@ bool cmp (int a)
 								f_ejecutar=1;
 								printf("Ejecuta el esi de fd: %d \n",esi->fd);
 								puts("Dame otro esi");
-								flagTest=1;
+								flagEjecutar=1;
 							}
 							free(resultado);
 						}
