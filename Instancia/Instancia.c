@@ -345,6 +345,8 @@
 
     void agregarEntrada(operacionRecibida *unaOperacion, char ** arrayEntradas, int cantidadEntradas, int tamanioValor, t_list *tablaEntradas, int tamanioValorRecibido){
 
+    	int contadorEntradasGuardadas = 0;
+
     	char *valorRecibido = malloc(tamanioValorRecibido);
     	memcpy(valorRecibido, unaOperacion->valor, tamanioValorRecibido);
 
@@ -370,7 +372,7 @@
 				offset = i * tamanioValor; //Para guardar
 
 				for(int j = 0; j < cantidadEntradas; j++){ //Recorro desde mi primer entrada
-					int contadorEntradasGuardadas = 0;
+
 					if(*(arrayEntradas[j]) == NULL){ //Si una entrada no tiene valores, guardo allí
 						puts("Pasé el primer IF arrayEntradas");
 						int bytesRestantes = tamanioValorRecibido - tamanioValor * i;
@@ -378,7 +380,6 @@
 						if (i == entradasNecesarias - 1){ //Si falta guardar el último pedazo del valor
 							memcpy(arrayEntradas[j], valorRecibido + offset, bytesRestantes); //Copio los bytes que quedan guardar
 							agregarNodoAtabla(tablaEntradas, j, bytesRestantes, claveRecibida);//Agrego un nodo por cada pedazo de valor guardado
-							contadorEntradasGuardadas++;
 							break; //Al hacer el break en el último pedazo de valor, deja de buscar entradas para guardar
 						}
 						else{ //Si no es el ultimo pedazo del valor, guardo y luego busco otra entrada para el proximo pedazo
@@ -393,8 +394,8 @@
 						int cantidadEntradasPendientes = entradasNecesarias - contadorEntradasGuardadas; //Las entradas que me faltan guardar (Las uso para borrar la misma cantidad de entradas)
 							switch (algoritmoReemplazo){
 								case 1:
-									eliminarEntradasStorageCircular(arrayEntradas, cantidadEntradasPendientes - 1); //Borro las entradas necesarias para guardar el resto del valor
-									i = contadorEntradasGuardadas; //Vuelvo una itearcación atrás para guardar los pedazos de valor que faltan en las entradas borradas
+									eliminarEntradasStorageCircular(arrayEntradas, cantidadEntradasPendientes); //Borro las entradas necesarias para guardar el resto del valor
+									i = contadorEntradasGuardadas - 1; //Guardo a partir del ultimo pedazo gguardado en alguna entrada vacia
 									break;
 								case 2:
 									//AlgoritmoLFU
