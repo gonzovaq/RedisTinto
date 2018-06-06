@@ -40,6 +40,15 @@ struct parametrosConexion{
 //**varGlobales**
 int flagOperar=1;
 int PORT;
+
+
+typedef enum{
+	FIFO=1,
+	SJF=2,
+	SJFD=3
+}tAlgoritmo;
+
+tAlgoritmo algoritmo;
 int PORT_COORDINADOR;
 char* IP;
 char* IPCO;
@@ -115,7 +124,7 @@ typedef struct{
 
 int LeerArchivoDeConfiguracion();
 int verificarParametrosAlEjecutar(int argc, char *argv[]);
-void ConectarAlCoordinador(int sockCord, struct sockaddr_in* cord_addr,struct hostent* he);
+int ConectarAlCoordinador(int sockCord, struct sockaddr_in* cord_addr,struct hostent* he);
 void *ejecutarConsola();
 t_esi *buscarEsi(t_queue *lista,int id);
 void destruirEsi(t_esi *unEsi);

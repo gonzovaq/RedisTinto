@@ -39,8 +39,8 @@
 				//finalizamos el creado de colas
     	        // obtener socket para coordinador
 								he=gethostbyname(IPCO);
-    	        ConectarAlCoordinador(sockCord, &cord_addr, he);
-
+    	        sockCord=ConectarAlCoordinador(sockCord, &cord_addr, he);
+				printf("El socket cordinador es: %d \n",sockCord);
     	        puts("Obtenemos listener");
     	        // obtener socket a la escucha
     	        if ((listener = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
@@ -88,6 +88,18 @@
 					//continue;
 				}
 				pthread_detach(tid); //Con esto decis que cuando el hilo termine libere sus recursos
+
+/*
+				pthread_t tid2;
+	            int stat = pthread_create(&tid2, NULL, (void*)recibirNotificacionCoordinador, &sockCord);
+				if (stat != 0){
+					puts("error al generar el hilo");
+					perror("thread");
+					//continue;
+				}
+				pthread_detach(tid2); //Con esto decis que cuando el hilo termine libere sus recursos
+*/
+
     	        // seguir la pista del descriptor de fichero mayor
     	        fdmax = listener; // por ahora es éste
     	        // bucle principal
@@ -130,7 +142,17 @@
 									int idEsi=obtenerEsi(newfd);
 									
 									queue_push(ready,new_ESI(idEsi,newfd,estimacionIni));
-																		
+									
+									if(algoritmo==SJF || algoritmo==SJFD)
+										ordenarEsis(ready);
+									/*
+											if(algoritmo==SJFD)
+											{
+												//TODO: Habria que reordenar la cola de ready
+												//Y poner el mas corto en ejecucion
+												//y mandar a ready el esi anterior
+											}
+									*/									
 									printf("Esi id %d conectado y puesto en cola \n",idEsi);
 									
     	                        }
@@ -138,11 +160,17 @@
 								 if(i==sockCord){				
 										puts("Aca escuchamos al cordi");			 
 									tNotificacionPlanificador *notificacion = malloc(sizeof(tNotificacionPlanificador));
-									  int numbytes;
+									//notificacion=recibirNotificacionCoordinador(sockCord);
+									 int numbytes;
 									if ((numbytes=recv(sockCord, notificacion, sizeof(tNotificacionPlanificador), 0)) <= 0) {
+										printf("El socket i es: %d \n",i);
 										perror("No hay nada que haya enviado el cordi");
 										//exit(1);
 									}else{
+										if(notificacion->tipoNotificacion==ERROR)
+										{
+											puts("EL ESI ABORTO (ilegalmente)");//abortar al esi
+										}
 										if(notificacion->tipoNotificacion==DESBLOQUEO)
 										{
 											printf("coordi nos dijo que pid: %d se desbloqueo \n ",notificacion->pid);
@@ -150,11 +178,20 @@
 											desbloqueado=buscarEsi(bloqueados,notificacion->pid);
 											queue_push(ready,new_ESI(desbloqueado->id,desbloqueado->fd,desbloqueado->estimacion));
 											free(desbloqueado);
+											
+											/*
+											if(algoritmo==SJFD)
+											{
+												//TODO: Habria que reordenar la cola de ready
+												//Y poner el mas corto en ejecucion
+												//y poner en ready el esi anterior
+											}
+											*/
 										}
-									}
+									
 									free(notificacion);
 									
-
+									}
 								}
 								else{
 								 if (flagEjecutar==1 && i!=sockCord){
@@ -167,56 +204,11 @@
 	                                   }
 
 							  	   }}
-							 } /*else {
-    	                        // gestionar datos de un cliente
-								puts("Entre a gestion de clientes");
-    	                        if ((nbytes = recv(i, buf, sizeof(buf), 0)) <= 0) {
-    	                            // error o conexión cerrada por el cliente
-    	                            if (nbytes == 0) {
-    	                                // conexión cerrada
-    	                                printf("selectserver: socket %d hung up\n", i);
-    	                            } else {
-    	                                perror("recv de gestion de cliente");
-    	                            }
-    	                            close(i); // bye!
-
-    	                            FD_CLR(i, &master); // eliminar del conjunto maestro
-    	                        }} else {
-    	                        // gestionar datos de un cliente
-								puts("Entre a gestion de clientes");
-								tResultado resultado = malloc(sizeof(resultado));
-								if((numbytes=recv(sockfd, resultado, sizeof(tResultado), 0)) <= 0){
-    	                       // if ((nbytes = recv(i, buf, sizeof(buf), 0)) <= 0) {
-    	                            // error o conexión cerrada por el cliente
-    	                            if (nbytes == 0) {
-    	                                // conexión cerrada
-    	                                printf("selectserver: socket %d hung up\n", i);
-    	                            } else {
-    	                                perror("recv de gestion de cliente");
-    	                            }
-    	                            close(i); // bye!
-									
-    	                            FD_CLR(i, &master); // eliminar del conjunto maestro
-    	                        } else {
-    	                            // tenemos datos de algún cliente
-    	                            for(j = 0; j <= fdmax; j++) {
-    	                                // ¡enviar a todo el mundo!
-    	                                if (FD_ISSET(j, &master)) {
-    	                                    // excepto al listener y a nosotros mismos
-    	                                    if (j != listener && j != i) {
-    	                                        if (send(j, buf, nbytes, 0) == -1) {
-    	                                            perror("send");
-    	                                        }
-    	                                    }
-    	                                }
-    	                            }
-    	                        }*/
-    	                     // Esto es ¡TAN FEO!
+							 } 
 						}
 						//Planificar
 					int f_ejecutar=0;//Flag para mandar de ready a ejecucion.
-					//puts("voy a verificar las colas");
-					
+					//puts("voy a verificar las colas");	
 					if(flagOperar==1){
 						puts("entre ");
 						if(queue_is_empty(ejecucion)==0)
@@ -233,8 +225,11 @@
 							int re=recibirResultado(esi->fd, resultado);
 							if(re==2)
 							{
+								//Si se bloquea
 								queue_pop(ejecucion);
-								estimacionEsi(esi);
+								if(algoritmo==SJF ||algoritmo==SJFD)
+									estimacionEsi(esi);
+									//haria algo mas	
 								printf("Esi de id:%d entro a bloqueados \n",esi->id);
 								queue_push(bloqueados,esi);
 								flagEjecutar=1;
@@ -247,9 +242,6 @@
 							{
 								queue_pop(ejecucion);
 								queue_push(finalizados,new_ESI(esi->id,esi->fd,esi->estimacion));
-								estimacionEsi(esi);
-								printf("Contador De ESI %d  estimacion %f \n",esi->cont, esi->estimacion);
-								
 								f_ejecutar=1;
 								puts("Dame otro esi");
 								flagEjecutar=1;
@@ -266,7 +258,8 @@
 							if(f_ejecutar==1)
 							{
 								t_esi *esi=malloc(sizeof(t_esi));
-								ordenarEsis(ready);
+								if(algoritmo==SJF || algoritmo==SJFD)
+									ordenarEsis(ready);
 								esi = queue_pop(ready);
 								printf("Id del esi a buscar:%d \n",esi->id);
 								printf("esi de id %d cambiado de cola \n",esi->id);
@@ -289,6 +282,21 @@
 
 	}
 	*/
+/*
+void *recibirNotificacionCoordinador(int socket)
+{
+
+		int numbytes;
+		tNotificacionPlanificador *notificacion = malloc(sizeof(tNotificacionPlanificador));
+		if ((numbytes=recv(sockCord, notificacion, sizeof(tNotificacionPlanificador), 0)) <= 0) {
+										printf("El socket i es: %d \n",i);
+										perror("No hay nada que haya enviado el cordi");
+										//exit(1);
+									}
+									else{
+										return notificacion;
+									}
+}*/
 void ordenarEsis(t_queue *cola)
 	{
 		int compare(t_esi *esi1,t_esi *esi2)
@@ -342,14 +350,15 @@ void ordenarEsis(t_queue *cola)
           }
 
 	
-    void ConectarAlCoordinador(int sockCord, struct sockaddr_in* cord_addr,
+    int ConectarAlCoordinador(int sockCord, struct sockaddr_in* cord_addr,
     		struct hostent* he) {
     	// obtener socket para coordinador
-    	if ((sockCord = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+    	if ((sockCord = socket(AF_INET, SOCK_STREAM, 0)) <= 0) {
     		puts("Error al crear el socket");
     		perror("socket");
     		exit(1);
     	}
+		printf("El socket cordinador es: %d \n",sockCord);
     	cord_addr->sin_family = AF_INET; // Ordenación de bytes de la máquina
     	cord_addr->sin_port = htons(PORT_COORDINADOR); // short, Ordenación de bytes de la red
     	cord_addr->sin_addr = *((struct in_addr*) he->h_addr);
@@ -362,8 +371,11 @@ void ordenarEsis(t_queue *cola)
     		perror("connect");
     		exit(1);
     	}
-    	puts("Conectado con el coordinador!\n");
+		printf("El socket cordinador es: %d \n",sockCord);
+    	//puts("Conectado con el coordinador!\n");
 		enviarHeader(sockCord);
+	return sockCord;
+		//printf("El socket cordinador es: %d \n",sockCord);
     }
 
     int verificarParametrosAlEjecutar(int argc, char *argv[]){
@@ -511,7 +523,7 @@ void ordenarEsis(t_queue *cola)
 			estimacionIni = config_get_int_value(configuracion, "estimacion");
 			puts("estimado");
 			Alfa = config_get_int_value(configuracion, "Alfa");
-
+			algoritmo = config_get_int_value(configuracion, "algoritmo");
 			return 1;
 
 		}
