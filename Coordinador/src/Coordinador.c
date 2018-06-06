@@ -449,7 +449,7 @@
 			resultadoCompleto->resultado = OK;
 			strcpy(resultadoCompleto->clave,operacion->clave);
 
-			free(operacion->valor);
+			//free(operacion->valor);
 
 			//Debo avisarle al ESI que me invoco el resultado
 			pthread_mutex_lock(&mutex);
@@ -602,7 +602,7 @@
 		printf("ESI: Recibi la clave: %s \n", clave);
 		strcpy(CLAVE,clave);
 
-		if (!list_is_empty(colaBloqueos) && EncontrarEnLista(colaBloqueos, &clave)){
+		if ((!list_is_empty(colaBloqueos)) && EncontrarEnLista(colaBloqueos, &clave)){
 			puts("ESI: La clave esta bloqueada");
 
 			/* No es necesario avisarle el bloqueo porque se lo esta avisando el ESI
@@ -615,8 +615,10 @@
 			*/
 			return 2;
 		} // ACA HAY QUE AVISARLE AL PLANIFICDOR DEL BLOQUEO PARA QUE FRENE AL ESI
-		list_add(clavesTomadas,clave);
-		list_add(parametros->claves,clave);
+		char * claveCopia = malloc(strlen(clave)+1);
+		strcpy(claveCopia,clave);
+		list_add(clavesTomadas,claveCopia);
+		list_add(parametros->claves,claveCopia);
 
 		operacion->tipo = OPERACION_GET;
 		strcpy(operacion->clave,clave);
@@ -661,7 +663,7 @@
 		clave[strlen(clave)+1] = '\0';
 		printf("ESI: Recibi la clave: %s\n", clave);
 
-		if (!laClaveTuvoUnGETPrevio(clave,parametros)){
+		if (!laClaveTuvoUnGETPrevio(&clave,parametros)){
 			puts("ESI: La clave nunca tuvo un GET");
 
 			notificacion->tipoNotificacion=ERROR;
@@ -686,7 +688,7 @@
 		}
 		free(bloqueo);
 
-		char *valor = malloc(sizeof(tamanioValor));
+		char *valor = malloc(tamanioValor);
 		//char valor[tamanioValor];
 		if (( recvValor = recv(parametros->new_fd, valor, tamanioValor + 1, 0)) <= 0) {
 			perror("recv");
@@ -773,7 +775,7 @@
 
 		free(bloqueo);
 
-		operacion->tipo = OPERACION_GET;
+		operacion->tipo = OPERACION_STORE;
 		strcpy(operacion->clave,clave);
 		operacion->valor = NULL;
 
@@ -923,23 +925,30 @@
 
     bool EncontrarEnLista(t_list * lista, char * claveABuscar){
 		bool yaExisteLaClave(tBloqueo *bloqueo) {
-			return string_equals_ignore_case(bloqueo->clave,claveABuscar);
+			printf("ESI: Comparando la clave %s con %s \n",claveABuscar, bloqueo->clave);
+			if (string_equals_ignore_case(bloqueo->clave,claveABuscar) == true){
+				puts("ESI: Las claves son iguales");
+				return true;
+			}
+			puts("ESI: Las claves son distintas");
+			return false;
 		}
 		return list_any_satisfy(lista,(void*) yaExisteLaClave);
     }
 
     bool LePerteneceLaClave(t_list * lista, tBloqueo * bloqueoBuscado){
 		bool yaExisteLaClaveYPerteneceAlESI(tBloqueo *bloqueo) {
-			return (bloqueo->pid == bloqueoBuscado->pid) && string_equals_ignore_case(bloqueo->clave,bloqueoBuscado->clave);
+			return ((bloqueo->pid == bloqueoBuscado->pid) && (string_equals_ignore_case(bloqueo->clave,bloqueoBuscado->clave)) == true);
 		}
 		return list_any_satisfy(lista,(void*) yaExisteLaClaveYPerteneceAlESI);
     }
 
     bool laClaveTuvoUnGETPrevio(char * clave, parametrosConexion * parametros){
     	bool existeLaClave(char * claveAComparar){
+    		printf("ESI: Comparo la clave %s con %s \n", clave,claveAComparar);
     		return string_equals_ignore_case(clave,claveAComparar);
     	}
-    	if(list_is_empty(parametros->claves)){
+    	if(list_is_empty(parametros->claves) == true){
     		puts("ESI: la lista de las claves esta vacia");
     		return false;
     	}
@@ -950,7 +959,7 @@
     parametrosConexion* BuscarInstanciaQuePoseeLaClave(char * clave){
     	bool tieneLaClave(char * claveAComparar){
     		printf("ESI: Buscando instancia, comparando la clave %s con %s \n", clave, claveAComparar);
-    		return string_equals_ignore_case(clave,claveAComparar);
+    		return string_equals_ignore_case(clave,claveAComparar) == true;
     	}
     	bool lePerteneceLaClave(parametrosConexion * parametros){
     		return list_any_satisfy(parametros->claves,tieneLaClave);
@@ -1224,7 +1233,7 @@
 	int RemoverClaveDeLaLista(t_list * lista, char * claveABuscar){
 		bool yaExisteLaClave(tBloqueo *bloqueo){
 			printf("Comparando la clave %s con %s \n", claveABuscar, bloqueo->clave);
-			return string_equals_ignore_case(bloqueo->clave,claveABuscar);
+			return string_equals_ignore_case(bloqueo->clave,claveABuscar) == true;
 		}
 		list_remove_and_destroy_by_condition(colaBloqueos,yaExisteLaClave,(void*)destruirBloqueo);
 		return EXIT_SUCCESS;

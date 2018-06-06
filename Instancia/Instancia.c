@@ -77,7 +77,7 @@
         		agregarEntrada(operacion, arrayEntradas, cantidadEntradas, tamanioValor, tablaEntradas, tamanioValorRecibido);
         		puts("Agregue la entrada");
 
-        		enviarRespuestaSet(socketCoordinador, tablaEntradas, bufferClave);
+        		enviarEntradasUsadas(socketCoordinador, tablaEntradas, bufferClave);
         		free(headerRecibido);
         		//free(operacion);
         		free(bufferClave);
@@ -111,7 +111,7 @@
         		longitudMaximaValorBuscado = calcularLongitudMaxValorBuscado(bufferClave, tablaEntradas);
         		valorGet = obtenerValor(longitudMaximaValorBuscado, tablaEntradas, bufferClave, arrayEntradas, tamanioValor);
         		guardarUnArchivo(bufferClave, valorGet);
-        		enviarRespuestaStore(socketCoordinador);
+        		enviarEntradasUsadas(socketCoordinador, tablaEntradas, bufferClave);
 
 
         		free(valorGet);
@@ -281,27 +281,16 @@
     	return 1;
     }
 
-    int enviarRespuestaSet(int socketCoordinador,t_list *tablaEntradas, char *bufferClave){
+    int enviarEntradasUsadas(int socketCoordinador,t_list *tablaEntradas, char *bufferClave){
     	tEntradasUsadas *buffer = malloc(sizeof(tEntradasUsadas));
     	buffer->entradasUsadas = calcularLongitudMaxValorBuscado(bufferClave, tablaEntradas);
 
-    	if(send(socketCoordinador, buffer, sizeof(tEntradasUsadas), 0)){
+    	if(send(socketCoordinador, buffer, sizeof(tEntradasUsadas), 0)<= 0){
     		puts("Error al enviar las entradas usadas");
     		perror("Send");
     	}
     	free(buffer);
     	return 1;
-    }
-
-    int enviarRespuestaStore(int socketCoordinador){
-    	tEntradasUsadas *buffer = malloc(sizeof(tEntradasUsadas));
-    	buffer->entradasUsadas = 0;
-       	if(send(socketCoordinador, buffer, sizeof(tEntradasUsadas), 0)){
-        		puts("Error al enviar las entradas usadas");
-        		perror("Send");
-        	}
-        	free(buffer);
-        	return 1;
     }
 
     char *recibirMensaje(int socketCoordinador, int bytesARecibir){
@@ -676,7 +665,7 @@
           }
 
        void guardarUnArchivo(char *unaClave, char *valorArchivo){
-    	   char rutaAGuardar[150] = "/home/utnso/tp-2018-1c-Sistemas-Operactivos/Instancia/\0";
+    	   char rutaAGuardar[150] = "\0";
     	   puts("Antes de hacer strcat");
     	   strcat(rutaAGuardar, unaClave);
     	   strcat(rutaAGuardar, ".txt");

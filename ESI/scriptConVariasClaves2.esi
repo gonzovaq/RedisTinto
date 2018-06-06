@@ -1,0 +1,9 @@
+GET arquero
+SET arquero massa
+SET arquero donadona
+SET arquero PROBANDO123PROBANDO123
+GET jugador 
+SET jugador jugadorcito
+STORE jugador
+SET arquero LARGOOOOOOOOFIN
+STORE arquero       

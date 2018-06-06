@@ -1,0 +1,9 @@
+GET jugador
+SET jugador messi
+SET jugador maradona
+SET jugador esteEsElNuevoJugadorQueTieneUnNombreMuyLargoParaProbar
+GET arquero 
+SET arquero arqueroDeNombreNoTanLargo
+STORE arquero
+SET jugador cortito
+STORE jugador       

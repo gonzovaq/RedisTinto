@@ -1,0 +1,16 @@
+GET dt 
+GET operactivos 
+GET trambolico 
+GET arquero
+GET jugador 
+SET dt massa
+SET operactivos donadona
+SET trambolico PROBANDO123PROBANDO123
+SET jugador jugadorcito
+SET arquero LARGOOOOOOOOFIN
+STORE arquero  
+STORE jugador   
+STORE trambolico
+STORE operactivos
+STORE dt
+  

@@ -149,5 +149,5 @@ int calcularEntradasABorrar(char **arrayEntradas, int entradasNecesarias);
 
 void guardarUnArchivo(char *unaClave, char *valorArchivo);
 void guardarTodasMisClaves(t_list *tablaEntradas, char **arrayEntradas);
-int enviarRespuestaSet(int socketCoordinador,t_list *tablaEntradas, char *bufferClave);
-int enviarRespuestaStore(int socketCoordinador);
+int enviarEntradasUsadas(int socketCoordinador,t_list *tablaEntradas, char *bufferClave);
+
