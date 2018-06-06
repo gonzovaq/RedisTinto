@@ -30,7 +30,7 @@ struct hostent *he;
 struct sockaddr_in cord_addr; // información de la dirección del Coordinador
 	t_queue *ready;
 	t_queue *ejecucion;
-   	t_queue *colaFinalizados;
+   	t_queue *finalizados;
     t_queue *bloqueados;
 //ESTO DEBERIA ESTAR EN OTRO .H
 struct parametrosConexion{
@@ -44,7 +44,7 @@ int PORT_COORDINADOR;
 char* IP;
 char* IPCO;
 int MAXDATASIZE;
-float EstimacionIni;
+float estimacionIni;
 int Alfa;
 
 // Uso de commons en Queue
@@ -52,16 +52,16 @@ typedef struct {
       int id;
       int fd;
       int cont;
-      float Estimacion;
+      float estimacion;
 }t_esi;
 
 
-static t_esi * new_ESI(int id,int fd){
+static t_esi * new_ESI(int id,int fd,int ini){
 	t_esi *new = malloc(sizeof(t_esi));
 	new->id = id;
 	new->fd = fd;
 	new->cont = 0;
-	new->Estimacion=EstimacionIni;
+	new->estimacion=ini;
 	return new;
 }
 
@@ -121,5 +121,5 @@ t_esi *buscarEsi(t_queue *lista,int id);
 void destruirEsi(t_esi *unEsi);
 void *gestionarConexion(int socket);
 void *conexionESI(int *new_fd);
-
+void estimacionEsi (t_esi* esi);
 void ordenarEsis(t_queue *cola);

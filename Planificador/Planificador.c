@@ -1,8 +1,5 @@
 	#include "Planificador.h"
-bool cmp (int a)
-{
-	return a;
-}
+
     int main(int argc, char *argv[])
     {
     	LeerArchivoDeConfiguracion();
@@ -15,7 +12,7 @@ bool cmp (int a)
     			t_queue *ready;
 				t_queue *test;
 				t_queue *ejecucion;
-    	   		t_queue *colaFinalizados;
+    	   		t_queue *finalizados;
     	   		t_queue *bloqueados;
     	   		t_queue *colaX;
     	        fd_set master;   // conjunto maestro de descriptores de fichero
@@ -37,7 +34,7 @@ bool cmp (int a)
 				//Creamos las colas que vamos a manejar con las funciones de abajo
 								ready = queue_create();
 								ejecucion=queue_create();
-								colaFinalizados = queue_create();
+								finalizados = queue_create();
 								bloqueados = queue_create();
 				//finalizamos el creado de colas
     	        // obtener socket para coordinador
@@ -132,15 +129,13 @@ bool cmp (int a)
 									
 									int idEsi=obtenerEsi(newfd);
 									
-									queue_push(ready,new_ESI(idEsi,newfd));
+									queue_push(ready,new_ESI(idEsi,newfd,estimacionIni));
 																		
 									printf("Esi id %d conectado y puesto en cola \n",idEsi);
-									
 									
     	                        }
 							 }else{
 								 if(i==sockCord){				
-									 
 										puts("Aca escuchamos al cordi");			 
 									tNotificacionPlanificador *notificacion = malloc(sizeof(tNotificacionPlanificador));
 									  int numbytes;
@@ -148,13 +143,16 @@ bool cmp (int a)
 										perror("No hay nada que haya enviado el cordi");
 										//exit(1);
 									}else{
-										printf("coordi nos dijo que pid: %d se desbloqueo \n ",notificacion->pid);
-										
-										/* TODO:
-										* debo buscar el esi en la cola de bloqueados y sacarlo 
-										* para aniadirlo a la cola de ready
-										*/
+										if(notificacion->tipoNotificacion==DESBLOQUEO)
+										{
+											printf("coordi nos dijo que pid: %d se desbloqueo \n ",notificacion->pid);
+											t_esi * desbloqueado = malloc(sizeof(t_esi));
+											desbloqueado=buscarEsi(bloqueados,notificacion->pid);
+											queue_push(ready,new_ESI(desbloqueado->id,desbloqueado->fd,desbloqueado->estimacion));
+											free(desbloqueado);
+										}
 									}
+									free(notificacion);
 									
 
 								}
@@ -218,7 +216,9 @@ bool cmp (int a)
 						//Planificar
 					int f_ejecutar=0;//Flag para mandar de ready a ejecucion.
 					//puts("voy a verificar las colas");
+					
 					if(flagOperar==1){
+						puts("entre ");
 						if(queue_is_empty(ejecucion)==0)
 						{
 							puts("Entre a ejecucion");
@@ -234,32 +234,26 @@ bool cmp (int a)
 							if(re==2)
 							{
 								queue_pop(ejecucion);
-								EstimacionEsi(esi);
+								estimacionEsi(esi);
 								printf("Esi de id:%d entro a bloqueados \n",esi->id);
 								queue_push(bloqueados,esi);
 								flagEjecutar=1;
 							}
 							if (re==1){
 								esi->cont++;
-								printf("Contador De ESI %d  Estimacion %f \n",esi->cont, esi->Estimacion);
+								printf("Contador De ESI %d  estimacion %f \n",esi->cont, esi->estimacion);
 							}
 							if(re==-5)
 							{
 								queue_pop(ejecucion);
-								//free(esi->id);
-								//free(esi->fd);
-							    //EstimacionEsi(esi);
-
-								printf("ALFA : %d     EstINI : %f ESI cont :  %d \n",Alfa,EstimacionIni,esi->cont);
-								EstimacionEsi(esi);
-								esi->cont=0;
-								printf("Contador De ESI %d  Estimacion %f \n",esi->cont, esi->Estimacion);
-
-								free(esi);
+								queue_push(finalizados,new_ESI(esi->id,esi->fd,esi->estimacion));
+								estimacionEsi(esi);
+								printf("Contador De ESI %d  estimacion %f \n",esi->cont, esi->estimacion);
+								
 								f_ejecutar=1;
-								printf("Ejecuta el esi de fd: %d \n",esi->fd);
 								puts("Dame otro esi");
 								flagEjecutar=1;
+							    free(esi);
 							}
 							free(resultado);
 						}
@@ -276,18 +270,19 @@ bool cmp (int a)
 								esi = queue_pop(ready);
 								printf("Id del esi a buscar:%d \n",esi->id);
 								printf("esi de id %d cambiado de cola \n",esi->id);
-								queue_push(ejecucion,new_ESI(esi->id,esi->fd));
+								queue_push(ejecucion,new_ESI(esi->id,esi->fd,esi->estimacion));
 								free(esi);
 							}
 							puts("Ready no vacia");
 						}
 					}
+
 				
-				}
+				}//Cierra el for
     	        
 				
     	        return 0;
-    }
+    }//Cierra el main
 
 /*	float estimar(t_esi esi,float alpha)
 	{
@@ -299,7 +294,7 @@ void ordenarEsis(t_queue *cola)
 		int compare(t_esi *esi1,t_esi *esi2)
 		{
 			float resul;
-			resul= esi2->Estimacion-esi1->Estimacion;
+			resul= esi2->estimacion-esi1->estimacion;
 			return resul;
 		}
 
@@ -500,7 +495,6 @@ void ordenarEsis(t_queue *cola)
 
 			// Leer archivo de configuracion con las commons
 			t_config* configuracion;
-
 			configuracion = config_create(ARCHIVO_CONFIGURACION);
 
 			PORT = config_get_int_value(configuracion, "PORT");
@@ -513,16 +507,18 @@ void ordenarEsis(t_queue *cola)
 			//puts("entram03");
 			MAXDATASIZE = config_get_int_value(configuracion, "MAX_DATASIZE");
 			//puts("entram04");
-			EstimacionIni = config_get_int_value(configuracion, "Estimacion");
+			puts("estimando");
+			estimacionIni = config_get_int_value(configuracion, "estimacion");
+			puts("estimado");
 			Alfa = config_get_int_value(configuracion, "Alfa");
 
 			return 1;
 
 		}
- void EstimacionEsi (t_esi* esi){ //float EstimacionEsi (t_esi* esi)
+ void estimacionEsi (t_esi* esi){ //float EstimacionEsi (t_esi* esi)
 
 
-		esi->Estimacion= ((0.01*Alfa*esi->cont)+((1-(Alfa*0.01))*EstimacionIni));
+		esi->estimacion= ((0.01*Alfa*esi->cont)+((1-(Alfa*0.01))*(esi->estimacion)));
 
 		//return (esi);
 	}
