@@ -141,16 +141,6 @@
 	   parametrosNuevos-> cantidadEntradasMaximas = parametros->cantidadEntradasMaximas;
 	   parametrosNuevos-> entradasUsadas = parametros->entradasUsadas;
 
-		   parametrosConexion *parametrosNuevos = malloc(sizeof(parametrosConexion));
-		   parametrosNuevos->new_fd = parametros->new_fd;
-		   printf("El socket es: %d \n", parametrosNuevos->new_fd);
-			strcpy(parametrosNuevos->nombreProceso,parametros->nombreProceso);
-			parametrosNuevos->cantidadEntradasMaximas = ENTRADAS;
-			parametrosNuevos->entradasUsadas = 0;
-			parametrosNuevos->pid = 0;
-
-        puts("Se espera un identificador");
-
 	   if ((recv(parametrosNuevos->new_fd, headerRecibido, sizeof(tHeader), 0)) <= 0){
 
 		perror("recv");
@@ -470,8 +460,10 @@
 			list_add(colaResultados,(void*)resultadoCompleto);
 			pthread_mutex_unlock(&mutex);
 
-				}
-			}
+		}
+	close(parametros->new_fd);
+			return 1;
+	}
 
         //		*************** PRUEBAS HARDCODEADAS *****************
 
@@ -565,10 +557,6 @@
 //
 //        		free(header3);
 
-        }
-		close(parametros->new_fd);
-		return 1;
-    }
 
     int AnalizarOperacion(int tamanioValor,
     			OperaciontHeader* header, parametrosConexion* parametros,

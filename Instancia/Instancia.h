@@ -163,6 +163,8 @@ void eliminarEntradasStorageCircular(char **arrayEntradas, int cantidadEntradasA
 void eliminarNodoPorIndex(t_list *tablaEntradas, int index);
 int calcularEntradasABorrar(char **arrayEntradas, int entradasNecesarias);
 
+int Dump(char **arrayEntradas);
+
 void guardarUnArchivo(char *unaClave, char *valorArchivo);
 void guardarTodasMisClaves(t_list *tablaEntradas, char **arrayEntradas);
 int enviarEntradasUsadas(int socketCoordinador,t_list *tablaEntradas, char *bufferClave);

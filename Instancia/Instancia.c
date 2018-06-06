@@ -35,16 +35,9 @@
 //    	char *punteroCIRC = malloc(sizeof(char*));
 //     	punteroCIRC = arrayEntradas[posicionPunteroCirc];
 
-
-
-
-
-        socketCoordinador = conectarmeYPresentarme(PORT);
-    	printf("Socket del coordinador: %d\n", socketCoordinador);
-
     	//DUMP
     	pthread_t tid;
-    	int stat = pthread_create(&tid, NULL, (void*)Dump, NULL);//(void*)&parametros -> parametros contendria todos los parametros que usa conexion
+    	int stat = pthread_create(&tid, NULL, (void*)Dump, (void*)&arrayEntradas);
 		if (stat != 0){
 			puts("error al generar el hilo");
 			perror("thread");
@@ -130,9 +123,8 @@
         		free(headerRecibido);
         		free(bufferClave);
         	}
-        	guardarTodasMisClaves(tablaEntradas, arrayEntradas);
 
-        	}
+        }
         close(socketCoordinador);
         return 0;
     }
@@ -685,12 +677,15 @@
           	return;
        }
 
-       int Dump()
+       int Dump(char **arrayEntradas)
        {
     	   while(1)
     	   {
     		   sleep(SLEEP_DUMP);
+    		   puts("PROBANDO EL DUMP");
+    		   //guardarTodasMisClaves(tablaEntradas, arrayEntradas);
     	   }
+    	   return EXIT_SUCCESS;
        }
 
 
