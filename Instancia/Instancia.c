@@ -39,14 +39,25 @@
 
 
 
+        socketCoordinador = conectarmeYPresentarme(PORT);
+    	printf("Socket del coordinador: %d\n", socketCoordinador);
+
+    	//DUMP
+    	pthread_t tid;
+    	int stat = pthread_create(&tid, NULL, (void*)Dump, NULL);//(void*)&parametros -> parametros contendria todos los parametros que usa conexion
+		if (stat != 0){
+			puts("error al generar el hilo");
+			perror("thread");
+			//continue;
+		}
+		pthread_detach(tid); //Con esto decis que cuando el hilo termine libere sus recursos
 
 
         while(1){
         	OperaciontHeader *headerRecibido = malloc(sizeof(OperaciontHeader)); // El malloc esta en recibir header
-        	puts("Recibiendo header");
+        	puts("Intento recibir header del Coordinador");
         	headerRecibido = recibirHeader(socketCoordinador);
-        	puts("pase el ultimo recibir headr");
-
+        	printf("Me conecte con el coordinador: %d\n", headerRecibido->tipo);
         	tamanioValorRecibido = headerRecibido->tamanioValor;
         	puts("Asigne tamanioValor");
         	char *bufferClave;
@@ -60,6 +71,7 @@
         	puts("REcibi mensaje");
 
         	if (headerRecibido->tipo == OPERACION_SET){
+
 
         		cantidadClavesEnTabla++;
             	if(validarClaveExistente(bufferClave, tablaEntradas) == true){
@@ -121,11 +133,6 @@
         	guardarTodasMisClaves(tablaEntradas, arrayEntradas);
 
         	}
-
-
-
-
-
         close(socketCoordinador);
         return 0;
     }
@@ -261,22 +268,21 @@
 
     int enviarValorGet(int socketCoordinador, char *valorGet){
     	int tamanioValorGet = strlen(valorGet);
-    	OperaciontHeader *header = malloc(tamanioValorGet);
+    	tResultadoInstancia *header = malloc(sizeof(tResultadoInstancia));
 
-    	header->tipo = GET;
+    	header->resultado = OK;
     	header->tamanioValor = tamanioValorGet;
 
     	if(send(socketCoordinador, header, sizeof(OperaciontHeader), 0) <= 0){
     		puts("Error al enviar header de operacion");
     		perror("Send");
-    		free(header);
     	}
 
     	if(send(socketCoordinador, valorGet, tamanioValorGet, 0) <= 0){
     		puts("Error al enviar el valor buscado");
     		perror("Send");
     	}
-
+    	free(header);
     	puts("MANDE TODO BIEN");
     	return 1;
     }
@@ -306,10 +312,10 @@
     }
 
     OperaciontHeader *recibirHeader(int socketCoordinador){
-    	int bytesRecibidos;
     	OperaciontHeader *unHeader = malloc(sizeof(OperaciontHeader));
-
-    	if ((bytesRecibidos = recv(socketCoordinador, unHeader, sizeof(OperaciontHeader), 0)) <= 0){
+    	printf("Socket del coordinador: %d\n", socketCoordinador);
+    	if ((recv(socketCoordinador, unHeader, sizeof(OperaciontHeader), 0)) <= 0){
+    		puts("Fallo al recibir el header");
     		perror("recv");
     		exit(1);
     	}
@@ -329,6 +335,19 @@
         printf("El mensaje: \"%s\", se ha enviado correctamente! \n\n",mensaje);
         return 1;
     }
+
+	int enviarResultado(int socket,tResultadoInstancia * resul)
+	{
+		if ((send(socket, resul, sizeof(tResultadoInstancia), 0)) <= 0) {
+        	puts("Error al enviar resultado al Coordinador");
+        	perror("send");
+            exit(1);
+        }
+		printf("Resultado es: %d \n",resul->resultado);//Envio bien el resultado
+		printf("Resultado tamanioValor: %d \n",resul->tamanioValor);
+    	puts("Se envió el resultado al Coordinador");
+        return EXIT_SUCCESS;
+	}
 
     operacionRecibida *recibirOperacion(int socketCoordinador, int tamanioValor){
     	operacionRecibida *operacion = malloc(sizeof(operacionRecibida));
@@ -658,13 +677,22 @@
        }
 
        void eliminarNodoPorIndex(t_list *tablaEntradas, int index){
-          	int coincidir(tEntrada *unaEntrada){
+          	int coincidir(tEntrada *unaEntrada)
+          	{
           	    	    		return unaEntrada->numeroEntrada == index;
-          	    	    	}
-          		list_remove_and_destroy_by_condition(tablaEntradas, (void*) coincidir,(void*) destruirNodoDeTabla);
-
+			}
+			list_remove_and_destroy_by_condition(tablaEntradas, (void*) coincidir,(void*) destruirNodoDeTabla);
           	return;
-          }
+       }
+
+       int Dump()
+       {
+    	   while(1)
+    	   {
+    		   sleep(SLEEP_DUMP);
+    	   }
+       }
+
 
        void guardarUnArchivo(char *unaClave, char *valorArchivo){
     	   char rutaAGuardar[150] = "\0";

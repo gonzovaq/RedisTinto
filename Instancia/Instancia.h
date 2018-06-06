@@ -27,6 +27,7 @@
 #define TAMANIO_NOMBREPROCESO 40
 #define TAMANIO_CLAVE 41
 
+
 // Var Globales
 char* IP;
 int PORTCO;
@@ -34,6 +35,9 @@ char *Algoritmo;
 char *PuntoMontaje;
 char *Name;
 int Intervalo;
+
+#define SLEEP_DUMP 5 //Le puse 5, no tengo idea cada cuanto tiene que ejecutar el Dump
+
 
 
 // Enums
@@ -77,6 +81,18 @@ typedef struct{
 	int numeroEntrada;
 	int tamanioAlmacenado;
 }tEntrada;
+
+typedef enum{
+	OK = 1,
+	BLOQUEO = 2,
+	ERROR = 3,
+	DESBLOQUEO = 4
+}tResultadoOperacion;
+
+typedef struct{
+	tResultadoOperacion resultado;
+	int tamanioValor;
+}__attribute__((packed)) tResultadoInstancia;
 
 typedef struct{
 	char clave[41];

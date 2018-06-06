@@ -114,7 +114,9 @@
     				strcpy(parametros.nombreProceso,nombreProceso);
     				parametros.cantidadEntradasMaximas = ENTRADAS;
     				parametros.entradasUsadas = 0;
+
     				parametros.pid = 0;
+
     				printf("Socket %d \n",new_fd);
     	            int stat = pthread_create(&tid, NULL, (void*)gestionarConexion, (void*)&parametros);//(void*)&parametros -> parametros contendria todos los parametros que usa conexion
     				if (stat != 0){
@@ -132,8 +134,12 @@
     }
 
     int *gestionarConexion(parametrosConexion *parametros){ //(int* sockfd, int* new_fd)
-        int bytesRecibidos;
-               tHeader *headerRecibido = malloc(sizeof(tHeader));
+	   tHeader *headerRecibido = malloc(sizeof(tHeader));
+	   parametrosConexion *parametrosNuevos=  malloc(sizeof(parametrosConexion));
+	   strcpy(parametrosNuevos->nombreProceso, parametros->nombreProceso);
+	   parametrosNuevos->new_fd = parametros->new_fd;
+	   parametrosNuevos-> cantidadEntradasMaximas = parametros->cantidadEntradasMaximas;
+	   parametrosNuevos-> entradasUsadas = parametros->entradasUsadas;
 
 		   parametrosConexion *parametrosNuevos = malloc(sizeof(parametrosConexion));
 		   parametrosNuevos->new_fd = parametros->new_fd;
@@ -145,7 +151,8 @@
 
         puts("Se espera un identificador");
 
-	   if ((bytesRecibidos = recv(parametrosNuevos->new_fd, headerRecibido, sizeof(tHeader), 0)) <= 0){
+	   if ((recv(parametrosNuevos->new_fd, headerRecibido, sizeof(tHeader), 0)) <= 0){
+
 		perror("recv");
 		log_info(logger, "Mensaje: recv error");//process_get_thread_id()); //asienta error en logger y corta
 		//exit_gracefully(1);
@@ -193,6 +200,7 @@
     		break;
     	case INSTANCIA:
     		printf("Instancia: Se conecto el proceso %d \n", headerRecibido->idProceso);
+    		printf("Socket de la instancia: %d\n", parametros->new_fd);
             /*strcpy(parametros->nombreProceso, headerRecibido->nombreProceso);
             parametrosConexion * nuevaInstancia = malloc(sizeof(int)*2);
             nuevaInstancia->informacion = parametros;
@@ -387,6 +395,7 @@
 		free(informacion);
 
         while(1){ // Debo atajar cuando una instancia se me desconecta
+
 			puts("Instancia: Hago un sem_wait");
 			printf("Semaforo en direccion: %p\n", (void*)&(parametros->semaforo));
 			sem_wait(parametros->semaforo); // Caundo me avisen que hay una operacion para enviar, la voy a levantar de la cola
@@ -403,7 +412,6 @@
 			else{
 				tamanioValor = strlen(operacion->valor);
 			}
-
 			printf("Instancia: el tamanioValor es %d \n",tamanioValor);
 			tTipoOperacion tipo = operacion->tipo;
 			puts("Instancia: hago malloc de OperacionTHeader");
@@ -437,10 +445,16 @@
 
 			/*
 			if (resultado == BLOQUEO){
+=======
+        switch(resultado){
+
+        	case BLOQUEO:
+>>>>>>> Stashed changes
 				puts("Instancia: el resultado de la instancia fue un bloqueo");
 				tBloqueo esiBloqueado = {1,operacion->clave};
 				list_add(colaBloqueos,(void*)&esiBloqueado);
 				sem_post(planificador->semaforo);
+<<<<<<< Updated upstream
 			}
 			*/
 
@@ -456,6 +470,8 @@
 			list_add(colaResultados,(void*)resultadoCompleto);
 			pthread_mutex_unlock(&mutex);
 
+				}
+			}
 
         //		*************** PRUEBAS HARDCODEADAS *****************
 
@@ -1053,6 +1069,7 @@
 			OperacionAEnviar* operacion) {
 
 		puts("Instancia: Envio header a la instancia");
+		printf("Socket de la instancia: %d\n", parametros->new_fd);
 		// Envio el header a la instancia
 
 		printf("El socket es: %d \n", parametros->new_fd);
