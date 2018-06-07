@@ -2,7 +2,7 @@
 
     int main(int argc, char *argv[])
     {
-    	LeerArchivoDeConfiguracion();
+    	LeerArchivoDeConfiguracion(argv);
     	verificarParametrosAlEjecutar(argc, argv);
     			//FIFO
     		  	//Fifo *primero = malloc(sizeof(Fifo));
@@ -229,7 +229,7 @@
 									
 									}
 								}
-								else{
+								/*else{
 								 if (flagEjecutar==1 && i!=sockCord){
 									 puts("Cerramos el socket del ESI y lo borramos del conjunto maestro");
 									 if (FD_ISSET(i, &master)) {
@@ -239,8 +239,8 @@
 									 	 }
 	                                   }
 
-							  	   }
-									 }
+							  	   }*/
+							//}cierre el else recibir
 							 //}//ciere del fdset 
 						//}
 						//Planificar
@@ -266,9 +266,17 @@
 										eliminarEsiPorId(ready,esi->id);
 										eliminarEsiPorId(ejecucion,esi->id);
 										eliminarEsiPorId(bloqueados,esi->id);
+										puts("Cerramos el socket del ESI y lo borramos del conjunto maestro");
+									 	if (FD_ISSET(i, &master)) {
+										 //flagEjecutar=0;
+										 close(i);
+										 FD_CLR(i, &master);
+									 	 }
 										//perror("esi desconectado");
 										//resultado->tipoResultado=CHAU;
 										//exit(1);
+										break;
+										f_ejecutar=1;
 									}
 									puts("Recibi el resultado");
 									printf("Resultado: %d \n",resultado->tipoResultado);
@@ -277,7 +285,7 @@
 								enviarConfirmacion=1;
 							
 							}
-							
+							}//cierre el else recibir
 						//}	
 				//	}//cierre flag operar
 					}//cierro el fdset
@@ -301,7 +309,7 @@
 									//haria algo mas	
 								printf("Esi de id:%d entro a bloqueados \n",esi->id);
 								queue_push(bloqueados,esi);
-								flagEjecutar=1;
+								f_ejecutar=1;
 							}
 							if (re==1){
 								esi->cont++;
@@ -313,7 +321,7 @@
 								queue_push(finalizados,new_ESI(esi->id,esi->fd,esi->estimacion,esi->clave));
 								f_ejecutar=1;
 								puts("Dame otro esi");
-								flagEjecutar=1;
+								f_ejecutar=1;
 								enviarConfirmacion=0;
 							    //free(esi);
 							}
@@ -343,6 +351,8 @@
 								if(algoritmo==SJF || algoritmo==SJFD)
 									ordenarEsis(ready);
 								esi = queue_pop(ready);
+								re=0;
+								enviarConfirmacion=1;
 								printf("Id del esi a buscar:%d \n",esi->id);
 								printf("esi de id %d cambiado de cola \n",esi->id);
 								queue_push(ejecucion,new_ESI(esi->id,esi->fd,esi->estimacion,esi->clave));
@@ -361,26 +371,6 @@
     	        return 0;
     }//Cierra el main
 
-/*	float estimar(t_esi esi,float alpha)
-	{
-
-	}
-	*/
-/*
-void *recibirNotificacionCoordinador(int socket)
-{
-
-		int numbytes;
-		tNotificacionPlanificador *notificacion = malloc(sizeof(tNotificacionPlanificador));
-		if ((numbytes=recv(sockCord, notificacion, sizeof(tNotificacionPlanificador), 0)) <= 0) {
-										printf("El socket i es: %d \n",i);
-										perror("No hay nada que haya enviado el cordi");
-										//exit(1);
-									}
-									else{
-										return notificacion;
-									}
-}*/
 void ordenarEsis(t_queue *cola)
 	{
 		int compare(t_esi *esi1,t_esi *esi2)
@@ -589,11 +579,11 @@ void ordenarEsis(t_queue *cola)
 	}
 
 
-	int  LeerArchivoDeConfiguracion() {
+	int  LeerArchivoDeConfiguracion(char *argv[]) {
 
 			// Leer archivo de configuracion con las commons
 			t_config* configuracion;
-			configuracion = config_create(ARCHIVO_CONFIGURACION);
+			configuracion = config_create(argv[1]);
 
 			PORT = config_get_int_value(configuracion, "PORT");
 
