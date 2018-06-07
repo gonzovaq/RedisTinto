@@ -41,9 +41,7 @@
         	OperaciontHeader *headerRecibido = malloc(sizeof(OperaciontHeader)); // El malloc esta en recibir header
         	puts("Intento recibir header del Coordinador");
         	headerRecibido = recibirHeader(socketCoordinador);
-        	printf("Me conecte con el coordinador: %d\n", headerRecibido->tipo);
         	tamanioValorRecibido = headerRecibido->tamanioValor;
-        	puts("Asigne tamanioValor");
         	char *bufferClave;
         	char *bufferValor;
         	char *valorGet;
@@ -52,26 +50,20 @@
 
         	bufferClave = recibirMensaje(socketCoordinador, TAMANIO_CLAVE);
 
-        	puts("REcibi mensaje");
 
         	if (headerRecibido->tipo == OPERACION_SET){
 
-
+        		puts("ENTRO A UN SET");
         		cantidadClavesEnTabla++;
             	if(validarClaveExistente(bufferClave, tablaEntradas) == true){
-            		puts("Valide clave existente");
             		eliminarNodosyValores(bufferClave, tablaEntradas, arrayEntradas);
-            		puts("Elimine nodos y valores");
             		cantidadClavesEnTabla--;
             	    	}
             	bufferValor = recibirMensaje(socketCoordinador, tamanioValorRecibido);
-            	puts("Recibi el valor del set");
             	tamanioValorRecibido = headerRecibido->tamanioValor;
         		memcpy(operacion->clave, bufferClave, strlen(bufferClave) + 1);
-        		puts("Hice el memcpy");
         		operacion->valor = bufferValor;
         		agregarEntrada(operacion, arrayEntradas, cantidadEntradas, tamanioValor, tablaEntradas, tamanioValorRecibido);
-        		puts("Agregue la entrada");
 
         		enviarEntradasUsadas(socketCoordinador, tablaEntradas, bufferClave);
         		free(headerRecibido);
@@ -79,6 +71,7 @@
         		free(bufferClave);
         		free(bufferValor);
             	mostrarArray(arrayEntradas, cantidadEntradas);
+            	puts("HICE UN SET");
              	printf("Cantidad de elementos en mi tabla de entradas: %d\n", list_size(tablaEntradas));
              	printf("LO QUE ME MUSTRA EL PUNTERO CIRCULAR %s\n", arrayEntradas[posicionPunteroCirc]);
              	printf("POSICION PUNTERO CIRCULAR: %d\n", posicionPunteroCirc);
@@ -103,16 +96,18 @@
 //        		free(bufferClave);
 //        	}
         	if (headerRecibido->tipo == OPERACION_STORE){
-        		puts("Entrooo en STORE");
+        		puts("ENTRO A UN STORE");
         		longitudMaximaValorBuscado = calcularLongitudMaxValorBuscado(bufferClave, tablaEntradas);
         		valorGet = obtenerValor(longitudMaximaValorBuscado, tablaEntradas, bufferClave, arrayEntradas, tamanioValor);
         		guardarUnArchivo(bufferClave, valorGet);
+        		puts("Guarde un archivo");
         		enviarEntradasUsadas(socketCoordinador, tablaEntradas, bufferClave);
 
 
         		free(valorGet);
         		free(headerRecibido);
         		free(bufferClave);
+        		puts("TERMINE UN STORE");
         	}
 
         }
@@ -360,21 +355,12 @@
     	char *valorRecibido = malloc(tamanioValorRecibido);
     	memcpy(valorRecibido, unaOperacion->valor, tamanioValorRecibido);
 
-    	puts("Hice el memcpy del valorRecibido");
 
     	char *claveRecibida = calloc(41, 1);
     	strcpy(claveRecibida, unaOperacion->clave); // Copio toda la clave
 
-    	puts("HIce el strcpy de la claveRecibida");
-//
-//    	if(validarClaveExistente(claveRecibida, tablaEntradas) == true){
-//    		eliminarNodosyValores(claveRecibida, tablaEntradas, arrayEntradas);
-//    	    	}
-
-
     	if(tamanioValorRecibido > tamanioValor){ //Si el valor que recibi en el mensaje es mayor al valor establecido para cada entada
     		int entradasNecesarias = calcularEntradasNecesarias(tamanioValorRecibido, tamanioValor); //Calculo la cantidad de entradas que necesita el valor para guardarse
-    		puts("Calcule entradas neceasrias");
     		printf("Entradas necesarias para guardar valor: %d\n", entradasNecesarias);
 			int offset;
 
@@ -384,7 +370,6 @@
 				for(int j = 0; j < cantidadEntradas; j++){ //Recorro desde mi primer entrada
 
 					if(*(arrayEntradas[j]) == NULL){ //Si una entrada no tiene valores, guardo allí
-						puts("Pasé el primer IF arrayEntradas");
 						int bytesRestantes = tamanioValorRecibido - tamanioValor * i;
 
 						if (i == entradasNecesarias - 1){ //Si falta guardar el último pedazo del valor
@@ -425,11 +410,8 @@
 			}
     		else{  //Si el tamanio del valor recibido entra en una sola entrada
 	    			for(int i = 0; i < cantidadEntradas; i++){ //Recorro mis entradas desde 0 hasta entontrar una vacía para guardar el valor
-	    				puts("Antes del iF");
 	    				if(*(arrayEntradas[i]) == NULL){
-	    					puts("Pasé el primer if arrayentradas");
 	    				memcpy(arrayEntradas[i], valorRecibido, tamanioValorRecibido);
-	    				puts("Hice el memcpy");
 						agregarNodoAtabla(tablaEntradas, i, tamanioValorRecibido, claveRecibida);
 						puts("Agregué el nodo a la tabla");
 						break;
@@ -437,7 +419,6 @@
 	    				if(i == cantidadEntradas - 1){ // Si llego a la ultima entrada y no hay espacio utilizo un algoritmo de reemplazo
 	    					switch (algoritmoReemplazo){
 	    						case 1:
-	    							puts("Aca me esta haciendo los memset");
 	    							eliminarEntradasStorageCircular(arrayEntradas, 1);
 	    							i = -1; //Vuelvo a recorrer todas las entradas para guardar el valor
 	    							break;
@@ -486,10 +467,6 @@
 
      	list_add(tablaEntradas, (tEntrada *) buffer);
 
-     	printf("CLAVE GUARDADA EN AGREGAR NODO A TABLA: %s\n", buffer->clave);
-     	printf("TAMANIO ALMACENADO GUARDADO EN AGREGAR NODO A TABLA: %d\n", buffer->tamanioAlmacenado);
-     	printf("NUMERO ENTRADA GUARDADA EN AGREGAR NODO A TABLA: %d\n", buffer->numeroEntrada);
-
     	return;
      }
 
@@ -508,33 +485,24 @@
     	t_list *tablaDuplicada = malloc(sizeof(t_list));
     	tEntrada *bufferEntrada = malloc(sizeof(tEntrada));
 
-    	puts("Despues de declarar todo");
 
     	tablaDuplicada = list_duplicate(tablaEntradas);
 
-    	puts("Despues de crear tabla dupliacda");
     	int coincidir(tEntrada *unaEntrada){
     		return string_equals_ignore_case(unaEntrada->clave, claveBuscada);
     	}
 
     	tablaDuplicada = list_filter(tablaDuplicada, (void*) coincidir);
 
-    	puts("despues de filtrar la tabla");
-
     	for(int i = 0; i < tablaDuplicada->elements_count; i++){
-    		puts("Antes de hacer el GET");
     		bufferEntrada = list_get(tablaDuplicada, i);
-    		puts("Antes del index");
     		int index = bufferEntrada->numeroEntrada;
     		//memcpy((valor + i * tamanioValor), arrayEntradas[index], tamanioValor);
-    		puts("Antes del memcpy");
     		memcpy((valor + tamanioTotalValor), arrayEntradas[index], bufferEntrada->tamanioAlmacenado);
-    		puts("Antes del total valor");
+
     		tamanioTotalValor += bufferEntrada->tamanioAlmacenado;
     	}
-    	puts("Antes de agregar el terminador null");
     	valor[tamanioTotalValor] = '\0';
-    	puts("Antes de destruir todo");
     	list_destroy(tablaDuplicada);
     	//free(bufferEntrada);
     	return valor;
@@ -634,10 +602,8 @@
 
     	   int desplazamientoPunteroCirc = 0;
     	   for (int i = 0; i < cantidadEntradasABorrar; i++){
-    		   puts("Antes memset");
     		   memset(arrayEntradas[posicionPunteroCirc], '\0', tamanioValor);
     		   //memset(punteroCirc + (tamanioValor * i), '\0', tamanioValor);
-    		   puts("Despues memset");
     		   eliminarNodoPorIndex(tablaEntradas, posicionPunteroCirc);
     		   posicionPunteroCirc++;
         	   if (posicionPunteroCirc >= cantidadEntradas){
@@ -681,7 +647,7 @@
     	   while(1)
     	   {
     		   sleep(Intervalo);
-    		   puts("PROBANDO EL DUMP");
+    		   puts("Antes del dump");
     		   //guardarTodasMisClaves(tablaEntradas, arrayEntradas);
     	   }
     	   return EXIT_SUCCESS;
@@ -689,17 +655,18 @@
 
 
        void guardarUnArchivo(char *unaClave, char *valorArchivo){
-    	   char *rutaAGuardar = malloc(sizeof(150));
+    	   char *rutaAGuardar = malloc(159);
     	   strcpy(rutaAGuardar, PuntoMontaje);
     	   strcat(rutaAGuardar, unaClave);
     	   strcat(rutaAGuardar, ".txt");
+    	  *(rutaAGuardar+158) = '\0';
 
 
 
     	   printf("Nombre de la clave a guardar: %s\n", unaClave);
 
-    	   puts("Despues del concat");
     	   FILE *archivo = fopen(rutaAGuardar, "w");
+
     	   if (archivo == NULL){
     		   puts("Error al abrir el archivo");
     	   }
@@ -711,20 +678,25 @@
 
        void guardarTodasMisClaves(t_list *tablaEntradas, char **arrayEntradas){
     	   t_list *duplicada = malloc(sizeof(t_list));
+    	   puts("declare tabla duplicada");
     	   duplicada = list_duplicate(tablaEntradas);
+    	   puts("Cree tabla duplicada");
     	   char *bufferClave;
+    	   puts("Declare buffer clave");
     	   tEntrada *bufferEntrada;
+    	   puts("Declare buffer entrada");
     	   int index = 0;
 
     	   for (int i = 0; i < cantidadClavesEnTabla;i++){
         	   bufferEntrada = list_get(duplicada, index);
+        	   puts("Hice el get de la lista");
         	   bufferClave = bufferEntrada->clave;
+        	   puts("Apunte con buffer clave a buffer entrada");
         	   int longitud = calcularLongitudMaxValorBuscado(bufferClave, duplicada);
-    		   puts("Antes del seg fault");
+        	   puts("Calcule longitud");
         	   char *valorGet = obtenerValor(longitud, duplicada, bufferClave, arrayEntradas, tamanioValor);
-    		   puts("Despues");
+        	   puts("Por entrar a guardar un archivo");
         	   guardarUnArchivo(bufferClave, valorGet);
-    		   puts("Guarde un archivo");
     		   index += longitud;
     	   }
 
