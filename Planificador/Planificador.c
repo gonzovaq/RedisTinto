@@ -106,6 +106,9 @@
     	        // seguir la pista del descriptor de fichero mayor
     	        fdmax = listener; // por ahora es éste
     	        // bucle principal
+
+						int enviarConfirmacion=1;
+						t_esi *esi=malloc(sizeof(t_esi));
     	        for(;;) {
 						
     	        	/*
@@ -125,11 +128,13 @@
     	                exit(1);
     	            }
     	            // explorar conexiones existentes en busca de datos que leer
-					
+					int re=0;
+						int f_ejecutar=0;//Flag para mandar de ready a ejecucion.
+						int recibi=0;
+						
     	            for(i = 0; i <= fdmax; i++) {
-						puts("dentro del for hasta fdmax");
+						
     	                if (FD_ISSET(i, &read_fds)) { // ¡¡tenemos datos!!
-						puts("dentro del fd_isset");
     	                    if (i == listener) {
     	                        // gestionar nuevas conexiones
     	                        addrlen = sizeof(remoteaddr);
@@ -147,18 +152,19 @@
 									
 									int idEsi=obtenerEsi(newfd);
 									
-									queue_push(ready,new_ESI(idEsi,newfd,estimacionIni));
+									queue_push(ready,new_ESI(idEsi,newfd,estimacionIni,"\0"));
 									
 									if(algoritmo==SJF || algoritmo==SJFD)
+									{
 										ordenarEsis(ready);
-									/*
-											if(algoritmo==SJFD)
-											{
-												//TODO: Habria que reordenar la cola de ready
-												//Y poner el mas corto en ejecucion
-												//y mandar a ready el esi anterior
-											}
-									*/									
+										if(algoritmo==SJFD)
+												{
+													t_esi* esi1 = malloc(sizeof(t_esi));
+													esi1=queue_pop(ejecucion);
+													queue_push(ready,esi1);
+													ordenarEsis(ready);
+												}		
+									}					
 									printf("Esi id %d conectado y puesto en cola \n",idEsi);
 									
     	                        }
@@ -179,20 +185,44 @@
 										}
 										if(notificacion->tipoNotificacion==DESBLOQUEO)
 										{
-											printf("coordi nos dijo que pid: %d se desbloqueo \n ",notificacion->pid);
+											printf("coordi nos dijo se desbloquea la clave: %s \n ",notificacion->clave);
 											t_esi * desbloqueado = malloc(sizeof(t_esi));
-											desbloqueado=buscarEsi(bloqueados,notificacion->pid);
-											queue_push(ready,new_ESI(desbloqueado->id,desbloqueado->fd,desbloqueado->estimacion));
+											//notificacion->clave
+											
+											desbloqueado=buscarEsi(bloqueados,notificacion->clave);
+											if(desbloqueado!=NULL)
+											{
+												puts("desbloqueado no es nulo");
+												queue_push(ready,new_ESI(desbloqueado->id,desbloqueado->fd,desbloqueado->estimacion,desbloqueado->clave));
+												eliminarEsiPorId(bloqueados,desbloqueado->id);
+											}
+											else
+											{
+												puts("desbloqueado es nulo");
+											}
 											free(desbloqueado);
 											
+											if(algoritmo==SJF || algoritmo==SJFD)
+											{
+												ordenarEsis(ready);
+												
 											/*
 											if(algoritmo==SJFD)
 											{
 												//TODO: Habria que reordenar la cola de ready
 												//Y poner el mas corto en ejecucion
-												//y poner en ready el esi anterior
+												//y mandar a ready el esi anterior
 											}
-											*/
+											*/	if(algoritmo==SJFD)
+												{
+													t_esi* esi1 = malloc(sizeof(t_esi));
+													esi1=queue_pop(ejecucion);
+													queue_push(ready,esi1);
+													ordenarEsis(ready);
+												}
+												
+											}
+											
 										}
 									
 									free(notificacion);
@@ -214,28 +244,28 @@
 							 //}//ciere del fdset 
 						//}
 						//Planificar
-					int f_ejecutar=0;//Flag para mandar de ready a ejecucion.
+					//int f_ejecutar=0;//Flag para mandar de ready a ejecucion.
 					//puts("voy a verificar las colas");	
-					if(flagOperar==1){
+					//if(flagOperar==1){
 						//puts("entre ");
-						if(queue_is_empty(ejecucion)==0)
-						{
-							puts("Entre a ejecucion");
-							printf("Tamanio cola %d \n",queue_size(ejecucion));
-							f_ejecutar=0;
-							t_esi *esi=malloc(sizeof(t_esi));
-							esi = queue_peek(ejecucion);
-							printf("Id del esi a ejecutar: %d \n",esi->id);
-							EnviarConfirmacion(esi);
-							printf("ejecuta el esi:%d \n",esi->id);
+						//if(recibi==1)
+						//{
 							tResultado * resultado = malloc(sizeof(tResultado));
-							int re=0;
+							//int re=0;
+							//printf("fd del esi es: %d",esi->fd);
 							if(i==esi->fd)
 							{
 								puts("voy a recibir el resultado o bloquearme, quien sabe?");
 								int numbytes;
 									if ((numbytes=recv(i, resultado, sizeof(tResultado), 0)) <= 0) {
 										puts("esi desconectado");
+										//TODO:Cuando elimino al esi tengo que nullear el esi global
+										//para no recibir mas nada, es decir que me quede esperando
+										//un esi nuevo.
+										
+										eliminarEsiPorId(ready,esi->id);
+										eliminarEsiPorId(ejecucion,esi->id);
+										eliminarEsiPorId(bloqueados,esi->id);
 										//perror("esi desconectado");
 										//resultado->tipoResultado=CHAU;
 										//exit(1);
@@ -243,8 +273,25 @@
 									puts("Recibi el resultado");
 									printf("Resultado: %d \n",resultado->tipoResultado);
 									printf("Resultado: %s \n",resultado->clave);
-								re=recibirResultado2( resultado);
+								re=recibirResultado2(resultado);
+								enviarConfirmacion=1;
+							
 							}
+							
+						//}	
+				//	}//cierre flag operar
+					}//cierro el fdset
+
+					if(flagOperar==1){
+						//puts("entre ");
+						if(queue_is_empty(ejecucion)==0)
+						{
+							//recibi=0;
+							
+							//puts("Entre a ejecucion");
+							//printf("Tamanio cola %d \n",queue_size(ejecucion));
+							f_ejecutar=0;
+							
 							if(re==2)
 							{
 								//Si se bloquea
@@ -263,37 +310,52 @@
 							if(re==-5)
 							{
 								queue_pop(ejecucion);
-								queue_push(finalizados,new_ESI(esi->id,esi->fd,esi->estimacion));
+								queue_push(finalizados,new_ESI(esi->id,esi->fd,esi->estimacion,esi->clave));
 								f_ejecutar=1;
 								puts("Dame otro esi");
 								flagEjecutar=1;
-							    free(esi);
+								enviarConfirmacion=0;
+							    //free(esi);
 							}
-							free(resultado);
+							if(enviarConfirmacion==1)
+							{
+								esi = queue_peek(ejecucion);
+								printf("Id del esi a ejecutar: %d \n",esi->id);
+								EnviarConfirmacion(esi);
+								printf("ejecuta el esi:%d \n",esi->id);
+								enviarConfirmacion=0;
+								recibi=1;
+							}
 						}
 						else
 						{
+							recibi=0;	
+							//puts("Dame un esi");
 							f_ejecutar=1;//Como esta vacia, pedimos que nos manden un esi de ready
 						}
 						if(queue_is_empty(ready)==0)
 						{
+							
 							if(f_ejecutar==1)
 							{
-								t_esi *esi=malloc(sizeof(t_esi));
+								
+								//t_esi *esi2=malloc(sizeof(t_esi));
 								if(algoritmo==SJF || algoritmo==SJFD)
 									ordenarEsis(ready);
 								esi = queue_pop(ready);
 								printf("Id del esi a buscar:%d \n",esi->id);
 								printf("esi de id %d cambiado de cola \n",esi->id);
-								queue_push(ejecucion,new_ESI(esi->id,esi->fd,esi->estimacion));
-								free(esi);
+								queue_push(ejecucion,new_ESI(esi->id,esi->fd,esi->estimacion,esi->clave));
+								//free(esi2);
 							}
-							puts("Ready no vacia");
+							//puts("Ready no vacia");
 						}
+						
 					}
-						}//cierro el fdset
-					}//ciero el select
-				}//Cierra el for
+
+					}//ciero el for del select
+
+				}//Cierra el for del main
     	        
 				
     	        return 0;
@@ -333,16 +395,17 @@ void ordenarEsis(t_queue *cola)
 		
 	}
 	
-	t_esi *buscarEsi(t_queue *lista,int id)
+	t_esi * buscarEsi(t_queue *lista,char clave[TAMANIO_CLAVE])
 	{
 		int coincidir(t_esi *unEsi){
-          	    	    		return unEsi->id == id;
+          	    	    		return (string_equals_ignore_case(unEsi->clave,clave));//unEsi->clave == clave;
           	    	    	}
 		t_esi *esi=malloc(sizeof(t_esi));
 		esi=list_find(lista->elements,(void*)coincidir);
 		return esi;
 		//free(esi);
 	}
+
     int EnviarConfirmacion (t_esi * esi){
     	puts("enviando informacion al esi \n");
     	char *confirmacion = "EJECUTATE";
@@ -361,6 +424,7 @@ void ordenarEsis(t_queue *cola)
     	   free(unEsi);
     	  return;
        }
+
 	void eliminarEsiPorId(t_queue *lista, int pid){
           	int coincidir(t_esi *unEsi){
           	    	    		return unEsi->id == pid;
@@ -368,7 +432,7 @@ void ordenarEsis(t_queue *cola)
 							  
           		list_remove_and_destroy_by_condition(lista->elements, (void*) coincidir,(void*) destruirEsi);
 
-          	return;
+				return;
           }
 
 	

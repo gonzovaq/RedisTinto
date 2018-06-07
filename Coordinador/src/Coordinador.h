@@ -95,7 +95,6 @@ typedef enum{
 typedef struct{
 	tResultadoOperacion resultado;
 	char clave[TAMANIO_CLAVE];
-	char *valor;
 }__attribute__((packed)) tResultado;
 
 typedef struct{

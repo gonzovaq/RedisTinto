@@ -65,15 +65,17 @@ typedef struct {
       int fd;
       int cont;
       float estimacion;
+	  char clave[TAMANIO_CLAVE];
 }t_esi;
 
 
-static t_esi * new_ESI(int id,int fd,int ini){
+static t_esi * new_ESI(int id,int fd,int ini,char clave[TAMANIO_CLAVE]){
 	t_esi *new = malloc(sizeof(t_esi));
 	new->id = id;
 	new->fd = fd;
 	new->cont = 0;
 	new->estimacion=ini;
+	strcpy(new->clave,clave);	
 	return new;
 }
 
@@ -129,7 +131,7 @@ int LeerArchivoDeConfiguracion();
 int verificarParametrosAlEjecutar(int argc, char *argv[]);
 int ConectarAlCoordinador(int sockCord, struct sockaddr_in* cord_addr,struct hostent* he);
 void *ejecutarConsola();
-t_esi *buscarEsi(t_queue *lista,int id);
+t_esi *buscarEsi(t_queue *lista,char clave[TAMANIO_CLAVE]);
 void destruirEsi(t_esi *unEsi);
 void *gestionarConexion(int socket);
 void *conexionESI(int *new_fd);
