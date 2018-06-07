@@ -70,7 +70,9 @@ typedef enum{
 }tTipoOperacion;
 
 typedef enum{
-	LISTAR = 1
+	LISTAR = 1,
+	BLOQUEAR = 2,
+	DESBLOQUEAR = 3
 }tSolicitudesDeConsola;
 
 typedef enum{
@@ -158,7 +160,9 @@ typedef struct{
 	int entradasUsadas;
 }tEntradasUsadas;
 
-
+typedef struct{
+	int entradasUsadas;
+}tClavesBloqueadas;
 
 
 // VARIABLES GLOBALES
@@ -225,5 +229,9 @@ int EnviarClaveYValorAInstancia(tTipoOperacion tipo, int tamanioValor,parametros
 int verificarParametrosAlEjecutar(int argc, char *argv[]);
 bool laClaveTuvoUnGETPrevio(char * clave,parametrosConexion * parametros);
 int RemoverInstanciaDeLaLista(parametrosConexion* parametros);
-
+int RecibirClavesBloqueadas(parametrosConexion* parametros);
+static void borrarClave(char * clave);
+bool EncontrarClaveEnClavesBloqueadas(t_list * lista, char * claveABuscar);
+int AgregarClaveBloqueada(parametrosConexion* parametros);
+int RemoverClaveDeBloqueados(char * clave);
 

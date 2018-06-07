@@ -301,6 +301,8 @@
     	//close(new_fd->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
         puts("Planificador conectandose");
 
+        RecibirClavesBloqueadas(parametros);
+
         //Abro otro hilo para escuchar sus comandos solicitados por consola
         pthread_t tid;
         int stat = pthread_create(&tid, NULL, (void*)escucharMensajesDelPlanificador, (void*)&parametros);
@@ -329,6 +331,33 @@
 		return 1;
     }
 
+	int AgregarClaveBloqueada(parametrosConexion* parametros) {
+		char clave[TAMANIO_CLAVE];
+		if ((recv(parametros->new_fd, clave, TAMANIO_CLAVE, 0)) <= 0) {
+			perror("recv");
+			log_info(logger, "TID %d  Mensaje: ERROR en ESI",
+					process_get_thread_id());
+			//exit_gracefully(1);
+		} else
+			list_add(clavesTomadas, &clave);
+
+		return EXIT_SUCCESS;
+	}
+
+    int RecibirClavesBloqueadas(parametrosConexion* parametros){
+    	tClavesBloqueadas * clavesBloqueadas = malloc(sizeof(tClavesBloqueadas));
+    	if ((recv(parametros->new_fd, clavesBloqueadas, sizeof(tClavesBloqueadas), 0)) <= 0){
+    		puts("Planificador: Fallo el recibir la cantidad de claves iniciales");
+    		return -1;
+    	}
+
+    	for(int i = 0; i <clavesBloqueadas; i++){
+    		AgregarClaveBloqueada(parametros);
+    	}
+
+    	return EXIT_SUCCESS;
+    }
+
     int *escucharMensajesDelPlanificador(parametrosConexion* parametros){
     	while(1){
     		// Aca vamos a Escuchar todos los mensajes que solicite el planificador, hay que ver cuales son y vemos que hacemos
@@ -339,8 +368,31 @@
 				close(parametros->new_fd);
 				//exit_gracefully(1);
 			}
-
+			char clave[TAMANIO_CLAVE];
 			switch(*solicitud){
+			case BLOQUEAR:
+				if ( (recv(parametros->new_fd, clave, TAMANIO_CLAVE, 0)) <= 0) {
+					perror("recv");
+					log_info(logger, "TID %d  Mensaje: ERROR en ESI",
+							process_get_thread_id());
+					return 3;
+					//exit_gracefully(1);
+				}
+				else
+					list_add(clavesTomadas,&clave);
+				break;
+			case DESBLOQUEAR:
+
+				if ( (recv(parametros->new_fd, clave, TAMANIO_CLAVE, 0)) <= 0) {
+					perror("recv");
+					log_info(logger, "TID %d  Mensaje: ERROR en ESI",
+							process_get_thread_id());
+					return 3;
+					//exit_gracefully(1);
+				}
+				else ;
+					RemoverClaveDeBloqueados(&clave);
+				break;
 			case LISTAR:
 				/*
 				char clave[TAMANIO_CLAVE];
@@ -369,6 +421,16 @@
 
     	return EXIT_SUCCESS;
     }
+
+    int RemoverClaveDeBloqueados(char * clave){
+		bool compararClaveParaDesbloquear(char *claveABuscar){
+			printf("Planificador: Comparando la clave %s con %s \n", claveABuscar, clave);
+			return string_equals_ignore_case(clave,claveABuscar) == true;
+		}
+		list_remove_and_destroy_by_condition(clavesTomadas,(void*)compararClaveParaDesbloquear,(void*)borrarClave);
+		return EXIT_SUCCESS;
+    }
+
 
     int *conexionInstancia(parametrosConexion* parametros){
     	//close(new_fd->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
@@ -587,6 +649,19 @@
     		return resultadoOperacion;
     	}
 
+    bool EncontrarClaveEnClavesBloqueadas(t_list * lista, char * claveABuscar){
+		bool yaExisteLaClaveEnLasBloqueadas(char* clave) {
+			printf("ESI: Comparando la clave %s con %s \n",claveABuscar, clave);
+			if (string_equals_ignore_case(clave,claveABuscar) == true){
+				puts("ESI: Las claves son iguales");
+				return true;
+			}
+			puts("ESI: Las claves son distintas");
+			return false;
+		}
+		return list_any_satisfy(lista,(void*) yaExisteLaClaveEnLasBloqueadas);
+    }
+
 	int ManejarOperacionGET(parametrosConexion* parametros, OperacionAEnviar* operacion) {
 
 		OPERACION_ACTUAL = OPERACION_GET;
@@ -606,7 +681,7 @@
 		printf("ESI: Recibi la clave: %s \n", clave);
 		strcpy(CLAVE,clave);
 
-		if ((!list_is_empty(colaBloqueos)) && EncontrarEnLista(colaBloqueos, &clave)){
+		if ((!list_is_empty(colaBloqueos)) && EncontrarEnLista(colaBloqueos, &clave) && EncontrarEnLista(clavesTomadas,&clave)){
 			puts("ESI: La clave esta bloqueada");
 
 			/* No es necesario avisarle el bloqueo porque se lo esta avisando el ESI
@@ -619,6 +694,7 @@
 			*/
 			return 2;
 		} // ACA HAY QUE AVISARLE AL PLANIFICDOR DEL BLOQUEO PARA QUE FRENE AL ESI
+		list_add(clavesTomadas,&clave);
 		char * claveCopia = malloc(strlen(clave)+1);
 		strcpy(claveCopia,clave);
 		list_add(clavesTomadas,claveCopia);
@@ -749,6 +825,8 @@
 			printf("ESI: le voy a avisar al planificador que hay que abortar al ESI por no hacer GET sobre: %s \n",clave);
 			sem_post(planificador->semaforo);
 			puts("ESI: Ya le avise al planificador que aborte el ESI");
+
+			 RemoverClaveDeBloqueados(clave);
 
 			return 3;
 		}
@@ -1254,6 +1332,10 @@
 		puts("Elimino una instancia");
 		free(parametros);
 		puts("Falle al eliminar una instanca");
+	}
+
+	static void borrarClave(char * clave){
+		free(clave);
 	}
 
 	int verificarValidez(int sockfd){
