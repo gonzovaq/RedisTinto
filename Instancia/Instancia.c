@@ -1,14 +1,5 @@
 #include "Instancia.h"
 
-    struct hostent *he;
-    struct sockaddr_in their_addr; // información de la dirección de destino
-
-    int cantidadEntradas = 0;
-    int tamanioValor = 0;
-    int posicionPunteroCirc = 0;
-    t_list *tablaEntradas;
-    int algoritmoReemplazo = 1;
-    int cantidadClavesEnTabla = 0;
 
     int main(int argc, char *argv[])
     {
@@ -22,7 +13,7 @@
 
 
         verificarParametrosAlEjecutar(argc, argv);
-        leerConfiguracion();
+        LeerArchivoDeConfiguracion(argv);
 
         he = gethostbyname(IP);
         socketCoordinador = conectarmeYPresentarme(PORTCO);
@@ -130,17 +121,11 @@
     }
 
     int verificarParametrosAlEjecutar(int argc, char *argv[]){
-    /*	if (argc != 2) {
-    		puts("Error al ejecutar, te faltan parametros.");
+    	if (argc != 2) {
+    	    puts("Falta el nombre del archivo");
     	    exit(1);
     	 }
 
-
-    	 if ((he=gethostbyname(argv[1])) == NULL) {  // obtener información de máquina
-    	    puts("Error al obtener el hostname, te faltan parametros.");
-    	    perror("gethostbyname");
-    	    exit(1);
-    	 }*/
     	 return 1;
     }
 
@@ -169,22 +154,36 @@
 
         	return 1;
         }*/
-	int leerConfiguracion() {
+	int LeerArchivoDeConfiguracion(char *argv[]) {
 
 			// Leer archivo de configuracion con las commons
 			t_config* configuracion;
-			char * path = "Instancia.config";
 
 			puts("Leemos el archivo de configuracion");
 
-			configuracion = config_create(path);
+			configuracion = config_create(argv[1]);
 
 			PORTCO = config_get_int_value(configuracion, "PUERTO_COORDINADOR");
 			IP = config_get_string_value(configuracion, "IP");
 			Intervalo = config_get_int_value(configuracion, "Intervalo");
-			Name = config_get_string_value(configuracion, "NombreInstancia");
+			nombreInstancia = config_get_string_value(configuracion, "NombreInstancia");
 			Algoritmo = config_get_string_value(configuracion, "Algoritmo");
 			PuntoMontaje = config_get_string_value(configuracion, "PuntoMontaje");
+
+			if (strcmp(Algoritmo, "CIRC") == 0)
+				algoritmoReemplazo = CIRC;
+					else {
+						if (strcmp(Algoritmo, "LRU") == 0)
+							algoritmoReemplazo = LRU;
+						else {
+							if (strcmp(Algoritmo, "LSU") == 0)
+								algoritmoReemplazo = BSU;
+							else {
+								puts("Error al cargar el algoritmo de distribucion");
+								exit(1);
+							}
+						}
+					}
 
 			puts("Se leyo el archivo de configuracion");
 
@@ -246,7 +245,7 @@
                header->tipoProceso = INSTANCIA;
                header->tipoMensaje = CONECTARSE;
                header->idProceso = pid;
-               strcpy(header->nombreProceso, "INSTANCIA DE PRUEBA" );  // El nombre se da en el archivo de configuracion
+               strcpy(header->nombreProceso, nombreInstancia );  // El nombre se da en el archivo de configuracion
 			   if (send(socketCoordinador, header, sizeof(tHeader), 0) <= 0){
 				   puts("Error al enviar mi identificador");
 				   perror("Send");
@@ -681,7 +680,7 @@
        {
     	   while(1)
     	   {
-    		   sleep(SLEEP_DUMP);
+    		   sleep(Intervalo);
     		   puts("PROBANDO EL DUMP");
     		   //guardarTodasMisClaves(tablaEntradas, arrayEntradas);
     	   }
@@ -690,8 +689,8 @@
 
 
        void guardarUnArchivo(char *unaClave, char *valorArchivo){
-    	   char rutaAGuardar[150] = "\0";
-    	   puts("Antes de hacer strcat");
+    	   char *rutaAGuardar = malloc(sizeof(150));
+    	   strcpy(rutaAGuardar, PuntoMontaje);
     	   strcat(rutaAGuardar, unaClave);
     	   strcat(rutaAGuardar, ".txt");
 
@@ -706,6 +705,7 @@
     	   }
     	   fprintf(archivo, "%s", valorArchivo);
     	   fclose(archivo);
+    	   free(rutaAGuardar);
     	   return;
        }
 
@@ -715,11 +715,6 @@
     	   char *bufferClave;
     	   tEntrada *bufferEntrada;
     	   int index = 0;
-
-
-
-
-
 
     	   for (int i = 0; i < cantidadClavesEnTabla;i++){
         	   bufferEntrada = list_get(duplicada, index);
@@ -732,6 +727,7 @@
     		   puts("Guarde un archivo");
     		   index += longitud;
     	   }
+
     	   return;
 
        }

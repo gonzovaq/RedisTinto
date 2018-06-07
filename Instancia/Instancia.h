@@ -20,25 +20,10 @@
 
 
 #define ARCHIVO_CONFIGURACION "Instancia.config"
-
-//#define PORT 3490 // puerto al que vamos a conectar
-
 #define MAXDATASIZE 100 // máximo número de bytes que se pueden leer de una vez
 #define TAMANIO_NOMBREPROCESO 40
 #define TAMANIO_CLAVE 41
-
-
-// Var Globales
-char* IP;
-int PORTCO;
-char *Algoritmo;
-char *PuntoMontaje;
-char *Name;
-int Intervalo;
-
 #define SLEEP_DUMP 5 //Le puse 5, no tengo idea cada cuanto tiene que ejecutar el Dump
-
-
 
 // Enums
 
@@ -64,7 +49,9 @@ typedef enum{
 }tTipoOperacion;
 
 typedef enum{
-	CIRCULAR = 1
+	CIRC = 1,
+	LRU = 2,
+	BSU = 3
 }tAlgoritmoReemplazo;
 
 // Structs
@@ -127,13 +114,33 @@ typedef struct{
 	int entradasUsadas;
 }tEntradasUsadas;
 
+// Var Globales
+
+	//Variables para el archivo de configuración
+		char* IP;
+		int PORTCO;
+		char *Algoritmo;
+		char *PuntoMontaje;
+		char *nombreInstancia;
+		int Intervalo;
+
+	//Sockets
+    	struct hostent *he;
+    	struct sockaddr_in their_addr; // información de la dirección de destino
+
+	//Otras
+		int cantidadEntradas = 0;
+	    int tamanioValor = 0;
+	    int posicionPunteroCirc = 0;
+	    t_list *tablaEntradas;
+	    tAlgoritmoReemplazo algoritmoReemplazo;
+	    int cantidadClavesEnTabla = 0;
 
 
-
-// Contratos de las funciones
+// Prototipos de las funciones
 
 int main(int argc, char *argv[]);
-int leerConfiguracion();
+int LeerArchivoDeConfiguracion(char *argv[]);
 int verificarParametrosAlEjecutar(int argc, char *argv[]);
 int conectarSocket(int port);
 int enviarHeader(int sockfd);
