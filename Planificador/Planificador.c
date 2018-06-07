@@ -99,6 +99,9 @@
 				}
 				pthread_detach(tid2); //Con esto decis que cuando el hilo termine libere sus recursos
 */
+				struct timeval timeout;
+				timeout.tv_sec=SOCKET_READ_TIMEOUT_SEC;
+				timeout.tv_usec=0;
 
     	        // seguir la pista del descriptor de fichero mayor
     	        fdmax = listener; // por ahora es éste
@@ -115,15 +118,18 @@
     	        	necesito almacenar ese conjunto en algún lugar seguro.
     	        	En el último momento copio master sobre read_fs y entonces llamo a select().
     	        	*/
+				
     	            read_fds = master; // cópialo
-    	            if (select(fdmax+1, &read_fds, NULL, NULL, NULL) == -1) {
+    	            if (select(fdmax+1, &read_fds, NULL, NULL, &timeout) == -1) {
     	                perror("select");
     	                exit(1);
     	            }
     	            // explorar conexiones existentes en busca de datos que leer
 					
     	            for(i = 0; i <= fdmax; i++) {
+						puts("dentro del for hasta fdmax");
     	                if (FD_ISSET(i, &read_fds)) { // ¡¡tenemos datos!!
+						puts("dentro del fd_isset");
     	                    if (i == listener) {
     	                        // gestionar nuevas conexiones
     	                        addrlen = sizeof(remoteaddr);
@@ -162,7 +168,7 @@
 									tNotificacionPlanificador *notificacion = malloc(sizeof(tNotificacionPlanificador));
 									//notificacion=recibirNotificacionCoordinador(sockCord);
 									 int numbytes;
-									if ((numbytes=recv(sockCord, notificacion, sizeof(tNotificacionPlanificador), 0)) <= 0) {
+									if ((numbytes=recv(i, notificacion, sizeof(tNotificacionPlanificador), 0)) <= 0) {
 										printf("El socket i es: %d \n",i);
 										perror("No hay nada que haya enviado el cordi");
 										//exit(1);
@@ -203,14 +209,15 @@
 									 	 }
 	                                   }
 
-							  	   }}
-							 } 
-						}
+							  	   }
+									 }
+							 //}//ciere del fdset 
+						//}
 						//Planificar
 					int f_ejecutar=0;//Flag para mandar de ready a ejecucion.
 					//puts("voy a verificar las colas");	
 					if(flagOperar==1){
-						puts("entre ");
+						//puts("entre ");
 						if(queue_is_empty(ejecucion)==0)
 						{
 							puts("Entre a ejecucion");
@@ -222,7 +229,22 @@
 							EnviarConfirmacion(esi);
 							printf("ejecuta el esi:%d \n",esi->id);
 							tResultado * resultado = malloc(sizeof(tResultado));
-							int re=recibirResultado(esi->fd, resultado);
+							int re=0;
+							if(i==esi->fd)
+							{
+								puts("voy a recibir el resultado o bloquearme, quien sabe?");
+								int numbytes;
+									if ((numbytes=recv(i, resultado, sizeof(tResultado), 0)) <= 0) {
+										puts("esi desconectado");
+										//perror("esi desconectado");
+										//resultado->tipoResultado=CHAU;
+										//exit(1);
+									}
+									puts("Recibi el resultado");
+									printf("Resultado: %d \n",resultado->tipoResultado);
+									printf("Resultado: %s \n",resultado->clave);
+								re=recibirResultado2( resultado);
+							}
 							if(re==2)
 							{
 								//Si se bloquea
@@ -269,8 +291,8 @@
 							puts("Ready no vacia");
 						}
 					}
-
-				
+						}//cierro el fdset
+					}//ciero el select
 				}//Cierra el for
     	        
 				
@@ -553,6 +575,32 @@ void ordenarEsis(t_queue *cola)
 						return(headerRecibido->idProceso);
 					   }
 	}
+int recibirResultado2(tResultado * resultado){
+	switch(resultado->tipoResultado){
+    		case OK:
+    			puts("La operación salio OK");
+    			//EN ESTOS CASE DEBERIA LOGGEAR O ALGO ASI, PREGUNTAR MAS ADELANTE
+    			return 1;
+    			break;
+    		case BLOQUEO:
+				puts("La operación se BLOQUEO");
+				return 2;
+				break;
+    		case ERROR:
+				puts("La operación tiro ERROR");
+				break;
+			case CHAU:
+				puts("Cerro el esi");
+				return -5;
+				break;
+    		default:
+    			puts("ERROR AL RECIBIR EL RESULTADO");
+    			EXIT_FAILURE;
+    			break;
+    	}
+    	return EXIT_SUCCESS;
+    }
+
 
 	int recibirResultado(int socket, tResultado * resultado){
     	puts("Vor a recibir el resultado");

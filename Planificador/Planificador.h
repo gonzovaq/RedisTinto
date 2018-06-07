@@ -11,6 +11,8 @@
 	#include <commons/collections/list.h>
 	#include <commons/collections/queue.h>
 	#include <commons/config.h>
+	#include <semaphore.h>
+
 /*
  * Coordinador.h
  *
@@ -40,6 +42,7 @@ struct parametrosConexion{
 //**varGlobales**
 int flagOperar=1;
 int PORT;
+int SOCKET_READ_TIMEOUT_SEC=4;
 
 
 typedef enum{
@@ -132,3 +135,4 @@ void *gestionarConexion(int socket);
 void *conexionESI(int *new_fd);
 void estimacionEsi (t_esi* esi);
 void ordenarEsis(t_queue *cola);
+int recibirResultado2(tResultado * resultado);
