@@ -242,7 +242,7 @@
     }
 
    int recibirOrdenDeEjecucion(int socket_planificador){
-    	puts("llega al recibir ejecucion");
+    	puts("Esperando orden de ejecución del Planificador ...");
     	char *buffer = malloc(strlen("EJECUTATE"));
     	int tengoPermiso = 0;
     	if(recv(socket_planificador,buffer,sizeof(buffer),0) <= 0){
@@ -255,7 +255,7 @@
     }
 
     int recibirResultado(int socket_coordinador, tResultado * resultado){
-    	puts("Vor a recibir el resultado");
+    	puts("Esperando que el Coordinador me envie el resultado");
     	recibirResultadoDelCoordinador(socket_coordinador,resultado);
 
     	switch(resultado->tipoResultado){
@@ -303,7 +303,7 @@
 		enviarMensaje(socket_coordinador, clave);
 		enviarValor(socket_coordinador, valor);
 
-		printf("Operacion SET con clave: %s, y valor {1}, enviada correctamente" ,clave,valor);
+		printf("Operacion SET con clave: %s, y valor %s, enviada correctamente\n" ,clave,valor);
 		return EXIT_SUCCESS;
 	}
 
