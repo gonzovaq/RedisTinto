@@ -35,6 +35,14 @@ struct sockaddr_in cord_addr; // información de la dirección del Coordinador
    	t_queue *finalizados;
     t_queue *bloqueados;
     t_list *clavesBloqueadas;
+	int sockCord;
+	
+	int PORT_COORDINADOR;
+	char* IP;
+	char* IPCO;
+	int MAXDATASIZE;
+	float estimacionIni;
+	int Alfa;
 //ESTO DEBERIA ESTAR EN OTRO .H
 struct parametrosConexion{
 	int new_fd;
@@ -53,13 +61,6 @@ typedef enum{
 }tAlgoritmo;
 
 tAlgoritmo algoritmo;
-int PORT_COORDINADOR;
-char* IP;
-char* IPCO;
-int MAXDATASIZE;
-float estimacionIni;
-int Alfa;
-
 // Uso de commons en Queue
 typedef struct {
       int id;
@@ -69,13 +70,18 @@ typedef struct {
 	  char clave[TAMANIO_CLAVE];
 }t_esi;
 
+typedef enum{
+	LISTAR = 1,
+	BLOQUEAR = 2,
+	DESBLOQUEAR = 3
+}tSolicitudesDeConsola;
 
-static t_esi * new_ESI(int id,int fd,int ini,char clave[TAMANIO_CLAVE]){
+static t_esi * new_ESI(int id,int fd,int esti,char clave[TAMANIO_CLAVE]){
 	t_esi *new = malloc(sizeof(t_esi));
 	new->id = id;
 	new->fd = fd;
 	new->cont = 0;
-	new->estimacion=ini;
+	new->estimacion=esti;
 	strcpy(new->clave,clave);	
 	return new;
 }
@@ -143,3 +149,6 @@ void *conexionESI(int *new_fd);
 void estimacionEsi (t_esi* esi);
 void ordenarEsis(t_queue *cola);
 int recibirResultado2(tResultado * resultado);
+void obtenerBloqueados(char clave[TAMANIO_CLAVE]);
+void bloquearEsi(int id,char clave[TAMANIO_CLAVE]);
+void enviarClaveCoordinador(char clave[TAMANIO_CLAVE],tSolicitudesDeConsola *solicitud);
