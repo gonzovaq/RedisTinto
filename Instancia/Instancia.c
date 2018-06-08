@@ -1,6 +1,6 @@
 #include "Instancia.h"
 
-
+	pthread_mutex_t mutex;
     int main(int argc, char *argv[])
     {
     	puts("Iniciando");
@@ -35,6 +35,8 @@
 			//continue;
 		}
 		pthread_detach(tid); //Con esto decis que cuando el hilo termine libere sus recursos
+
+
 
 
         while(1){
@@ -648,7 +650,9 @@
     	   {
     		   sleep(Intervalo);
     		   puts("Antes del dump");
-    		   //guardarTodasMisClaves(tablaEntradas, arrayEntradas);
+//    		   pthread_mutex_lock(&mutex);
+//    		   //guardarTodasMisClaves(tablaEntradas, arrayEntradas);
+//    		   pthread_mutex_unlock(&mutex);
     	   }
     	   return EXIT_SUCCESS;
        }

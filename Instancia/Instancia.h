@@ -17,7 +17,7 @@
 #include <commons/string.h>
 #include <commons/collections/list.h>
 #include <commons/config.h>
-
+#include <semaphore.h>
 
 #define ARCHIVO_CONFIGURACION "Instancia.config"
 #define MAXDATASIZE 100 // máximo número de bytes que se pueden leer de una vez
