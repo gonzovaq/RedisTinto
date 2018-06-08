@@ -10,11 +10,6 @@
     		  	//Fifo *ultimo = malloc(sizeof(Fifo));
     	        //primero = NULL;
     	       // ultimo = NULL;
-    			t_queue *ready;
-				t_queue *test;
-				t_queue *ejecucion;
-    	   		t_queue *finalizados;
-    	   		t_queue *bloqueados;
     	   		t_queue *colaX;
     	        fd_set master;   // conjunto maestro de descriptores de fichero
     	        fd_set read_fds; // conjunto temporal de descriptores de fichero para select()
@@ -23,7 +18,7 @@
 			    int fdmax;        // número máximo de descriptores de fichero
     	        int listener;     // descriptor de socket a la escucha
     	        int newfd;        // descriptor de socket de nueva conexión aceptada
-    	        int sockCord; 	  // descriptor para conectarnos al Coordinador
+    	       // int sockCord; 	  // descriptor para conectarnos al Coordinador
     	        char buf[256];    // buffer para datos del cliente
     	        int nbytes;
     	        int yes=1;        // para setsockopt() SO_REUSEADDR, más abajo
@@ -34,7 +29,7 @@
     	        FD_ZERO(&read_fds);
 				//Creamos las colas que vamos a manejar con las funciones de abajo
 								ready = queue_create();
-								ejecucion=queue_create();
+								ejecucion = queue_create();
 								finalizados = queue_create();
 								bloqueados = queue_create();
 				//finalizamos el creado de colas
@@ -110,6 +105,7 @@
 
 						int enviarConfirmacion=1;
 						t_esi *esi=malloc(sizeof(t_esi));
+						char clave[TAMANIO_CLAVE];
     	        for(;;) {
 						
     	        	/*
@@ -180,7 +176,8 @@
 									}else{
 										if(notificacion->tipoNotificacion==ERROR)
 										{
-											puts("EL ESI ABORTO (ilegalmente)");//abortar al esi
+											printf("Vamos a matar al esi de id: %d \n",esi->id);//abortar al esi
+											//SIGTERM(esi->id);
 										}
 										if(notificacion->tipoNotificacion==DESBLOQUEO)
 										{
@@ -204,15 +201,7 @@
 											if(algoritmo==SJF || algoritmo==SJFD)
 											{
 												ordenarEsis(ready);
-												
-											/*
-											if(algoritmo==SJFD)
-											{
-												//TODO: Habria que reordenar la cola de ready
-												//Y poner el mas corto en ejecucion
-												//y mandar a ready el esi anterior
-											}
-											*/	if(algoritmo==SJFD)
+												if(algoritmo==SJFD)
 												{
 													t_esi* esi1 = malloc(sizeof(t_esi));
 													esi1=queue_pop(ejecucion);
@@ -280,8 +269,9 @@
 									puts("Recibi el resultado");
 									printf("Resultado: %d \n",resultado->tipoResultado);
 									printf("Resultado: %s \n",resultado->clave);
-								re=recibirResultado2(resultado);
-								enviarConfirmacion=1;
+									strcpy(esi->clave,resultado->clave);
+									re=recibirResultado2(resultado);
+									enviarConfirmacion=1;
 							
 							}
 							}//cierre el else recibir
@@ -388,6 +378,17 @@ void ordenarEsis(t_queue *cola)
 	{
 		int coincidir(t_esi *unEsi){
           	    	    		return (string_equals_ignore_case(unEsi->clave,clave));//unEsi->clave == clave;
+          	    	    	}
+		t_esi *esi=malloc(sizeof(t_esi));
+		esi=list_find(lista->elements,(void*)coincidir);
+		return esi;
+		//free(esi);
+	}
+
+	t_esi * buscarEsiPorId(t_queue *lista,int id)
+	{
+		int coincidir(t_esi *unEsi){
+          	    	    		return (string_equals_ignore_case(unEsi->id,id));//unEsi->clave == clave;
           	    	    	}
 		t_esi *esi=malloc(sizeof(t_esi));
 		esi=list_find(lista->elements,(void*)coincidir);
@@ -503,7 +504,7 @@ void ordenarEsis(t_queue *cola)
 			if(strncmp(linea,"bloquear",8)==0)
 			{
 
-				char* clave1;
+				char clave1[TAMANIO_CLAVE];
 				int id;
 				int flag=0;
 				int j=0;
@@ -514,7 +515,6 @@ void ordenarEsis(t_queue *cola)
 					i++;
 				}
 				i=9;
-				clave1=malloc(sizeof(char[j]));
 				j=0;
 				while(linea[i]!=' ' && linea[i]!='/0')
 							{	//printf("%d \n",i);
@@ -538,20 +538,35 @@ void ordenarEsis(t_queue *cola)
 					id=obtenerId(i,linea);
 				}
 				printf("id: %d \n",id);
-				free(clave1);
+
+				bloquearEsi(id,clave1);
+
 			}
 			if(strncmp(linea,"desbloquear",11)==0)
 			{
 				//obtener id
-				int id=obtenerId(11,linea);
-				printf("id: %d \n",id);
+				//int id=obtenerId(11,linea);
+				//printf("id: %d \n",id);
+				char clave[TAMANIO_CLAVE];
+				int i=12;
+				int j=0;
+				while(linea[i]!='\0')
+				{
+					clave[j]=linea[i];
+					j++;
+					i++;
+				}
+				clave[j]='\0';
+				printf("La clave es: %s \n",clave);
+
+				desbloquearEsi(clave);
 			}
 			if(strncmp(linea,"kill",4)==0)
 			{
 				//obtener id
 				int id=obtenerId(4,linea);
 				printf("id: %d \n",id);
-				kill(id);
+				//SIGTERM(id);
 			}
 			if(strncmp(linea,"status",6)==0)
 			{
@@ -562,10 +577,136 @@ void ordenarEsis(t_queue *cola)
 			{
 				puts("Mostrar bloqueos mutuos");
 			}
+			if(strncmp(linea,"listar",6)==0)
+			{
+				puts("Vamos a listar");
+				char clave[TAMANIO_CLAVE];
+				int i=7;
+				int j=0;
+				while(linea[i]!='\0')
+				{
+					clave[j]=linea[i];
+					j++;
+					i++;
+				}
+				clave[j]='\0';
+				printf("La clave es: %s \n",clave);
+				//t_list * aux=malloc(sizeof(t_list));//list_create();
+				//aux = filtrarLista(clave,bloqueados->elements);
+				obtenerBloqueados(clave);
+			}
 
 		}
 
 	return 0;
+	}
+	
+	void desbloquearEsi(char clave[TAMANIO_CLAVE])
+	{
+		t_esi * desbloqueado = malloc(sizeof(t_esi));
+											//notificacion->clave
+											
+		desbloqueado=buscarEsi(bloqueados,notificacion->clave);
+		if(desbloqueado!=NULL)
+		{
+			puts("desbloqueado no es nulo");
+			queue_push(ready,new_ESI(desbloqueado->id,desbloqueado->fd,desbloqueado->estimacion,desbloqueado->clave));
+			eliminarEsiPorId(bloqueados,desbloqueado->id);
+		}
+		else
+		{
+			puts("desbloqueado es nulo");
+		}
+		free(desbloqueado);
+		
+		if(algoritmo==SJF || algoritmo==SJFD)
+		{
+			ordenarEsis(ready);
+			if(algoritmo==SJFD)
+			{
+				t_esi* esi1 = malloc(sizeof(t_esi));
+				esi1=queue_pop(ejecucion);
+				queue_push(ready,esi1);
+				ordenarEsis(ready);
+			}
+			
+		}
+	}
+	
+	void bloquearEsi(int id,char clave[TAMANIO_CLAVE])
+	{
+		// TODO: Comprobar que este en ready o en ejecucion nomas
+		t_esi* esi = malloc(sizeof(t_esi));
+		esi=buscarEsiPorId(ready,id);
+		if(esi!=NULL)
+		{
+			//Esi estaba en ready
+			puts("esi estaba en ready");
+			eliminarEsiPorId(ready,id);
+			queue_push(bloqueados,new_ESI(esi->id,esi->fd,esi->estimacion,clave));
+			enviarClaveCoordinador(clave,BLOQUEAR);
+		}{
+			puts("esi no estaba en ready");
+		}
+		esi=buscarEsiPorId(ejecucion,id);
+		if(esi!=NULL)
+		{
+			//Esi estaba en ready
+			puts("esi estaba en ejecucion");
+			if(algoritmo==SJF||algoritmo==SJFD)
+				estimacionEsi(esi);
+			eliminarEsiPorId(ready,id);
+			queue_push(bloqueados,new_ESI(esi->id,esi->fd,esi->estimacion,clave));
+			enviarClaveCoordinador(clave,BLOQUEAR);
+		}
+		else{
+			puts("esi no estaba en ejecucion");
+			puts("No habia esi pa bloquear ");
+		}
+		
+		
+	}
+	void enviarClaveCoordinador(char clave[TAMANIO_CLAVE],tSolicitudesDeConsola *solicitud)
+	{
+	
+		 if (send(sockCord, solicitud, sizeof(tSolicitudesDeConsola), 0) <= 0){
+					   puts("Error al enviar solicitud");
+					   perror("Send");
+				   }
+				   puts("Se envió el header BLOQUEAR");
+
+		if (send(sockCord, clave, sizeof(clave), 0) <= 0){
+					   puts("Error al enviar la clave");
+					   perror("Send");
+				   }
+				   puts("Ya le avise al coordinador la clave bloqueada");
+		
+	}
+
+	void obtenerBloqueados(char clave[TAMANIO_CLAVE])
+	{
+		t_queue * aux=queue_create();
+	    //printf("La clave es: %s \n",clave);
+		int coincidir(t_esi *unEsi){
+								printf("Comparando clave %s con clave %s \n",unEsi->clave,clave);
+          	    	    		return (string_equals_ignore_case(unEsi->clave,clave));//unEsi->clave == clave;
+          	    	    	}
+		queue_push(bloqueados,new_ESI(1,2,5,clave));
+		puts("meti algo en la cola");
+		aux->elements=list_filter(bloqueados->elements,coincidir);
+		puts("filtre");
+		
+		t_esi *esi=malloc(sizeof(t_esi));
+		puts("voy a ver si hay algo adentro");
+		while(queue_is_empty(aux)==0)
+		{
+			esi=queue_pop(aux);
+			printf("Esi de id: %d esperando recurso %s",esi->id,esi->clave);
+		}
+		free(esi);
+		free(aux);
+		
+
 	}
 
 	int obtenerId(int size, char * linea)
@@ -580,6 +721,7 @@ void ordenarEsis(t_queue *cola)
 			j++;i++;
 		}
 		id=atoi(cid);
+		free(cid);//Probar esto
 		return id;
 	}
 
@@ -637,11 +779,7 @@ void ordenarEsis(t_queue *cola)
 					   }
 					   //fprintf("Mensaje : %s",headerRecibido->tipoMensaje);
 					   if (headerRecibido->tipoMensaje == CONECTARSE){
-						/*free(&headerRecibido->tipoMensaje);
-						free(&headerRecibido->tipoProceso);
-						free(headerRecibido->nombreProceso);
-						free(headerRecibido->idProceso);
-						free(headerRecibido);*/
+					//TODO: falta un free
 						return(headerRecibido->idProceso);
 					   }
 	}
@@ -716,48 +854,6 @@ int recibirResultadoDelEsi(int sockfd, tResultado * resultado){
 		return EXIT_SUCCESS;
     }
 
-	///////////////
-	/*
-		void *gestionarConexion(int socket){ //(int* sockfd, int* new_fd)
-		        int bytesRecibidos;
-		               tHeader *headerRecibido = malloc(sizeof(tHeader));
-				   if ((bytesRecibidos = recv(socket, headerRecibido, sizeof(tHeader), 0)) == -1){
-					perror("recv");
-					exit(1);
-				   }
-				   //fprintf("Mensaje : %s",headerRecibido->tipoMensaje);
-				   if (headerRecibido->tipoMensaje == CONECTARSE){
-					IdentificarProceso(headerRecibido, socket);
-					free(headerRecibido);
-				   }
-		    }
-		 void IdentificarProceso(tHeader* headerRecibido,
-		    		int socket) {
-		    	switch (headerRecibido->tipoProceso) {
-		    	case ESI:
-		    		printf("Se conecto el proceso %d \n", headerRecibido->idProceso);
-					
-		    		readyEsi(socket,headerRecibido->idProceso);
-		    		// si hago un AgregarACola(colaESIS,new_esi bla bla aca me tira segmentation fault, osea que no tiene acceso a la memoria de la cola
-		    		break;
-		    	default:
-		    		puts("Error al intentar conectar un proceso");
-		    		close(socket);
-		    	}
-		    }
-			
-		    void readyEsi(int socket,int id){
-		        puts("ESI conectando");
-				t_esi *esi=malloc(2*sizeof(int));
-				esi->id=id;
-				esi->fd=socket;
-				//AgregarACola(*ready,esi);
-				queue_push(*ready,esi);
-				free(esi);
-				//Aca se va a gestionar lo que se haga con este esi.
-		       
-		    }
-*/
 		    void AgregarACola(t_queue *Cola,t_esi *esi){
 
 		    				queue_push(Cola,esi);
@@ -774,47 +870,6 @@ int recibirResultadoDelEsi(int sockfd, tResultado * resultado){
 		    		    		    	queue_push(ColaFin,queue_pop(ColaInicio));
 		    		    		   	}
 
-
-		    // para DESENCOLAR usarmos queue_pop(t_queue * cola);
-		  /*  void BuscarElementoEnCola(t_queue *Cola,t_Esi * elemento)
-		    			{
-		    		    	Cola-> elements;
-		    		  	}*/
-
-		    /*
-		    void Encolar(Fifo*ultimo,int EsiId){  //agrega al final de la cola
-		    	while(ultimo->sgt != NULL)
-		    	         ultimo=ultimo->sgt;
-		        Fifo *nodo;
-		        nodo->pid=EsiId;
-		        nodo->sgt=NULL;
-		        ultimo->sgt = nodo;
-		        ultimo = nodo;
-		    }
-		    void DesEncolar(){
-		    }
-			void mostrarCola()
-			{	
-				int tam = queue_size(colaESIS);
-				printf("Tamanio de cola: %d \n",tam);
-			}
-			bool compare(int a)
-			{
-				if(a==21)
-					return true;
-				else
-					return false;
-			}
-			void kill(int id) // esto no se puede hacer porqe no hay un index en las colas
-			{
-				int pos;
-				int buscado;
-				//list_find(colaESIS->elements,compare);
-				//TODO: Hay que buscar al proceso dentro de la cola y removerlo para que no replanifique.
-				printf("Se mata al proceso: %d en la pos:%d \n",id,pos);
-			}
-			
-			*/
 	int enviarHeader(int sockfd){
 			int pid = getpid(); //Los procesos podrian pasarle sus PID al coordinador para que los tenga identificados
 			printf("Mi ID es %d \n",pid);
