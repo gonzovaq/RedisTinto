@@ -2,8 +2,9 @@
 
     int main(int argc, char *argv[])
     {
-    	LeerArchivoDeConfiguracion(argv);
     	verificarParametrosAlEjecutar(argc, argv);
+    	LeerArchivoDeConfiguracion(argv);
+
     			//FIFO
     		  	//Fifo *primero = malloc(sizeof(Fifo));
     		  	//Fifo *ultimo = malloc(sizeof(Fifo));
@@ -169,13 +170,11 @@
 									
     	                        }
 							 }else{
-								 if(i==sockCord){				
-										puts("Aca escuchamos al cordi");			 
+								 if(i==sockCord){
 									tNotificacionPlanificador *notificacion = malloc(sizeof(tNotificacionPlanificador));
 									//notificacion=recibirNotificacionCoordinador(sockCord);
 									 int numbytes;
 									if ((numbytes=recv(i, notificacion, sizeof(tNotificacionPlanificador), 0)) <= 0) {
-										printf("El socket i es: %d \n",i);
 										perror("No hay nada que haya enviado el cordi");
 										//exit(1);
 									}else{
@@ -462,13 +461,13 @@ void ordenarEsis(t_queue *cola)
 
     int verificarParametrosAlEjecutar(int argc, char *argv[]){
 
-      /*  if (argc != 2) {
-        	puts("Error al ejecutar, te faltan parametros.");
+        if (argc != 2) {
+        	puts("Error al ejecutar, te faltan parametros. Intenta con: ./Planificador unaConfiguracion.config");
             exit(1);
         }
 
 
-        if ((he=gethostbyname(argv[1])) == NULL) {  // obtener información de máquina
+        /*if ((he=gethostbyname(argv[1])) == NULL) {  // obtener información de máquina
         	puts("Error al obtener el hostname, te faltan parametros.");
         	perror("gethostbyname");
             exit(1);
@@ -763,7 +762,7 @@ int recibirResultadoDelEsi(int sockfd, tResultado * resultado){
 
 		    				queue_push(Cola,esi);
 
-		    				printf("se Agrego a la Cola el proceso: %d \n",esi->id);
+		    				printf("se Agrego a la Cola el proceso: %d \n",esi->id);puts("Aca escuchamos al cordi");
 		    			}
 		    void mostrarCola(t_queue *Cola)
 		    		  	{
