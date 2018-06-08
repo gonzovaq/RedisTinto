@@ -316,7 +316,7 @@
 
 		enviarMensaje(socket_coordinador, clave);
 
-		printf("Operacion STORE con la clave: %s, enviada correctamente" ,clave);
+		printf("Operacion STORE con la clave: %s, enviada correctamente\n" ,clave);
 
 		return EXIT_SUCCESS;
 

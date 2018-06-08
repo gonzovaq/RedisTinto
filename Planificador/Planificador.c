@@ -175,7 +175,7 @@
 									//notificacion=recibirNotificacionCoordinador(sockCord);
 									 int numbytes;
 									if ((numbytes=recv(i, notificacion, sizeof(tNotificacionPlanificador), 0)) <= 0) {
-										perror("No hay nada que haya enviado el cordi");
+										perror("Fallo el recibir Notificacion. Probablemente el Coordiandor la quedo");
 										//exit(1);
 									}else{
 										if(notificacion->tipoNotificacion==ERROR)

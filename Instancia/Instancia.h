@@ -14,6 +14,7 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <pthread.h>
 #include <commons/string.h>
 #include <commons/collections/list.h>
 #include <commons/config.h>
@@ -136,7 +137,7 @@ typedef struct{
 	    tAlgoritmoReemplazo algoritmoReemplazo;
 	    int cantidadClavesEnTabla = 0;
 	    sem_t *semaforo;
-
+	    pthread_mutex_t mutex;
 
 // Prototipos de las funciones
 

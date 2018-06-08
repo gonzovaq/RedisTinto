@@ -883,10 +883,9 @@
 		//Debo avisar a una Instancia cuando recibo una operacion (QUE NO SEA UN GET)
 		//Agregamos el mensaje a una cola en memoria
 		printf("ESI: clave de la operacion: %s \n", operacion->clave);
-		printf("ESI: valor de la operacion: %s \n", operacion->valor);
-		pthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
-		list_add(colaMensajes, (void*) operacion);
-		pthread_mutex_unlock(&mutex);
+		printf("ESI: La operacion es de tipo: %d\n",operacion->tipo);
+
+
 		//free(operacion);
 
 		puts("ESI: Vamos a chequear el tipo");
@@ -896,6 +895,10 @@
 		int seleccionInstancia = SeleccionarInstancia(&CLAVE);
 		puts("ESI: Se selecciono la Instancia");
 		if(operacion->tipo != OPERACION_GET){
+			printf("ESI: valor de la operacion: %s \n", operacion->valor);
+			pthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
+			list_add(colaMensajes, (void*) operacion);
+			pthread_mutex_unlock(&mutex);
 			//esperamos el resultado para devolver
 			puts("ESI: Vamos a ver si hay algun resultado en la cola");
 			while (list_is_empty(colaResultados));
@@ -1139,10 +1142,7 @@
 			OperacionAEnviar* operacion) {
 
 		puts("Instancia: Envio header a la instancia");
-		printf("Socket de la instancia: %d\n", parametros->new_fd);
 		// Envio el header a la instancia
-
-		printf("El socket es: %d \n", parametros->new_fd);
 
 		int sendHeader;
 		if ((sendHeader = send(parametros->new_fd, header, sizeof(OperaciontHeader), 0))
@@ -1154,8 +1154,9 @@
 			close(parametros->new_fd);
 			return 2;
 		}
+		printf("Instancia: Voy a enviarle la operacion de tipo: %d\n",header->tipo);
 		free(header);
-		puts("Instancia: Envio clave a la instancia");
+		printf("Instancia: Envio clave %s a la instancia\n", operacion->clave);
 		// Envio la clave
 		int sendClave;
 		if ((sendClave = send(parametros->new_fd, operacion->clave, TAMANIO_CLAVE,0)) <= 0) {
@@ -1169,7 +1170,7 @@
 
 		if (tipo == OPERACION_SET) {
 			int sendSet;
-			puts("Instancia: Envio valor a la instancia");
+			printf("Instancia: Envio valor %s a la instancia\n", operacion->valor);
 			if ((sendSet = send(parametros->new_fd, operacion->valor, tamanioValor, 0)) <= 0){
 				perror("send");
 
