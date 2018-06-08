@@ -18,17 +18,19 @@
         he = gethostbyname(IP);
         socketCoordinador = conectarmeYPresentarme(PORTCO);
 
-    	char **arrayEntradas = malloc(cantidadEntradas * sizeof(char*));
+
+        char **arrayEntradas = malloc(cantidadEntradas * sizeof(char*));
 
     	for (int i= 0; i < cantidadEntradas; i++){
     		arrayEntradas[i] = calloc(tamanioValor, sizeof(char));
     	}
+
 //    	char *punteroCIRC = malloc(sizeof(char*));
 //     	punteroCIRC = arrayEntradas[posicionPunteroCirc];
 
     	//DUMP
     	pthread_t tid;
-    	int stat = pthread_create(&tid, NULL, (void*)Dump, (void*)&arrayEntradas);
+    	int stat = pthread_create(&tid, NULL, (void*)Dump, (void*)arrayEntradas);
 		if (stat != 0){
 			puts("error al generar el hilo");
 			perror("thread");
@@ -36,8 +38,9 @@
 		}
 		pthread_detach(tid); //Con esto decis que cuando el hilo termine libere sus recursos
 
+		semaforo = malloc(sizeof(sem_t));
 
-
+		sem_wait(semaforo);
 
         while(1){
         	OperaciontHeader *headerRecibido = malloc(sizeof(OperaciontHeader)); // El malloc esta en recibir header
@@ -54,7 +57,7 @@
 
 
         	if (headerRecibido->tipo == OPERACION_SET){
-
+        		//pthread_mutex_lock(&mutex);
         		puts("ENTRO A UN SET");
         		cantidadClavesEnTabla++;
             	if(validarClaveExistente(bufferClave, tablaEntradas) == true){
@@ -77,6 +80,8 @@
              	printf("Cantidad de elementos en mi tabla de entradas: %d\n", list_size(tablaEntradas));
              	printf("LO QUE ME MUSTRA EL PUNTERO CIRCULAR %s\n", arrayEntradas[posicionPunteroCirc]);
              	printf("POSICION PUNTERO CIRCULAR: %d\n", posicionPunteroCirc);
+             	//sem_post(semaforo);
+             	//pthread_mutex_unlock(&mutex);
         		}
 
 
@@ -98,6 +103,7 @@
 //        		free(bufferClave);
 //        	}
         	if (headerRecibido->tipo == OPERACION_STORE){
+        		//pthread_mutex_lock(&mutex);
         		puts("ENTRO A UN STORE");
         		longitudMaximaValorBuscado = calcularLongitudMaxValorBuscado(bufferClave, tablaEntradas);
         		valorGet = obtenerValor(longitudMaximaValorBuscado, tablaEntradas, bufferClave, arrayEntradas, tamanioValor);
@@ -110,8 +116,9 @@
         		free(headerRecibido);
         		free(bufferClave);
         		puts("TERMINE UN STORE");
+        		//sem_post(semaforo);
+        		//pthread_mutex_unlock(&mutex);
         	}
-
         }
         close(socketCoordinador);
         return 0;
@@ -496,14 +503,18 @@
 
     	tablaDuplicada = list_filter(tablaDuplicada, (void*) coincidir);
 
+
     	for(int i = 0; i < tablaDuplicada->elements_count; i++){
     		bufferEntrada = list_get(tablaDuplicada, i);
+    		puts("********DESPUES DEL GET***********");
     		int index = bufferEntrada->numeroEntrada;
+    		puts("********DESPUES DEL INDEX***********");
     		//memcpy((valor + i * tamanioValor), arrayEntradas[index], tamanioValor);
     		memcpy((valor + tamanioTotalValor), arrayEntradas[index], bufferEntrada->tamanioAlmacenado);
 
     		tamanioTotalValor += bufferEntrada->tamanioAlmacenado;
     	}
+
     	valor[tamanioTotalValor] = '\0';
     	list_destroy(tablaDuplicada);
     	//free(bufferEntrada);
@@ -649,10 +660,11 @@
     	   while(1)
     	   {
     		   sleep(Intervalo);
-    		   puts("Antes del dump");
-//    		   pthread_mutex_lock(&mutex);
-//    		   //guardarTodasMisClaves(tablaEntradas, arrayEntradas);
-//    		   pthread_mutex_unlock(&mutex);
+    		   puts("REALIZO DUMP");
+    		   //pthread_mutex_lock(&mutex);
+    		   guardarTodasMisClaves(tablaEntradas, arrayEntradas);
+    		   //pthread_mutex_unlock(&mutex);
+    		   //sem_post(semaforo);
     	   }
     	   return EXIT_SUCCESS;
        }

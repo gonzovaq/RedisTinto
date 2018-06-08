@@ -135,6 +135,7 @@ typedef struct{
 	    t_list *tablaEntradas;
 	    tAlgoritmoReemplazo algoritmoReemplazo;
 	    int cantidadClavesEnTabla = 0;
+	    sem_t *semaforo;
 
 
 // Prototipos de las funciones
