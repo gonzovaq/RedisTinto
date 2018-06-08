@@ -651,10 +651,10 @@
 
 
        void guardarUnArchivo(char *unaClave, char *valorArchivo){
-    	   char *rutaAGuardar = malloc(strlen(PuntoMontaje) + strlen(unaClave) + 4);
+    	   char *rutaAGuardar = malloc(strlen(PuntoMontaje) + strlen(unaClave) + 5);
     	   strcpy(rutaAGuardar, PuntoMontaje);
     	   strcat(rutaAGuardar, unaClave);
-    	   strcat(rutaAGuardar, ".txt");
+    	   strcat(rutaAGuardar, ".txt\0");
 
     	   printf("Nombre de la clave a guardar: %s\n", unaClave);
     	   printf("El valor a guardar es: %s\n",valorArchivo);

@@ -325,7 +325,6 @@
     int enviarValor(int sockfd, char* valor){
 
     	printf("Se envió el valor: %s \n",valor);
-    	valor[strlen(valor) + 1] = '\0';
 
     	if ((send(sockfd, valor, strlen(valor), 0)) <= 0) {
         	puts("Error al enviar el valor.");

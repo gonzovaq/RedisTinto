@@ -711,11 +711,11 @@
 		operacion->tipo = OPERACION_GET;
 		strcpy(operacion->clave,clave);
 		operacion->valor = NULL;
-		char* GetALoguear[4+strlen(clave)+1];
+		char GetALoguear[4+strlen(clave)+1];
 		strcpy(GetALoguear, "GET ");
 		puts(GetALoguear);
 		strcat(GetALoguear, clave);
-		GetALoguear[4+strlen(clave)+1]='\0';
+		GetALoguear[4+strlen(clave)]='\0';
 		puts(GetALoguear);
 
 		tBloqueo *bloqueo = malloc(sizeof(tBloqueo));
@@ -776,9 +776,9 @@
 		}
 		free(bloqueo);
 
-		char *valor = malloc(tamanioValor);
+		char *valor = malloc(tamanioValor+1);
 		//char valor[tamanioValor];
-		if (( recvValor = recv(parametros->new_fd, valor, tamanioValor + 1, 0)) <= 0) {
+		if (( recvValor = recv(parametros->new_fd, valor, tamanioValor+1, 0)) <= 0) {
 			perror("recv");
 			log_info(logger, "TID %d  Mensaje: ERROR en ESI",
 					process_get_thread_id());
@@ -791,14 +791,14 @@
 		strcpy(operacion->clave,clave);
 		operacion->valor= valor;
 		printf("ESI: El valor dentro de operacion es %s \n",operacion->valor);
-		char* SetALoguear[5+strlen(clave)+strlen(valor)+1];
+		char SetALoguear[5+strlen(clave)+strlen(valor)+1]; // SET jugador TraemeLaCopa da 24
 		strcpy(SetALoguear, "SET ");
 		puts(SetALoguear);
 		strcat(SetALoguear, clave);
 		puts(SetALoguear);
 		strcat(SetALoguear, " ");
 		strcat(SetALoguear, valor);
-		SetALoguear[5+strlen(clave)+strlen(valor)+1]='\0';
+		SetALoguear[5+strlen(clave)+strlen(valor)]='\0';
 		puts(SetALoguear);
 
 		log_info(logger, SetALoguear);
@@ -869,11 +869,11 @@
 		strcpy(operacion->clave,clave);
 		operacion->valor = NULL;
 
-		char* StoreALoguear[6+strlen(clave)+1];
+		char StoreALoguear[6+strlen(clave)+1];
 		strcpy(StoreALoguear, "STORE ");
 		puts(StoreALoguear);
 		strcat(StoreALoguear, clave);
-		StoreALoguear[6+strlen(clave)+1]='\0';
+		StoreALoguear[6+strlen(clave)]='\0';
 		puts(StoreALoguear);
 
 		log_info(logger, StoreALoguear);
