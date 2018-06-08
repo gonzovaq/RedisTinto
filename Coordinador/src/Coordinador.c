@@ -78,7 +78,7 @@
 
         if (pthread_mutex_init(&mutex, NULL) == -1){
         	perror("error al crear mutex");
-        	exit_gracefully(1);
+        	//exit_gracefully(1);
         }
 
     	while(1) {  // main accept() loop
@@ -251,6 +251,7 @@
 			puts("ESI: RECIBI TAMANIO VALOR");
 			printf("ESI: Tamaño valor: %d \n",tamanioValor);
 			OperacionAEnviar * operacion = malloc(sizeof(OperacionAEnviar));//+TAMANIO_CLAVE+tamanioValor);
+			printf("ESI: clave operacion en direccion: %p\n", (void*)&(operacion->clave));
 
 			// Si la operacion devuelve 1 todo salio bien, si devuelve 2 hubo un bloqueo y le avisamos al ESI
 			int resultadoOperacion;
@@ -291,6 +292,8 @@
 				puts("ESI Fallo al ver el resultado de la operacion");
 				break;
 			}
+			if(operacion->tipo==OPERACION_SET)
+				free(operacion->valor);
 			free(operacion);
         }
 		close(parametros->new_fd);
@@ -457,6 +460,7 @@
 			sem_wait(parametros->semaforo); // Caundo me avisen que hay una operacion para enviar, la voy a levantar de la cola
 			puts("Instancia: Me hicieron un sem_post");
 			OperacionAEnviar * operacion = list_remove(colaMensajes,0); //hay que borrar esa operacion
+			printf("Instancia: clave operacion en direccion: %p\n", (void*)&(operacion->clave));
 			puts("Instancia: levante un mensaje de la cola de mensajes");
 			printf("Instancia: la clave es %s \n",operacion->clave);
 			printf("Instancia: el valor es %s \n",operacion->valor);
@@ -890,15 +894,19 @@
 
 		puts("ESI: Vamos a chequear el tipo");
 
+		if(operacion->tipo != OPERACION_GET){
+			pthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
+			printf("ESI: clave operacion en direccion: %p\n", (void*)&(operacion->clave));
+			list_add(colaMensajes, (void*) operacion);
+			pthread_mutex_unlock(&mutex);
+		}
 
 		puts("ESI: Voy a seleccionar la Instancia");
 		int seleccionInstancia = SeleccionarInstancia(&CLAVE);
 		puts("ESI: Se selecciono la Instancia");
 		if(operacion->tipo != OPERACION_GET){
 			printf("ESI: valor de la operacion: %s \n", operacion->valor);
-			pthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
-			list_add(colaMensajes, (void*) operacion);
-			pthread_mutex_unlock(&mutex);
+
 			//esperamos el resultado para devolver
 			puts("ESI: Vamos a ver si hay algun resultado en la cola");
 			while (list_is_empty(colaResultados));
@@ -993,6 +1001,7 @@
 
     int exit_gracefully(int return_nr) {
 
+    	puts("ENTRE AL EXIT GRACEFULLY ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR");
        log_destroy(logger);
        exit(return_nr);
        free(colaInstancias);
