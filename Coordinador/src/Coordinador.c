@@ -339,19 +339,23 @@
 					process_get_thread_id());
 			//exit_gracefully(1);
 		} else
+			printf("Planificador: Agrego la clave %s a la cola de bloqueadas \n", clave);
 			list_add(clavesTomadas, &clave);
 
 		return EXIT_SUCCESS;
 	}
 
     int RecibirClavesBloqueadas(parametrosConexion* parametros){
+    	puts("Planificador: Voy a recibir cuantas claves hay inicialmente bloqueadas");
     	tClavesBloqueadas * clavesBloqueadas = malloc(sizeof(tClavesBloqueadas));
     	if ((recv(parametros->new_fd, clavesBloqueadas, sizeof(tClavesBloqueadas), 0)) <= 0){
     		puts("Planificador: Fallo el recibir la cantidad de claves iniciales");
     		return -1;
     	}
 
-    	for(int i = 0; i <clavesBloqueadas; i++){
+    	printf("Planificador: Tengo %d claves inicialmente bloqueadas \n",clavesBloqueadas->cantidadClavesBloqueadas);
+
+    	for(int i = 0; i <clavesBloqueadas->cantidadClavesBloqueadas; i++){
     		AgregarClaveBloqueada(parametros);
     	}
 

@@ -34,6 +34,7 @@ struct sockaddr_in cord_addr; // información de la dirección del Coordinador
 	t_queue *ejecucion;
    	t_queue *finalizados;
     t_queue *bloqueados;
+    t_list *clavesBloqueadas;
 //ESTO DEBERIA ESTAR EN OTRO .H
 struct parametrosConexion{
 	int new_fd;
@@ -125,6 +126,10 @@ typedef struct{
 	tResultadoOperacion tipoResultado;
 	char clave[TAMANIO_CLAVE];
 }__attribute__((packed)) tResultado;
+
+typedef struct{
+	int cantidadClavesBloqueadas;
+}tClavesBloqueadas;
 
 
 int LeerArchivoDeConfiguracion();

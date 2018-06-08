@@ -450,6 +450,12 @@ void ordenarEsis(t_queue *cola)
 		printf("El socket cordinador es: %d \n",sockCord);
     	//puts("Conectado con el coordinador!\n");
 		enviarHeader(sockCord);
+
+		if (list_size(clavesBloqueadas)>0){
+			puts("Hay claves inicialmente bloqueadas y se las voy a enviar al coordinador");
+			enviarClavesBloqueadas(sockCord);
+		}
+
 	return sockCord;
 		//printf("El socket cordinador es: %d \n",sockCord);
     }
@@ -600,6 +606,17 @@ void ordenarEsis(t_queue *cola)
 			puts("estimado");
 			Alfa = config_get_int_value(configuracion, "Alfa");
 			algoritmo = config_get_int_value(configuracion, "algoritmo");
+
+			clavesBloqueadas = list_create();
+			char** claves = config_get_array_value(configuracion,"Claves_Bloqueadas"); // esto devuelve un char**
+			int clavesInicialmenteBloqueadas = config_get_int_value(configuracion, "cantidadClavesBloqueadas");
+
+			puts("Voy a ver cuantas claves tengo bloqueadas inicialmente");
+			for(int i = 0; i< clavesInicialmenteBloqueadas; i++ ){
+				printf("Una clave inicialmente bloqueada es: %s \n",claves[i]);
+				list_add(clavesBloqueadas,claves[i]);
+			}
+
 			return 1;
 
 		}
@@ -799,27 +816,53 @@ int recibirResultadoDelEsi(int sockfd, tResultado * resultado){
 			}
 			
 			*/
-int enviarHeader(int sockfd){
-    	int pid = getpid(); //Los procesos podrian pasarle sus PID al coordinador para que los tenga identificados
-    	printf("Mi ID es %d \n",pid);
-        tHeader *header = malloc(sizeof(tHeader));
-               header->tipoProceso = PLANIFICADOR;
-               header->tipoMensaje = CONECTARSE;
-               header->idProceso = pid;
-               strcpy(header->nombreProceso, "Planificador" ); // El nombre se da en el archivo de configuracion --> MINOMBRE
-			   if (send(sockfd, header, sizeof(tHeader), 0) == -1){
-				   puts("Error al enviar mi identificador");
+	int enviarHeader(int sockfd){
+			int pid = getpid(); //Los procesos podrian pasarle sus PID al coordinador para que los tenga identificados
+			printf("Mi ID es %d \n",pid);
+			tHeader *header = malloc(sizeof(tHeader));
+				   header->tipoProceso = PLANIFICADOR;
+				   header->tipoMensaje = CONECTARSE;
+				   header->idProceso = pid;
+				   strcpy(header->nombreProceso, "Planificador" ); // El nombre se da en el archivo de configuracion --> MINOMBRE
+				   if (send(sockfd, header, sizeof(tHeader), 0) == -1){
+					   puts("Error al enviar mi identificador");
+					   perror("Send");
+					   //free(&header->tipoMensaje);
+					   //free(&header->tipoProceso);
+					 //  free(header->idProceso);
+					   free(header);
+					   exit(1);
+				   }
+				   puts("Se envió mi identificador");
+				   //free(&header->tipoMensaje);
+				   //free(&header->tipoProceso);
+				   //free(header->idProceso);
+				   free(header);
+				   return EXIT_SUCCESS;
+		}
+
+	int enviarClavesBloqueadas(int sockfd){
+		tClavesBloqueadas * cantidadClavesBloqueadas = malloc(sizeof(tClavesBloqueadas));
+		cantidadClavesBloqueadas->cantidadClavesBloqueadas = list_size(clavesBloqueadas);
+
+		if(send(sockfd,cantidadClavesBloqueadas,sizeof(tClavesBloqueadas),0) <= 0){
+			perror("Hubo un problema al enviar la cantidad de claves bloqueadas");
+			exit(1);
+		}
+
+		for(int i = 0; i < cantidadClavesBloqueadas->cantidadClavesBloqueadas; i++){
+			char * clave = list_get(clavesBloqueadas,i);
+			printf("Envio la clave: %s \n",clave);
+			   if (send(sockfd, clave, TAMANIO_CLAVE, 0) == -1){
+				   puts("Error al enviar una clave bloqueada");
 				   perror("Send");
 				   //free(&header->tipoMensaje);
 				   //free(&header->tipoProceso);
 				 //  free(header->idProceso);
-				   free(header);
 				   exit(1);
 			   }
-			   puts("Se envió mi identificador");
-			   //free(&header->tipoMensaje);
-			   //free(&header->tipoProceso);
-			   //free(header->idProceso);
-			   free(header);
-			   return EXIT_SUCCESS;
-    }
+			   puts("Se envió una clave bloqueada");
+		}
+
+		free(cantidadClavesBloqueadas);
+	}

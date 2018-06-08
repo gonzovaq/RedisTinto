@@ -161,7 +161,7 @@ typedef struct{
 }tEntradasUsadas;
 
 typedef struct{
-	int entradasUsadas;
+	int cantidadClavesBloqueadas;
 }tClavesBloqueadas;
 
 
