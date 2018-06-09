@@ -273,8 +273,8 @@
 									enviarConfirmacion=1;
 							
 							}
-							}//cierre el else recibir
-						//}	
+							free(resultado);
+						}//cierre el else recibir
 				//	}//cierre flag operar
 					}//cierro el fdset
 

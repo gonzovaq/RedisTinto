@@ -495,7 +495,7 @@
     	}
 
     	valor[tamanioTotalValor] = '\0';
-    	list_destroy(tablaDuplicada);
+    	list_destroy_and_destroy_elements(tablaDuplicada, (void*) destruirNodoDeTabla);
     	//free(bufferEntrada);
     	return valor;
     }
@@ -551,8 +551,8 @@
 
 
 
-       	list_destroy(tablaDuplicada);
-       	list_destroy(tablaFiltrada);
+       	list_destroy_and_destroy_elements(tablaDuplicada,(void *) destruirNodoDeTabla);
+       	list_destroy_and_destroy_elements(tablaFiltrada,(void *) destruirNodoDeTabla);
        	//free(bufferEntrada);
 
        	return;
@@ -699,8 +699,11 @@
         	   puts("Por entrar a guardar un archivo");
         	   guardarUnArchivo(bufferClave, valorGet);
     		   index += longitud;
+    		   free(valorGet);
     	   }
-
+    	   free(bufferEntrada);
+    	   free(bufferClave);
+    	   list_destroy_and_destroy_elements(duplicada, (void*) destruirNodoDeTabla);
     	   return;
 
        }
