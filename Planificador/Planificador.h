@@ -12,6 +12,7 @@
 	#include <commons/collections/queue.h>
 	#include <commons/config.h>
 	#include <semaphore.h>
+	#include <signal.h>
 
 /*
  * Coordinador.h

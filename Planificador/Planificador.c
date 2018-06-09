@@ -177,7 +177,7 @@
 										if(notificacion->tipoNotificacion==ERROR)
 										{
 											printf("Vamos a matar al esi de id: %d \n",esi->id);//abortar al esi
-											//SIGTERM(esi->id);
+											kill(esi->id,SIGTERM);
 										}
 										if(notificacion->tipoNotificacion==DESBLOQUEO)
 										{
@@ -563,7 +563,7 @@ void ordenarEsis(t_queue *cola)
 				//obtener id
 				int id=obtenerId(4,linea);
 				printf("id: %d \n",id);
-				//SIGTERM(id);
+				kill(id,SIGTERM);
 			}
 			if(strncmp(linea,"status",6)==0)
 			{
