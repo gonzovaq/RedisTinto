@@ -699,10 +699,7 @@
         	   puts("Por entrar a guardar un archivo");
         	   guardarUnArchivo(bufferClave, valorGet);
     		   index += longitud;
-    		   free(valorGet);
     	   }
-    	   free(bufferEntrada);
-    	   free(bufferClave);
     	   list_destroy_and_destroy_elements(duplicada, (void*) destruirNodoDeTabla);
     	   return;
 
