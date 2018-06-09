@@ -401,11 +401,12 @@
 					return 3;
 					//exit_gracefully(1);
 				}
-				else
+				else{
 					printf("Planificador: voy a agregar a las bloqueadas a la clave %s \n",clave);
 					pthread_mutex_lock(&mutex);
-					list_add(clavesTomadas,&clave);
+					list_add(clavesTomadas,clave); //Estaba &clave, cambie por clave para probar.
 					pthread_mutex_unlock(&mutex);
+				}
 				break;
 			case DESBLOQUEAR:
 
@@ -416,10 +417,13 @@
 					return 3;
 					//exit_gracefully(1);
 				}
-				else ;
+				else{
 				printf("Planificador: voy a remover de las bloqueadas a la clave %s \n",clave);
-					RemoverClaveDeBloqueados(&clave);
+					printf("Size de la lista clavesTomadas antes de remover: %d\n", list_size(clavesTomadas));
+					RemoverClaveDeClavesTomadas(clave);//Aca habia un &clave, pruebo sacandoselo
+					printf("Size de la lista clavesTomadas despues de remover: %d\n", list_size(clavesTomadas));
 				break;
+				}
 			case LISTAR:
 				/*
 				char clave[TAMANIO_CLAVE];
@@ -449,18 +453,53 @@
     	return EXIT_SUCCESS;
     }
 
-    int RemoverClaveDeBloqueados(char * clave){
+    int RemoverClaveDeClavesTomadas(char * clave){
 		bool compararClaveParaDesbloquear(char *claveABuscar){
 			printf("Planificador: Comparando la clave %s con %s \n", claveABuscar, clave);
 			if(string_equals_ignore_case(clave,claveABuscar) == true){
 				puts("Planificador: Las claves son iguales");
+				printf("Vamos a eliminar la clave %s de la lista de Claves Tomadas\n",claveABuscar);
 				return true;
 			}
 			puts("Planificador: Las claves son distintas");
 			return false;
 		}
+		pthread_mutex_lock(&mutex);
 		list_remove_and_destroy_by_condition(clavesTomadas,(void*)compararClaveParaDesbloquear,(void*)borrarClave);
+		pthread_mutex_unlock(&mutex);
 
+
+		return EXIT_SUCCESS;
+    }
+
+    int RemoverClaveDeLaListaBloqueos(char * claveABuscar){
+    		bool yaExisteLaClave(tBloqueo *bloqueo){
+    			printf("Comparando la clave %s con %s \n", claveABuscar, bloqueo->clave);
+    			if(string_equals_ignore_case(bloqueo->clave,claveABuscar) == true){
+    				printf("Vamos a eliminar la clave %s de la listaBloqueos\n",claveABuscar);
+    				return true;
+    			}
+    		}
+    		pthread_mutex_lock(&mutex);
+    		list_remove_and_destroy_by_condition(listaBloqueos,yaExisteLaClave,(void*)destruirBloqueo);
+    		pthread_mutex_unlock(&mutex);
+    		return EXIT_SUCCESS;
+    }
+
+    int RemoverClaveDeClavesPropias(char * clave, parametrosConexion *parametros){
+		bool compararClaveParaDesbloquear(char *claveABuscar){
+			printf("Planificador: Comparando la clave %s con %s \n", claveABuscar, clave);
+			if(string_equals_ignore_case(clave,claveABuscar) == true){
+				puts("Planificador: Las claves son iguales");
+				printf("Vamos a eliminar la clave %s de la lista de Claves Tomadas\n",claveABuscar);
+				return true;
+			}
+			puts("Planificador: Las claves son distintas");
+			return false;
+		}
+		pthread_mutex_lock(&mutex);
+		list_remove_and_destroy_by_condition(parametros->claves,(void*)compararClaveParaDesbloquear,(void*)borrarClave);
+		pthread_mutex_unlock(&mutex);
 
 
 		return EXIT_SUCCESS;
@@ -718,7 +757,7 @@
 		strcpy(CLAVE,clave);
 
 		puts("ESI: Verifico en los ESIS si aluno tiene la clave");
-		if (((!list_is_empty(colaBloqueos)) && EncontrarEnLista(colaBloqueos, &clave))){
+		if (((!list_is_empty(listaBloqueos)) && EncontrarEnLista(listaBloqueos, &clave))){
 			puts("ESI: La clave esta bloqueada por un ESI");
 
 			/* No es necesario avisarle el bloqueo porque se lo esta avisando el ESI
@@ -759,7 +798,7 @@
 		tBloqueo *bloqueo = malloc(sizeof(tBloqueo));
 		strcpy(bloqueo->clave,clave);
 		bloqueo->pid = parametros->pid;
-		list_add(colaBloqueos,(void *)bloqueo); // TENGO QUE AVISARLE AL PLANIFICADOR QUE ESTA CLAVE ESTA BLOQUEADA POR ESTE ESI
+		list_add(listaBloqueos,(void *)bloqueo); // TENGO QUE AVISARLE AL PLANIFICADOR QUE ESTA CLAVE ESTA BLOQUEADA POR ESTE ESI
 
 		/* ACA HAY QUE AVISARLE AL PLANIFICDOR DEL BLOQUEO PARA QUE FRENE AL ESI
 		notificacion->tipoNotificacion=BLOQUEO;
@@ -809,7 +848,7 @@
 		strcpy(bloqueo->clave,clave);
 		bloqueo->pid = parametros->pid;
 
-		if (!(!list_is_empty(colaBloqueos) && LePerteneceLaClave(colaBloqueos, bloqueo))){
+		if (!(!list_is_empty(listaBloqueos) && LePerteneceLaClave(listaBloqueos, bloqueo))){
 			printf("ESI: No se puede realizar un SET sobre la clave: %s debido a que nunca se la solicito \n",clave);
 		}
 		free(bloqueo);
@@ -872,7 +911,7 @@
 			sem_post(planificador->semaforo);
 			puts("ESI: Ya le avise al planificador que aborte el ESI");
 
-			 //RemoverClaveDeBloqueados(clave);
+			 //RemoverClaveDeClavesTomadas(clave);
 
 			return 3;
 		}
@@ -882,15 +921,24 @@
 		strcpy(bloqueo->clave,clave);
 		bloqueo->pid = parametros->pid;
 
-		if (!list_is_empty(colaBloqueos) && LePerteneceLaClave(colaBloqueos, bloqueo)){
+		if (!list_is_empty(listaBloqueos) && LePerteneceLaClave(listaBloqueos, bloqueo)){
 			printf("ESI: Se desbloqueo la clave: %s \n",clave);
 
 			notificacion->tipoNotificacion=DESBLOQUEO;
 			strcpy(notificacion->clave,clave);
 			notificacion->pid = parametros->pid;
 
-			RemoverClaveDeLaLista(colaBloqueos, &clave);
-			RemoverClaveDeLaLista(clavesTomadas, &clave);
+			printf("Size de la listaBloqueos antes de remover: %d\n", list_size(listaBloqueos));
+			RemoverClaveDeLaListaBloqueos(clave);
+			printf("Size de la listaBloqueos despues de remover: %d\n", list_size(listaBloqueos));
+
+			printf("Size de la lista clavesTomadas antes de remover: %d\n", list_size(clavesTomadas));
+			RemoverClaveDeClavesTomadas(clave);
+			printf("Size de la lista clavesTomadas despues de remover: %d\n", list_size(clavesTomadas));
+
+			printf("Size de las clavesPropias antes de remover: %d\n", list_size(parametros->claves));
+			RemoverClaveDeClavesPropias(clave, parametros);
+			printf("Size de las clavesPropias despues de remover: %d\n", list_size(parametros->claves));
 
 			printf("ESI: le voy a avisar al planificador que se desbloqueo la clave: %s \n",clave);
 			sem_post(planificador->semaforo);
@@ -1028,7 +1076,7 @@
 		colaESIS = list_create();
 		//colaESIS->head = malloc(sizeof(parametrosConexion) * esisMaximos);
 
-		colaBloqueos = list_create();
+		listaBloqueos = list_create();
 
 		clavesTomadas = list_create();
 
@@ -1047,7 +1095,7 @@
        free(colaMensajes);
        free(colaResultados);
        free(colaESIS);
-       free(colaBloqueos);
+       free(listaBloqueos);
        free(notificacion);
        free(clavesTomadas);
 
@@ -1364,17 +1412,6 @@
 			sem_post(instancia->semaforo);
 		}
 		return 1;
-	}
-
-	int RemoverClaveDeLaLista(t_list * lista, char * claveABuscar){
-		bool yaExisteLaClave(tBloqueo *bloqueo){
-			printf("Comparando la clave %s con %s \n", claveABuscar, bloqueo->clave);
-			return string_equals_ignore_case(bloqueo->clave,claveABuscar) == true;
-		}
-		pthread_mutex_lock(&mutex);
-		list_remove_and_destroy_by_condition(colaBloqueos,yaExisteLaClave,(void*)destruirBloqueo);
-		pthread_mutex_unlock(&mutex);
-		return EXIT_SUCCESS;
 	}
 
 	static void destruirBloqueo(tBloqueo *bloqueo) {

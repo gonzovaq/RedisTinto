@@ -202,7 +202,6 @@
                 return EXIT_SUCCESS;
         	}
         }
-        //aca habia un read = getline
             while (!recibirOrdenDeEjecucion(socket_planificador));
                 t_esi_operacion parsed = parse(line);
 

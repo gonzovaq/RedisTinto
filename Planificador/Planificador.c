@@ -107,7 +107,6 @@
 						t_esi *esi=malloc(sizeof(t_esi));
 						char clave[TAMANIO_CLAVE];
     	        for(;;) {
-						
     	        	/*
     	        	dos conjuntos de descriptores de fichero: master y read_fds.
     	        	El primero, master, contiene todos los descriptores de fichero que están actualmente conectados,
@@ -363,7 +362,6 @@
 
 				}//Cierra el for del main
     	        
-				
     	        return 0;
     }//Cierra el main
 
