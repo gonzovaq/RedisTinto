@@ -24,6 +24,7 @@ static const char filename[] = "/home/utnso/workspace2/tp-2018-1c-Sistemas-Opera
 struct hostent *he;
 struct sockaddr_in their_addr; // información de la dirección de destino
 char MINOMBRE[40];
+int volverALeer = 0;
 
 
 typedef enum{

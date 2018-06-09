@@ -627,9 +627,9 @@ void ordenarEsis(t_queue *cola)
 		free(desbloqueado);
 		
 		puts("Envio header de clave a desbloquear al Coordinador");
-		tSolicitudesDeConsola * solicitud = malloc(sizeof(tSolicitudesDeConsola));
-		solicitud= DESBLOQUEAR;
-		   if (send(sockCord, clave, sizeof(tSolicitudesDeConsola), 0) == -1){
+		tSolicitudPlanificador * solicitud = malloc(sizeof(tSolicitudPlanificador));
+		solicitud->solicitud= DESBLOQUEAR;
+		   if (send(sockCord, solicitud, sizeof(tSolicitudPlanificador), 0) <= 0){
 			   puts("Error al enviar header de una clave bloqueada");
 			   perror("Send");
 			   //free(&header->tipoMensaje);
@@ -637,7 +637,7 @@ void ordenarEsis(t_queue *cola)
 			 //  free(header->idProceso);
 
 		   }
-		   puts("Se envió header de clave desbloqueada");
+		   printf("Se envió header de clave desbloqueada %d \n",solicitud);
 		  //free(solicitud);
 
 		puts("Envio la clave desbloqueada");
@@ -650,7 +650,7 @@ void ordenarEsis(t_queue *cola)
 			 //  free(header->idProceso);
 
 		   }
-		   puts("Se envió una clave desbloqueada");
+		   printf("Se envió una clave desbloqueada: %s \n",clave);
 
 		if(algoritmo==SJF || algoritmo==SJFD)
 		{

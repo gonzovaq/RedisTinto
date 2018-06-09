@@ -180,7 +180,29 @@
         tValidezOperacion * validez = malloc(sizeof(tValidezOperacion));
         int tamanioValor;
 
-        while(getline(&line, &len, file) != -1){ //aca habia un read = getline
+        while(1){
+        printf("volverALeer es %d \n",volverALeer);
+        if(volverALeer == 1){
+        	puts("Debo volver a leer la linea");
+        	volverALeer=0;
+        }
+        else{
+        	puts("Leo nueva linea");
+        	if(getline(&line, &len, file) == -1){
+        		tResultado * resultado = malloc(sizeof(tResultado));
+        		resultado->tipoResultado=CHAU;
+        		enviarResultado(socket_planificador,resultado);
+                free(resultado);
+                fclose(file);
+                if (line){
+                    free(line);
+                }
+                free(validez);
+                puts("Chau!");
+                return EXIT_SUCCESS;
+        	}
+        }
+        //aca habia un read = getline
             while (!recibirOrdenDeEjecucion(socket_planificador));
                 t_esi_operacion parsed = parse(line);
 
@@ -263,7 +285,8 @@
     			puts("La operación salio OK"); //EN ESTOS CASE DEBERIA LOGGEAR O ALGO ASI, PREGUNTAR MAS ADELANTE
     			break;
     		case BLOQUEO:
-				puts("La operación se BLOQUEO");
+    			volverALeer = 1;
+				printf("La operación se BLOQUEO -- volverALeer es %d \n",volverALeer);
 				break;
     		case ERROR:
 				puts("La operación tiro ERROR");

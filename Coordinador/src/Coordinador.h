@@ -164,6 +164,10 @@ typedef struct{
 	int cantidadClavesBloqueadas;
 }tClavesBloqueadas;
 
+typedef struct{
+	tSolicitudesDeConsola solicitud;
+}tSolicitudPlanificador;
+
 
 // VARIABLES GLOBALES
 

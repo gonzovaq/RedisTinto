@@ -77,6 +77,10 @@ typedef enum{
 	DESBLOQUEAR = 3
 }tSolicitudesDeConsola;
 
+typedef struct{
+	tSolicitudesDeConsola solicitud;
+}tSolicitudPlanificador;
+
 static t_esi * new_ESI(int id,int fd,int esti,char clave[TAMANIO_CLAVE]){
 	t_esi *new = malloc(sizeof(t_esi));
 	new->id = id;

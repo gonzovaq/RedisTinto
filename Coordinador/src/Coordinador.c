@@ -313,7 +313,7 @@
 
         //Abro otro hilo para escuchar sus comandos solicitados por consola
         pthread_t tid;
-        int stat = pthread_create(&tid, NULL, (void*)escucharMensajesDelPlanificador, (void*)&parametros);
+        int stat = pthread_create(&tid, NULL, (void*)escucharMensajesDelPlanificador, (void*)parametros);
 		if (stat != 0){
 			puts("Planificador: error al generar el hilo");
 			perror("thread");
@@ -321,6 +321,8 @@
 			//continue;
 		}
 		pthread_detach(tid); //Con esto decis que cuando el hilo termine libere sus recursos
+
+		printf("Planificador: Manejo la conexion en el socket %d \n",parametros->new_fd);
 
         // Le avisamos al planificador cada clave que se bloquee y desbloquee
         while(1){
@@ -352,7 +354,9 @@
 		{
 			clave[TAMANIO_CLAVE-1] = '\0';
 			printf("Planificador: Agrego la clave %s a la cola de bloqueadas \n", clave);
+			pthread_mutex_lock(&mutex);
 			list_add(clavesTomadas, (char *)clave);
+			pthread_mutex_unlock(&mutex);
 		}
 		return EXIT_SUCCESS;
 	}
@@ -377,18 +381,18 @@
     int *escucharMensajesDelPlanificador(parametrosConexion* parametros){
     	while(1){
     		// Aca vamos a Escuchar todos los mensajes que solicite el planificador, hay que ver cuales son y vemos que hacemos
-    		puts("Planificador: Espero alguna solicitud");
-    		tSolicitudesDeConsola * solicitud = malloc(sizeof(tSolicitudesDeConsola));
-			if ((recv(parametros->new_fd, solicitud, sizeof(tSolicitudesDeConsola), 0)) <= 0) {
+    		printf("Planificador: Espero alguna solicitud del socket %d \n",parametros->new_fd);
+    		tSolicitudPlanificador * solicitud = malloc(sizeof(tSolicitudPlanificador));
+			if ((recv(parametros->new_fd, solicitud, sizeof(tSolicitudPlanificador), 0)) <= 0) {
 				//perror("recv");
 				//log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
 				close(parametros->new_fd);
 				return 2;
 				//exit_gracefully(1);
 			}
-			puts("Planificador: Recibi una solicitud");
+			printf("Planificador: Recibi una solicitud de tipo %d \n", *solicitud);
 			char clave[TAMANIO_CLAVE];
-			switch(*solicitud){
+			switch(solicitud->solicitud){
 			case BLOQUEAR:
 				if ( (recv(parametros->new_fd, clave, TAMANIO_CLAVE, 0)) <= 0) {
 					perror("recv");
@@ -398,7 +402,10 @@
 					//exit_gracefully(1);
 				}
 				else
+					printf("Planificador: voy a agregar a las bloqueadas a la clave %s \n",clave);
+					pthread_mutex_lock(&mutex);
 					list_add(clavesTomadas,&clave);
+					pthread_mutex_unlock(&mutex);
 				break;
 			case DESBLOQUEAR:
 
@@ -410,6 +417,7 @@
 					//exit_gracefully(1);
 				}
 				else ;
+				printf("Planificador: voy a remover de las bloqueadas a la clave %s \n",clave);
 					RemoverClaveDeBloqueados(&clave);
 				break;
 			case LISTAR:
@@ -444,9 +452,17 @@
     int RemoverClaveDeBloqueados(char * clave){
 		bool compararClaveParaDesbloquear(char *claveABuscar){
 			printf("Planificador: Comparando la clave %s con %s \n", claveABuscar, clave);
-			return string_equals_ignore_case(clave,claveABuscar) == true;
+			if(string_equals_ignore_case(clave,claveABuscar) == true){
+				puts("Planificador: Las claves son iguales");
+				return true;
+			}
+			puts("Planificador: Las claves son distintas");
+			return false;
 		}
 		list_remove_and_destroy_by_condition(clavesTomadas,(void*)compararClaveParaDesbloquear,(void*)borrarClave);
+
+
+
 		return EXIT_SUCCESS;
     }
 
@@ -701,8 +717,9 @@
 		printf("ESI: Recibi la clave: %s \n", clave);
 		strcpy(CLAVE,clave);
 
-		if (((!list_is_empty(colaBloqueos)) && EncontrarEnLista(colaBloqueos, &clave)) || EncontrarEnLista(clavesTomadas,&clave)){
-			puts("ESI: La clave esta bloqueada");
+		puts("ESI: Verifico en los ESIS si aluno tiene la clave");
+		if (((!list_is_empty(colaBloqueos)) && EncontrarEnLista(colaBloqueos, &clave))){
+			puts("ESI: La clave esta bloqueada por un ESI");
 
 			/* No es necesario avisarle el bloqueo porque se lo esta avisando el ESI
 			notificacion->tipoNotificacion=BLOQUEO;
@@ -714,11 +731,20 @@
 			*/
 			return 2;
 		} // ACA HAY QUE AVISARLE AL PLANIFICDOR DEL BLOQUEO PARA QUE FRENE AL ESI
-		list_add(clavesTomadas,&clave);
+
+		puts("ESI: Verifico en las claves bloqueadas por el planificador");
+		if(EncontrarEnLista(clavesTomadas,&clave)){
+			puts("ESI: La clave esta bloqueada por consola del planificador");
+			return 2;
+		}
+
+		//list_add(clavesTomadas,&clave);
 		char * claveCopia = malloc(strlen(clave)+1);
 		strcpy(claveCopia,clave);
+		pthread_mutex_lock(&mutex);
 		list_add(clavesTomadas,claveCopia);
 		list_add(parametros->claves,claveCopia);
+		pthread_mutex_unlock(&mutex);
 
 		operacion->tipo = OPERACION_GET;
 		strcpy(operacion->clave,clave);
@@ -846,7 +872,7 @@
 			sem_post(planificador->semaforo);
 			puts("ESI: Ya le avise al planificador que aborte el ESI");
 
-			 RemoverClaveDeBloqueados(clave);
+			 //RemoverClaveDeBloqueados(clave);
 
 			return 3;
 		}
@@ -864,6 +890,7 @@
 			notificacion->pid = parametros->pid;
 
 			RemoverClaveDeLaLista(colaBloqueos, &clave);
+			RemoverClaveDeLaLista(clavesTomadas, &clave);
 
 			printf("ESI: le voy a avisar al planificador que se desbloqueo la clave: %s \n",clave);
 			sem_post(planificador->semaforo);
@@ -1344,7 +1371,9 @@
 			printf("Comparando la clave %s con %s \n", claveABuscar, bloqueo->clave);
 			return string_equals_ignore_case(bloqueo->clave,claveABuscar) == true;
 		}
+		pthread_mutex_lock(&mutex);
 		list_remove_and_destroy_by_condition(colaBloqueos,yaExisteLaClave,(void*)destruirBloqueo);
+		pthread_mutex_unlock(&mutex);
 		return EXIT_SUCCESS;
 	}
 
