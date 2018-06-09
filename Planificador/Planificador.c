@@ -298,7 +298,13 @@
 									//haria algo mas	
 								printf("Esi de id:%d entro a bloqueados \n",esi->id);
 								queue_push(bloqueados,esi);
+								puts("Se agrego a la cola de bloqueados");
 								f_ejecutar=1;
+								enviarConfirmacion=0;
+								if(queue_is_empty(ready))
+									printf("No hay nada en Ready, asi que seguro me quedo esperando que desbloqueen la clave %s \n",esi->clave);
+								else
+									puts("Hay algo en ready");
 							}
 							if (re==1){
 								esi->cont++;
@@ -316,6 +322,7 @@
 							}
 							if(enviarConfirmacion==1)
 							{
+								puts("Le voy a decir que ejecute al ESI");
 								esi = queue_peek(ejecucion);
 								printf("Id del esi a ejecutar: %d \n",esi->id);
 								EnviarConfirmacion(esi);
@@ -332,10 +339,10 @@
 						}
 						if(queue_is_empty(ready)==0)
 						{
-							
+
 							if(f_ejecutar==1)
 							{
-								
+								puts("Voy a seleccionar alguno para ejecutar de la cola de ready");
 								//t_esi *esi2=malloc(sizeof(t_esi));
 								if(algoritmo==SJF || algoritmo==SJFD)
 									ordenarEsis(ready);
@@ -414,7 +421,7 @@ void ordenarEsis(t_queue *cola)
 
 	void destruirEsi(t_esi *unEsi){
     	   //free(unaEntrada->clave);
-    	   free(unEsi);
+    	   //free(unEsi);
     	  return;
        }
 
@@ -619,6 +626,32 @@ void ordenarEsis(t_queue *cola)
 		}
 		free(desbloqueado);
 		
+		puts("Envio header de clave a desbloquear al Coordinador");
+		tSolicitudesDeConsola * solicitud = malloc(sizeof(tSolicitudesDeConsola));
+		solicitud= DESBLOQUEAR;
+		   if (send(sockCord, clave, sizeof(tSolicitudesDeConsola), 0) == -1){
+			   puts("Error al enviar header de una clave bloqueada");
+			   perror("Send");
+			   //free(&header->tipoMensaje);
+			   //free(&header->tipoProceso);
+			 //  free(header->idProceso);
+
+		   }
+		   puts("Se envió header de clave desbloqueada");
+		  //free(solicitud);
+
+		puts("Envio la clave desbloqueada");
+
+		   if (send(sockCord, clave, TAMANIO_CLAVE, 0) == -1){
+			   puts("Error al enviar una clave bloqueada");
+			   perror("Send");
+			   //free(&header->tipoMensaje);
+			   //free(&header->tipoProceso);
+			 //  free(header->idProceso);
+
+		   }
+		   puts("Se envió una clave desbloqueada");
+
 		if(algoritmo==SJF || algoritmo==SJFD)
 		{
 			ordenarEsis(ready);

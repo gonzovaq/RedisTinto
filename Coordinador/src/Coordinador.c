@@ -256,7 +256,8 @@
 			// Si la operacion devuelve 1 todo salio bien, si devuelve 2 hubo un bloqueo y le avisamos al ESI
 			int resultadoOperacion;
 			resultadoOperacion = AnalizarOperacion(tamanioValor, header, parametros, operacion);
-			printf("%d",resultadoOperacion);
+			printf("ESI: El resultado de analizar operacion fue: %d \n",resultadoOperacion);
+			printf("ESI: El socket del ESI es: %d \n",parametros->new_fd);
 			switch (resultadoOperacion){
 			case 1:
 				puts("ESI: El analizar operacion anduvo");
@@ -269,9 +270,13 @@
 				ConexionESISinBloqueo(operacion,parametros);
 
 				break;
-			case 2: // Que hacemos si hay bloqueo? Debemos avisarle al planificador
+			case 2: ;// Que hacemos si hay bloqueo? Debemos avisarle al planificador
 
-				if ((send(parametros->new_fd, BLOQUEO, sizeof(tResultadoOperacion), 0)) <= 0){
+				tResultado *  resultado = malloc(sizeof(tResultado));
+				resultado->resultado= BLOQUEO;
+				strcpy(resultado->clave,&CLAVE);
+				printf("ESI: Le envio al esi que se bloqueo con la clave %s \n", resultado->clave);
+				if ((send(parametros->new_fd, resultado, sizeof(tResultado), 0)) <= 0){
 					perror("send");
 					//exit_gracefully(1);
 				}
@@ -336,16 +341,19 @@
     }
 
 	int AgregarClaveBloqueada(parametrosConexion* parametros) {
-		char clave[TAMANIO_CLAVE];
+		//char clave[TAMANIO_CLAVE];
+		char * clave = malloc(TAMANIO_CLAVE);
 		if ((recv(parametros->new_fd, clave, TAMANIO_CLAVE, 0)) <= 0) {
 			perror("recv");
 			log_info(logger, "TID %d  Mensaje: ERROR en ESI",
 					process_get_thread_id());
 			//exit_gracefully(1);
 		} else
+		{
+			clave[TAMANIO_CLAVE-1] = '\0';
 			printf("Planificador: Agrego la clave %s a la cola de bloqueadas \n", clave);
-			list_add(clavesTomadas, &clave);
-
+			list_add(clavesTomadas, (char *)clave);
+		}
 		return EXIT_SUCCESS;
 	}
 
@@ -369,13 +377,16 @@
     int *escucharMensajesDelPlanificador(parametrosConexion* parametros){
     	while(1){
     		// Aca vamos a Escuchar todos los mensajes que solicite el planificador, hay que ver cuales son y vemos que hacemos
+    		puts("Planificador: Espero alguna solicitud");
     		tSolicitudesDeConsola * solicitud = malloc(sizeof(tSolicitudesDeConsola));
 			if ((recv(parametros->new_fd, solicitud, sizeof(tSolicitudesDeConsola), 0)) <= 0) {
 				//perror("recv");
 				//log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
 				close(parametros->new_fd);
+				return 2;
 				//exit_gracefully(1);
 			}
+			puts("Planificador: Recibi una solicitud");
 			char clave[TAMANIO_CLAVE];
 			switch(*solicitud){
 			case BLOQUEAR:
@@ -690,7 +701,7 @@
 		printf("ESI: Recibi la clave: %s \n", clave);
 		strcpy(CLAVE,clave);
 
-		if ((!list_is_empty(colaBloqueos)) && EncontrarEnLista(colaBloqueos, &clave) && EncontrarEnLista(clavesTomadas,&clave)){
+		if (((!list_is_empty(colaBloqueos)) && EncontrarEnLista(colaBloqueos, &clave)) || EncontrarEnLista(clavesTomadas,&clave)){
 			puts("ESI: La clave esta bloqueada");
 
 			/* No es necesario avisarle el bloqueo porque se lo esta avisando el ESI
@@ -1024,7 +1035,7 @@
 
     bool EncontrarEnLista(t_list * lista, char * claveABuscar){
 		bool yaExisteLaClave(tBloqueo *bloqueo) {
-			printf("ESI: Comparando la clave %s con %s \n",claveABuscar, bloqueo->clave);
+			printf("ESI: Claves Tomadas -- Comparando la clave %s con %s \n",claveABuscar, bloqueo->clave);
 			if (string_equals_ignore_case(bloqueo->clave,claveABuscar) == true){
 				puts("ESI: Las claves son iguales");
 				return true;
