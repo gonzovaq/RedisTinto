@@ -451,10 +451,7 @@ void ordenarEsis(t_queue *cola)
     	//puts("Conectado con el coordinador!\n");
 		enviarHeader(sockCord);
 
-		if (list_size(clavesBloqueadas)>0){
-			puts("Hay claves inicialmente bloqueadas y se las voy a enviar al coordinador");
-			enviarClavesBloqueadas(sockCord);
-		}
+		enviarClavesBloqueadas(sockCord);
 
 	return sockCord;
 		//printf("El socket cordinador es: %d \n",sockCord);
@@ -606,7 +603,7 @@ void ordenarEsis(t_queue *cola)
 		t_esi * desbloqueado = malloc(sizeof(t_esi));
 											//notificacion->clave
 											
-		desbloqueado=buscarEsi(bloqueados,notificacion->clave);
+		desbloqueado=buscarEsi(bloqueados,clave);
 		if(desbloqueado!=NULL)
 		{
 			puts("desbloqueado no es nulo");
@@ -899,6 +896,7 @@ int recibirResultadoDelEsi(int sockfd, tResultado * resultado){
 		tClavesBloqueadas * cantidadClavesBloqueadas = malloc(sizeof(tClavesBloqueadas));
 		cantidadClavesBloqueadas->cantidadClavesBloqueadas = list_size(clavesBloqueadas);
 
+		puts("Estoy por enviar la cantidad de claves bloqueadas que me dieron en el config");
 		if(send(sockfd,cantidadClavesBloqueadas,sizeof(tClavesBloqueadas),0) <= 0){
 			perror("Hubo un problema al enviar la cantidad de claves bloqueadas");
 			exit(1);

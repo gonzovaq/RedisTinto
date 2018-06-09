@@ -322,6 +322,7 @@
         	puts("Planificador: Espero a que me avisen!");
         	sem_wait(planificador->semaforo); // Me van a avisar si se produce algun bloqueo
         	puts("Planificador: Hay algo para avisarle al planificador");
+        	printf("Planificador: Te voy a enviar la notificacion: %d a la clave: %s\n",notificacion->tipoNotificacion,notificacion->clave);
         	//tNotificacionPlanificador* resultado = list_remove(colaMensajesParaPlanificador, 0);
         	if (send(parametros->new_fd,notificacion,sizeof(tNotificacionPlanificador),0) <= 0){
         		puts("Planificador: Fallo al enviar mensaje al planificador");
