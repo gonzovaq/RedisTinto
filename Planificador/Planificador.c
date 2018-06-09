@@ -362,11 +362,14 @@
 
 void ordenarEsis(t_queue *cola)
 	{
-		int compare(t_esi *esi1,t_esi *esi2)
+		bool compare(t_esi *esi1,t_esi *esi2)
 		{
+			/*
 			float resul;
 			resul= esi2->estimacion-esi1->estimacion;
 			return resul;
+			*/
+			return esi1->estimacion <= esi2->estimacion;
 		}
 
 		list_sort(cola->elements,(void *)compare);
