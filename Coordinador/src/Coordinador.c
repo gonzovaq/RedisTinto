@@ -216,6 +216,8 @@
 			} // Inicializo el semaforo en 0
 			printf("Instancia: Semaforo en direccion: %p\n", (void*)&(parametros->semaforo));
 			parametros->claves = list_create();
+
+			//TODO: Debo revisar si la instancia se esta reincorporando !!!!
     		list_add(colaInstancias,(void*)parametros);
     		conexionInstancia(parametros);
     		free(semaforo);
@@ -876,6 +878,23 @@
 		puts("ESI: Voy a seleccionar la Instancia");
 		int seleccionInstancia = SeleccionarInstancia(&CLAVE);
 		puts("ESI: Se selecciono la Instancia");
+
+		if(seleccionInstancia == ERROR){
+			tResultado* resultadoError = malloc(sizeof(tResultado));
+			resultadoError->resultado = ERROR;
+			strcpy(resultadoError->clave,operacion->clave);
+
+			if ((send(parametros->new_fd, resultadoError, sizeof(tResultado),
+					0)) <= 0) {
+				close(parametros->new_fd);
+				perror("send");
+				//exit_gracefully(1);
+				return 1;
+			}
+			puts("ESI: Se envio el resultado");
+			free(resultadoError);
+		}
+
 		if(operacion->tipo != OPERACION_GET){
 			printf("ESI: valor de la operacion: %s \n", operacion->valor);
 
@@ -1217,8 +1236,8 @@
 			instancia = BuscarInstanciaQuePoseeLaClave(clave);
 
 			if (instancia == NULL){ //Hay que ver si devuelve NULL, esto es en caso de que se desconecte la instancia
-				puts("Se desconecto la instancia");
-				return 2;
+				puts("ESI: Se desconecto la instancia");
+				return ERROR;
 			}
 
 			printf("ESI: Semaforo de list_get en direccion: %p\n", (void*)&(instancia->semaforo));
@@ -1249,8 +1268,8 @@
 			instanciaMenosUsada = BuscarInstanciaQuePoseeLaClave(clave);
 
 			if (instanciaMenosUsada == NULL){ //Hay que ver si devuelve NULL, esto es en caso de que se desconecte la instancia
-				puts("Se desconecto la instancia");
-				return 2;
+				puts("ESI: Se desconecto la instancia");
+				return ERROR;
 			}
 
 			printf("ESI: Semaforo de list_get en direccion: %p\n", (void*)&(instanciaMenosUsada->semaforo));
@@ -1310,8 +1329,8 @@
 			instancia = BuscarInstanciaQuePoseeLaClave(clave);
 
 			if (instancia == NULL){ //Hay que ver si devuelve NULL, esto es en caso de que se desconecte la instancia
-				puts("Se desconecto la instancia");
-				return 2;
+				puts("ESI: Se desconecto la instancia");
+				return ERROR;
 			}
 
 			printf("ESI: Semaforo de list_get en direccion: %p\n", (void*)&(instancia->semaforo));
