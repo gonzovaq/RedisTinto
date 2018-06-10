@@ -7,8 +7,17 @@
 
 #include "Coordinador.h"
 
+	void intHandler(int dummy) { // para atajar ctrl c
+		keepRunning = 0;
+		sleep(10);
+		exit_gracefully(EXIT_SUCCESS);
+	}
+
     int main(int argc, char *argv[])
     {
+    	signal(SIGINT, intHandler);
+
+    	while (keepRunning) {
     	verificarParametrosAlEjecutar(argc, argv);
 
     	// Leer archivo de configuracion con las commons
@@ -66,7 +75,10 @@
 
         close(sockfd);
 
+    	}
+    	exit_gracefully(EXIT_SUCCESS);
         return 0;
+
     }
 
     int EscucharConexiones(int sockfd){
@@ -82,7 +94,7 @@
         	exit_gracefully(EXIT_SUCCESS);
         }
 
-    	while(1) {  // main accept() loop
+    	while(keepRunning) {  // main accept() loop
     	            sin_size = sizeof(struct sockaddr_in);
     	            if ((new_fd = accept(sockfd, (struct sockaddr *)&direccion_cliente,
     	                                                           &sin_size)) == -1) {
@@ -255,7 +267,7 @@
     int *conexionESI(parametrosConexion* parametros){
         puts("ESI conectandose");
 
-        while(1){
+        while(keepRunning){
         	int operacionValida;
         	operacionValida = verificarValidez(parametros->new_fd);
         	if (operacionValida == 2)
@@ -348,7 +360,7 @@
 		printf("Planificador: Manejo la conexion en el socket %d \n",parametros->new_fd);
 
         // Le avisamos al planificador cada clave que se bloquee y desbloquee
-        while(1){
+        while(keepRunning){
         	puts("Planificador: Espero a que me avisen!");
         	sem_wait(planificador->semaforo); // Me van a avisar si se produce algun bloqueo
         	puts("Planificador: Hay algo para avisarle al planificador");
@@ -402,7 +414,7 @@
     }
 
     int *escucharMensajesDelPlanificador(parametrosConexion* parametros){
-    	while(1){
+    	while(keepRunning){
     		// Aca vamos a Escuchar todos los mensajes que solicite el planificador, hay que ver cuales son y vemos que hacemos
     		printf("Planificador: Espero alguna solicitud del socket %d \n",parametros->new_fd);
     		tSolicitudPlanificador * solicitud = malloc(sizeof(tSolicitudPlanificador));
@@ -542,7 +554,7 @@
 		}
 		free(informacion);
 
-        while(1){ // Debo atajar cuando una instancia se me desconecta
+        while(keepRunning){ // Debo atajar cuando una instancia se me desconecta
 
 			puts("Instancia: Hago un sem_wait");
 			printf("Semaforo en direccion: %p\n", (void*)&(parametros->semaforo));
@@ -1217,7 +1229,7 @@
 	}
 
 	int SeleccionarInstancia(char* clave) {
-		while (list_is_empty(colaInstancias));
+		while (list_is_empty(colaInstancias)); //TODO: Esto es una espera activa
 		int resultado;
 		// mientras la cola este vacia no puedo continuar
 
