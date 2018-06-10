@@ -1045,17 +1045,18 @@
     	return list_find(colaInstancias,(void*) lePerteneceLaClave);
     }
 
-    parametrosConexion* BuscarInstanciaMenosUsada(t_list * lista){
-    	int tamanioLista = list_size(lista);
+    parametrosConexion* BuscarInstanciaMenosUsada(){
+    	int tamanioLista = list_size(colaInstancias);
 
-    	parametrosConexion* instancia = list_get(lista,0);
+    	parametrosConexion* instancia = list_get(colaInstancias,0);
     	for (int i = 0; i< tamanioLista; i++){
     		parametrosConexion* instanciaAComparar = malloc(sizeof(parametrosConexion));
-        	instancia = list_get(lista,i);
+        	instancia = list_get(colaInstancias,i);
         	if (instancia->entradasUsadas > instanciaAComparar->entradasUsadas)
         		instancia = instanciaAComparar;
     		free(instanciaAComparar);
     	}
+
     	MandarAlFinalDeLaLista(colaInstancias, &instancia);
     	return instancia;
     }
@@ -1237,7 +1238,12 @@
 		parametrosConexion* instanciaMenosUsada;
 
 		if(OPERACION_ACTUAL == OPERACION_GET){
-			instanciaMenosUsada = BuscarInstanciaMenosUsada(colaInstancias); // Va a buscar la instancia que menos entradas tenga, desempata con fifo
+			instanciaMenosUsada = BuscarInstanciaMenosUsada(clave); // Va a buscar la instancia que menos entradas tenga, desempata con fifo
+			printf("ESI: Agrego la clave %s a la instancia %d \n",clave,instanciaMenosUsada->pid);
+			char * claveCopia = malloc(TAMANIO_CLAVE);
+			strcpy(claveCopia,clave);
+			printf("ESI: Agrego la copia clave %s a la instancia %d \n",claveCopia,instanciaMenosUsada->pid);
+			list_add(instanciaMenosUsada->claves,claveCopia);
 		}
 		else{
 			instanciaMenosUsada = BuscarInstanciaQuePoseeLaClave(clave);
@@ -1278,21 +1284,27 @@
 				if (i!= cantidadInstancias - 1 && restoRango == 0){    // Si no es la ultima instancia debo redondear hacia arriba
 						if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + rango)){
 							instancia = list_get(colaInstancias, i);
-							sem_post(instancia->semaforo);
+							//sem_post(instancia->semaforo);
 						}
 					}
 					else if (i!= cantidadInstancias - 1 && restoRango != 0){ // si es la ultima instancia debo recalcular y ver cuantas entradas puedo aceptar
 						if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + rango + 1)){
 							instancia = list_get(colaInstancias, i);
-							sem_post(instancia->semaforo);
+							//sem_post(instancia->semaforo);
 						}else{
 							if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + entradasUltimaInstancia)){
 								instancia = list_get(colaInstancias, i);
-								sem_post(instancia->semaforo);
+								//sem_post(instancia->semaforo);
 						}
 					}
 				}
 			}
+
+			printf("ESI: Agrego la clave %s a la instancia %d \n",clave,instancia->pid);
+			char * claveCopia = malloc(TAMANIO_CLAVE);
+			strcpy(claveCopia,clave);
+			printf("ESI: Agrego la copia clave %s a la instancia %d \n",claveCopia,instancia->pid);
+			list_add(instancia->claves,claveCopia);
 		}
 		else {
 			instancia = BuscarInstanciaQuePoseeLaClave(clave);

@@ -227,7 +227,7 @@ int SeleccionarPorKeyExplicit(char* clave);
 static void destruirBloqueo(tBloqueo *bloqueo);
 static void destruirInstancia(parametrosConexion * parametros);
 int MandarAlFinalDeLaLista(t_list * lista, parametrosConexion * instancia);
-parametrosConexion* BuscarInstanciaMenosUsada(t_list * lista);
+parametrosConexion* BuscarInstanciaMenosUsada();
 int ConexionESISinBloqueo(OperacionAEnviar* operacion, parametrosConexion* parametros);
 int EnviarClaveYValorAInstancia(tTipoOperacion tipo, int tamanioValor,parametrosConexion* parametros, OperaciontHeader* header,OperacionAEnviar* operacion);
 int verificarParametrosAlEjecutar(int argc, char *argv[]);
