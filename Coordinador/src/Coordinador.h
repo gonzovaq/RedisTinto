@@ -240,3 +240,4 @@ int AgregarClaveBloqueada(parametrosConexion* parametros);
 int RemoverClaveDeClavesTomadas(char * clave);
 int RemoverClaveDeLaListaBloqueos(char * claveABuscar);
 int RemoverClaveDeClavesPropias(char * clave, parametrosConexion *parametros);
+int BuscarSiLaInstanciaSeEstaReincorporando(parametrosConexion * parametros);

@@ -218,6 +218,7 @@
 			parametros->claves = list_create();
 
 			//TODO: Debo revisar si la instancia se esta reincorporando !!!!
+			BuscarSiLaInstanciaSeEstaReincorporando(parametros);
     		list_add(colaInstancias,(void*)parametros);
     		conexionInstancia(parametros);
     		free(semaforo);
@@ -227,6 +228,28 @@
     		close(parametros->new_fd);
     	}
 		return 1;
+    }
+
+    int BuscarSiLaInstanciaSeEstaReincorporando(parametrosConexion * parametros){
+    	bool EsLaInstanciaDesconectada(parametrosConexion * parametrosAComparar){
+    		if(string_equals_ignore_case(parametros->nombreProceso,parametrosAComparar->nombreProceso) == true){
+    						puts("Instancia: La Instancia se esta reincorporando");
+    						return true;
+    		}
+    		return false;
+    	}
+    	parametrosConexion * instancia = list_remove_by_condition(colaInstancias,(void*)EsLaInstanciaDesconectada);
+    	if (instancia == NULL){
+    		puts("Instancia: Es una nueva Instancia");
+    		return EXIT_SUCCESS;
+    	}
+
+    	puts("Instancia: Voy a actualizar la informacion de la Instancia");
+    	parametros->entradasUsadas = instancia->entradasUsadas;
+    	list_add_all(parametros->claves,instancia->claves);
+    	puts("Instancia: Actualice la informacion de la Instancia");
+
+    	return EXIT_SUCCESS;
     }
 
     int *conexionESI(parametrosConexion* parametros){
