@@ -25,6 +25,7 @@
 #include <netdb.h>
 #include <sys/socket.h>
 #include <semaphore.h>
+#include <signal.h>
 
 ///// DEFINES
 
@@ -194,6 +195,8 @@ t_list* clavesTomadas;
 t_list* procesosBloqueadosEsperandoClave;
 //t_list* colaMensajesParaPlanificador;
 
+static volatile int keepRunning = 1;
+
 pthread_mutex_t mutex;
 
 
@@ -241,3 +244,6 @@ int RemoverClaveDeClavesTomadas(char * clave);
 int RemoverClaveDeLaListaBloqueos(char * claveABuscar);
 int RemoverClaveDeClavesPropias(char * clave, parametrosConexion *parametros);
 int BuscarSiLaInstanciaSeEstaReincorporando(parametrosConexion * parametros);
+void intHandler(int dummy);
+
+
