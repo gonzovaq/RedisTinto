@@ -1,0 +1,15 @@
+GET instancia1
+GET instancia2
+GET instancia3
+GET instancia4
+GET instancia5
+SET instancia1 instancia1
+SET instancia4 instancia4
+SET instancia5 instancia5
+SET instancia3 instancia3
+SET instancia2 instancia2
+STORE instancia5
+STORE instancia4
+STORE instancia3
+STORE instancia2
+STORE instancia1

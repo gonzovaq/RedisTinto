@@ -13,6 +13,7 @@
 
     	// Leer archivo de configuracion con las commons
     	LeerArchivoDeConfiguracion(argv);
+
     	printf("Mi ip es: %s \n",IP);
 
     	InicializarListasYColas();
@@ -78,7 +79,7 @@
 
         if (pthread_mutex_init(&mutex, NULL) == -1){
         	perror("error al crear mutex");
-        	//exit_gracefully(1);
+        	exit_gracefully(EXIT_SUCCESS);
         }
 
     	while(1) {  // main accept() loop
@@ -86,7 +87,7 @@
     	            if ((new_fd = accept(sockfd, (struct sockaddr *)&direccion_cliente,
     	                                                           &sin_size)) == -1) {
     	                perror("accept");
-    	                //continue;
+
     	            }
     	            printf("server: recibi una conexion de  %s\n",
     	                                               inet_ntoa(direccion_cliente.sin_addr));
@@ -94,21 +95,10 @@
     	            //Para hilos debo crear una estructura de parametros de la funcion que quiera llamar
     				pthread_t tid;
 
-    				//sem_t * semaforoNuevo = malloc(sizeof(sem_t));
     				char nombreProceso[TAMANIO_NOMBREPROCESO];
 
-    	            //int ret;
-    	            //int value;
-    	            //int pshared;
     	            int entradasUsadas = 0;
-    	            /* initialize a private semaphore */
-    	            //pshared = 0;
-    	            //value = 0;
-    	            /*if ((ret = sem_init(&semaforoNuevo,pshared,value)) != 0){
-    					perror("semaforo nuevo");
-    		        	exit_gracefully(1);
-    				} // Inicializo el semaforo en 0
-    	            */
+
     				parametrosConexion parametros;//parametrosConexion parametros = {new_fd,malloc(sizeof(sem_t)),nombreProceso,ENTRADAS,entradasUsadas};
     				parametros.new_fd = new_fd;
     				strcpy(parametros.nombreProceso,nombreProceso);
@@ -122,7 +112,7 @@
     				if (stat != 0){
     					puts("error al generar el hilo");
     					perror("thread");
-    					//continue;
+
     				}
     				pthread_detach(tid); //Con esto decis que cuando el hilo termine libere sus recursos
     	        }
@@ -136,22 +126,25 @@
     int *gestionarConexion(parametrosConexion *parametros){ //(int* sockfd, int* new_fd)
 	   tHeader *headerRecibido = malloc(sizeof(tHeader));
 	   parametrosConexion *parametrosNuevos=  malloc(sizeof(parametrosConexion));
+
+	   // Realizo una copia de los parametros que contiene la informacion de la conexion que acabo de recibir
 	   strcpy(parametrosNuevos->nombreProceso, parametros->nombreProceso);
 	   parametrosNuevos->new_fd = parametros->new_fd;
 	   parametrosNuevos-> cantidadEntradasMaximas = parametros->cantidadEntradasMaximas;
 	   parametrosNuevos-> entradasUsadas = parametros->entradasUsadas;
 
-	   if ((recv(parametrosNuevos->new_fd, headerRecibido, sizeof(tHeader), 0)) <= 0){
 
-		perror("recv");
-		log_info(logger, "Mensaje: recv error");//process_get_thread_id()); //asienta error en logger y corta
-		//exit_gracefully(1);
-					//exit(1);
+	   if ((recv(parametrosNuevos->new_fd, headerRecibido, sizeof(tHeader), 0)) <= 0){
+			perror("recv");
+			log_info(logger, "Mensaje: recv error");//process_get_thread_id()); //asienta error en logger y corta
+
 	   }
 
 	   if (headerRecibido->tipoMensaje == CONECTARSE){
-		IdentificarProceso(headerRecibido, parametrosNuevos);
+		   parametrosNuevos->pid = headerRecibido->idProceso;
+		   IdentificarProceso(headerRecibido, parametrosNuevos);
 	   }
+
 	   free(parametrosNuevos);
 	   free(headerRecibido);
 
@@ -162,6 +155,22 @@
     	switch (headerRecibido->tipoProceso) {
     	case ESI:
     		printf("ESI: Se conecto el proceso %d \n", headerRecibido->idProceso);
+
+    		sem_t * semaforoESI = malloc(sizeof(sem_t));
+    		parametros->semaforo = semaforoESI;
+
+            int retESI;
+            int valueESI;
+            int psharedESI;
+            /* initialize a private semaphore */
+            psharedESI = 0;
+            valueESI = 0;
+            if ((retESI = sem_init(parametros->semaforo,psharedESI,valueESI)) != 0){
+				perror("ESI: semaforo nuevo");
+	        	exit_gracefully(1);
+			} // Inicializo el semaforo en 0
+			printf("ESI: Semaforo en direccion: %p\n", (void*)&(parametros->semaforo));
+
             parametros->pid = headerRecibido->idProceso;
             parametros->claves = list_create();
     		list_add(colaESIS,(void*)parametros);
@@ -190,16 +199,8 @@
     		break;
     	case INSTANCIA:
     		printf("Instancia: Se conecto el proceso %d \n", headerRecibido->idProceso);
-    		printf("Socket de la instancia: %d\n", parametros->new_fd);
-            /*strcpy(parametros->nombreProceso, headerRecibido->nombreProceso);
-            parametrosConexion * nuevaInstancia = malloc(sizeof(int)*2);
-            nuevaInstancia->informacion = parametros;
-            //memcpy(nuevaInstancia->informacion,parametros,sizeof(nuevaInstancia->informacion));
-            nuevaInstancia->cantidadEntradasMaximas = ENTRADAS;
-            nuevaInstancia->entradasUsadas=0;
-            printf("Parametros instancia en direccion: %p\n", (void*)&(parametros));
-            printf("parametrosConexion en direccion: %p\n", (void*)&(nuevaInstancia->informacion));
-            */
+    		printf("Instancia: Socket de la instancia: %d\n", parametros->new_fd);
+
     		sem_t * semaforo = malloc(sizeof(sem_t));
     		parametros->semaforo = semaforo;
 
@@ -242,8 +243,8 @@
 				log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
 				close(parametros->new_fd);
 				free(header);
-				return 1;
-				//exit_gracefully(1);
+				return EXIT_SUCCESS;
+
 			}
 
 			puts("ESI: INTENTO RECIBIR TAMANIO VALOR");
@@ -253,13 +254,13 @@
 			OperacionAEnviar * operacion = malloc(sizeof(OperacionAEnviar));//+TAMANIO_CLAVE+tamanioValor);
 			printf("ESI: clave operacion en direccion: %p\n", (void*)&(operacion->clave));
 
-			// Si la operacion devuelve 1 todo salio bien, si devuelve 2 hubo un bloqueo y le avisamos al ESI
+			// Si la operacion devuelve OK(1) todo salio bien, si devuelve BLOQUEO(2) hubo un bloqueo y le avisamos al ESI Y puede ser ERROR(3)
 			int resultadoOperacion;
 			resultadoOperacion = AnalizarOperacion(tamanioValor, header, parametros, operacion);
 			printf("ESI: El resultado de analizar operacion fue: %d \n",resultadoOperacion);
 			printf("ESI: El socket del ESI es: %d \n",parametros->new_fd);
 			switch (resultadoOperacion){
-			case 1:
+			case OK:
 				puts("ESI: El analizar operacion anduvo");
 
 				free(header);
@@ -270,7 +271,7 @@
 				ConexionESISinBloqueo(operacion,parametros);
 
 				break;
-			case 2: ;// Que hacemos si hay bloqueo? Debemos avisarle al planificador
+			case BLOQUEO: ;// Que hacemos si hay bloqueo? Debemos avisarle al planificador
 
 				tResultado *  resultado = malloc(sizeof(tResultado));
 				resultado->resultado= BLOQUEO;
@@ -278,17 +279,15 @@
 				printf("ESI: Le envio al esi que se bloqueo con la clave %s \n", resultado->clave);
 				if ((send(parametros->new_fd, resultado, sizeof(tResultado), 0)) <= 0){
 					perror("send");
-					//exit_gracefully(1);
 				}
 				free(header);
 
 				break;
-			case 3:
+			case ERROR:
 				puts("ESI: Error en la soliciud");
 
 				if ((send(parametros->new_fd, ERROR, sizeof(tResultadoOperacion), 0)) <= 0){
 					perror("send");
-					//exit_gracefully(1);
 				}
 				free(header);
 
@@ -318,7 +317,6 @@
 			puts("Planificador: error al generar el hilo");
 			perror("thread");
 			return 1;
-			//continue;
 		}
 		pthread_detach(tid); //Con esto decis que cuando el hilo termine libere sus recursos
 
@@ -343,13 +341,13 @@
     }
 
 	int AgregarClaveBloqueada(parametrosConexion* parametros) {
-		//char clave[TAMANIO_CLAVE];
+
 		char * clave = malloc(TAMANIO_CLAVE);
 		if ((recv(parametros->new_fd, clave, TAMANIO_CLAVE, 0)) <= 0) {
 			perror("recv");
 			log_info(logger, "TID %d  Mensaje: ERROR en ESI",
 					process_get_thread_id());
-			//exit_gracefully(1);
+
 		} else
 		{
 			clave[TAMANIO_CLAVE-1] = '\0';
@@ -384,8 +382,7 @@
     		printf("Planificador: Espero alguna solicitud del socket %d \n",parametros->new_fd);
     		tSolicitudPlanificador * solicitud = malloc(sizeof(tSolicitudPlanificador));
 			if ((recv(parametros->new_fd, solicitud, sizeof(tSolicitudPlanificador), 0)) <= 0) {
-				//perror("recv");
-				//log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
+
 				close(parametros->new_fd);
 				return 2;
 				//exit_gracefully(1);
@@ -398,8 +395,8 @@
 					perror("recv");
 					log_info(logger, "TID %d  Mensaje: ERROR en ESI",
 							process_get_thread_id());
-					return 3;
-					//exit_gracefully(1);
+					return ERROR;
+
 				}
 				else{
 					printf("Planificador: voy a agregar a las bloqueadas a la clave %s \n",clave);
@@ -414,8 +411,8 @@
 					perror("recv");
 					log_info(logger, "TID %d  Mensaje: ERROR en ESI",
 							process_get_thread_id());
-					return 3;
-					//exit_gracefully(1);
+					return ERROR;
+
 				}
 				else{
 				printf("Planificador: voy a remover de las bloqueadas a la clave %s \n",clave);
@@ -443,7 +440,7 @@
 				*/
 				break;
 			default:
-				//puts("Planificador: Me envio cualquier cosa");
+				puts("Planificador: Me envio cualquier cosa");
 				break;
 			}
 
@@ -507,8 +504,8 @@
 
 
     int *conexionInstancia(parametrosConexion* parametros){
-    	//close(new_fd->sockfd); // El hijo no necesita este descriptor aca -- Esto era cuando lo haciamos con fork
-        puts("Instancia conectandose");
+
+        printf("Instancia conectandose de id %d \n",parametros->pid);
 
         tInformacionParaLaInstancia * informacion = malloc(sizeof(tInformacionParaLaInstancia));
         informacion->entradas = ENTRADAS;
@@ -516,7 +513,7 @@
 		if ((send(parametros->new_fd, informacion, sizeof(tInformacionParaLaInstancia), 0))
 				<= 0) {
 			perror("send");
-			//exit_gracefully(1);
+
 		}
 		free(informacion);
 
@@ -525,7 +522,7 @@
 			puts("Instancia: Hago un sem_wait");
 			printf("Semaforo en direccion: %p\n", (void*)&(parametros->semaforo));
 			sem_wait(parametros->semaforo); // Caundo me avisen que hay una operacion para enviar, la voy a levantar de la cola
-			puts("Instancia: Me hicieron un sem_post");
+			printf("Instancia: Me hicieron un sem_post y tengo de id %d \n",parametros->pid);
 			OperacionAEnviar * operacion = list_remove(colaMensajes,0); //hay que borrar esa operacion
 			printf("Instancia: clave operacion en direccion: %p\n", (void*)&(operacion->clave));
 			puts("Instancia: levante un mensaje de la cola de mensajes");
@@ -549,7 +546,7 @@
 			int conexion = EnviarClaveYValorAInstancia(tipo, tamanioValor, parametros, header,	operacion);
 			if (conexion==2){
 				puts("Desaparecio una Instancia");
-				return 1;
+				return OK;
 			}
 
 			//puts("Instancia: Espero resultado de la instancia");
@@ -560,7 +557,7 @@
 			tEntradasUsadas *buffer = malloc(sizeof(tEntradasUsadas));
 			if ((recv(parametros->new_fd, buffer, sizeof(tEntradasUsadas), 0)) <= 0) {
 				perror("recv");
-				//exit_gracefully(1);
+
 				return 1;
 			}
 
@@ -570,130 +567,22 @@
 
 			free(buffer);
 
-			/*
-			if (resultado == BLOQUEO){
-=======
-        switch(resultado){
-
-        	case BLOQUEO:
->>>>>>> Stashed changes
-				puts("Instancia: el resultado de la instancia fue un bloqueo");
-				tBloqueo esiBloqueado = {1,operacion->clave};
-				list_add(colaBloqueos,(void*)&esiBloqueado);
-				sem_post(planificador->semaforo);
-<<<<<<< Updated upstream
-			}
-			*/
-
 			puts("Preparamos el resultado");
 			tResultado * resultadoCompleto = malloc(sizeof(tResultado));
 			resultadoCompleto->resultado = OK;
 			strcpy(resultadoCompleto->clave,operacion->clave);
-
-			//free(operacion->valor);
 
 			//Debo avisarle al ESI que me invoco el resultado
 			pthread_mutex_lock(&mutex);
 			list_add(colaResultados,(void*)resultadoCompleto);
 			pthread_mutex_unlock(&mutex);
 
+			sem_post(ESIActual->semaforo);
+
 		}
 	close(parametros->new_fd);
 			return 1;
 	}
-
-        //		*************** PRUEBAS HARDCODEADAS *****************
-
-        //		Envio 3 operaciones, 2 sets (con la misma clave para que se pisen los valores) y un get.
-        // 		En la instancia definí que el tamanio de los valores sea 3, si le mando algo de mayor tamannio, guarda lo restante en otra/s entrada/s
-
-//                puts("Declaro el header");
-//                OperaciontHeader *header1 = malloc(sizeof(OperaciontHeader));
-//                header1->tamanioValor = 5;
-//                header1->tipo = OPERACION_SET;
-//                puts("Declare el primero");
-//
-//                OperaciontHeader *header2 = malloc(sizeof(OperaciontHeader));
-//                header2->tamanioValor = 6;
-//                header2->tipo = OPERACION_SET;
-//                puts("Declare el primero");
-//
-//                OperaciontHeader *header3 = malloc(sizeof(OperaciontHeader));
-//                header3->tamanioValor = 0;
-//                header3->tipo = OPERACION_GET;
-//                puts("Declare el primero");
-//
-//                char *unaClave = "Probando claves\0";
-//                char *valor1 = "bbbb\0";
-//                char *valor2 = "bbbbb\0";
-//                char *unGet = "Probando claves\0";
-//
-//                int sendHeader;
-//
-//                puts("Enviando el header");
-//        		if ((sendHeader = send(parametros->new_fd, header1, sizeof(OperaciontHeader), 0)) <= 0){
-//        			puts("Error al send");l
-//        			perror("send");
-//        			exit_gracefully(1);
-//        		}
-//
-//        		puts("Se mando bien el prmer header");
-//
-//
-//
-//        		//clave set 1
-//        				if (send(parametros->new_fd, unaClave, TAMANIO_CLAVE, 0) <= 0){
-//        					perror("send");
-//        					exit_gracefully(1);
-//        				}
-//
-//        				//valor set 1
-//        				if (send(parametros->new_fd, valor1, header1->tamanioValor, 0) <= 0){
-//        					perror("send");
-//        					exit_gracefully(1);
-//        				}
-//        					puts("Se mandaron el seyt y el get");
-//
-//        		free(header1);
-//
-//        		puts("Enviando el header");
-//        		if ((sendHeader = send(parametros->new_fd, header2, sizeof(OperaciontHeader), 0)) <= 0){
-//        		puts("Error al send");
-//        		perror("send");
-//        		exit_gracefully(1);
-//        		}
-//        		puts("MANDE EL SEGUNDO HEADER");
-//
-//        		//clave	set 2
-//        				if (send(parametros->new_fd, unaClave, TAMANIO_CLAVE, 0) <= 0){
-//        					perror("send");
-//        					exit_gracefully(1);
-//        				}
-//
-//        				//valor set 2
-//        				if (send(parametros->new_fd, valor2, header2->tamanioValor, 0) <= 0){
-//        					perror("send");
-//        					exit_gracefully(1);
-//        				}
-//
-//        		free(header2);
-//
-//        		puts("Enviando el header");
-//        		if ((sendHeader = send(parametros->new_fd, header3, sizeof(OperaciontHeader), 0)) <= 0){
-//        		puts("Error al send");
-//        		perror("send");
-//        		exit_gracefully(1);
-//        		}
-//
-//        		//clave get
-//        		if (send(parametros->new_fd, unaClave, TAMANIO_CLAVE, 0) <= 0){
-//        		perror("send");
-//        		exit_gracefully(1);
-//        		}
-//
-//
-//        		free(header3);
-
 
     int AnalizarOperacion(int tamanioValor,
     			OperaciontHeader* header, parametrosConexion* parametros,
@@ -748,8 +637,8 @@
 			perror("recv");
 			log_info(logger, "TID %d  Mensaje: ERROR en ESI",
 					process_get_thread_id());
-			return 3;
-			//exit_gracefully(1);
+			return ERROR;
+
 		}
 
 		clave[strlen(clave)+1] = '\0';
@@ -768,13 +657,13 @@
 			sem_post(planificador->semaforo);
 			puts("ESI: Ya le avise al planificador que se bloqueo la clave");
 			*/
-			return 2;
+			return BLOQUEO;
 		} // ACA HAY QUE AVISARLE AL PLANIFICDOR DEL BLOQUEO PARA QUE FRENE AL ESI
 
 		puts("ESI: Verifico en las claves bloqueadas por el planificador");
 		if(EncontrarEnLista(clavesTomadas,&clave)){
 			puts("ESI: La clave esta bloqueada por consola del planificador");
-			return 2;
+			return BLOQUEO;
 		}
 
 		//list_add(clavesTomadas,&clave);
@@ -798,18 +687,14 @@
 		tBloqueo *bloqueo = malloc(sizeof(tBloqueo));
 		strcpy(bloqueo->clave,clave);
 		bloqueo->pid = parametros->pid;
-		list_add(listaBloqueos,(void *)bloqueo); // TENGO QUE AVISARLE AL PLANIFICADOR QUE ESTA CLAVE ESTA BLOQUEADA POR ESTE ESI
 
-		/* ACA HAY QUE AVISARLE AL PLANIFICDOR DEL BLOQUEO PARA QUE FRENE AL ESI
-		notificacion->tipoNotificacion=BLOQUEO;
-		strcpy(notificacion->clave,clave);
-		strcpy(notificacion->esi, parametros->nombreProceso);
-		sem_post(planificador->semaforo);
-		*/
+		list_add(listaBloqueos,(void *)bloqueo);
+		// No le aviso al planificador que este ESI logro tomar x clave, se lo va a avisar el ESI, aunque guardo esta informacion en una lista
+
 
 		log_info(logger, GetALoguear);
 
-		return 1;
+		return OK;
 	}
 
 	int ManejarOperacionSET(int tamanioValor, parametrosConexion* parametros, OperacionAEnviar* operacion) {
@@ -822,8 +707,8 @@
 			perror("recv");
 			log_info(logger, "TID %d  Mensaje: ERROR en ESI",
 					process_get_thread_id());
-			return 3;
-			//exit_gracefully(1);
+			return ERROR;
+
 		}
 		clave[strlen(clave)+1] = '\0';
 		printf("ESI: Recibi la clave: %s\n", clave);
@@ -838,7 +723,7 @@
 			sem_post(planificador->semaforo);
 			puts("ESI: Ya le avise al planificador que aborte el ESI");
 
-			return 3;
+			return ERROR;
 		}
 
 
@@ -854,13 +739,13 @@
 		free(bloqueo);
 
 		char *valor = malloc(tamanioValor+1);
-		//char valor[tamanioValor];
+
 		if (( recvValor = recv(parametros->new_fd, valor, tamanioValor+1, 0)) <= 0) {
 			perror("recv");
 			log_info(logger, "TID %d  Mensaje: ERROR en ESI",
 					process_get_thread_id());
-			return 3;
-			//exit_gracefully(1);
+			return ERROR;
+
 		}
 		valor[tamanioValor] = '\0';
 		printf("ESI: Recibi el valor: %s \n", valor);
@@ -879,9 +764,8 @@
 		puts(SetALoguear);
 
 		log_info(logger, SetALoguear);
-		//free(SetALoguear);
 
-		return 1;
+		return OK;
 	}
 
 	int ManejarOperacionSTORE(parametrosConexion* parametros, OperacionAEnviar* operacion) {
@@ -895,8 +779,8 @@
 			perror("recv");
 			log_info(logger, "TID %d  Mensaje: ERROR en ESI",
 					process_get_thread_id());
-			//exit_gracefully(1);
-			return 3;
+
+			return ERROR;
 		}
 		clave[strlen(clave)+1] = '\0';
 		printf("ESI: Recibi la clave: %s\n", clave);
@@ -911,9 +795,7 @@
 			sem_post(planificador->semaforo);
 			puts("ESI: Ya le avise al planificador que aborte el ESI");
 
-			 //RemoverClaveDeClavesTomadas(clave);
-
-			return 3;
+			return ERROR;
 		}
 		strcpy(CLAVE,clave);
 
@@ -928,17 +810,19 @@
 			strcpy(notificacion->clave,clave);
 			notificacion->pid = parametros->pid;
 
-			printf("Size de la listaBloqueos antes de remover: %d\n", list_size(listaBloqueos));
+			// TODO: Las 2 primeras veces que elimino debo solamente remover sin destruir para que en el resto no quede basura
+
+			printf("ESI: Size de la listaBloqueos antes de remover: %d\n", list_size(listaBloqueos));
 			RemoverClaveDeLaListaBloqueos(clave);
-			printf("Size de la listaBloqueos despues de remover: %d\n", list_size(listaBloqueos));
+			printf("ESI: Size de la listaBloqueos despues de remover: %d\n", list_size(listaBloqueos));
 
-			printf("Size de la lista clavesTomadas antes de remover: %d\n", list_size(clavesTomadas));
+			printf("ESI: Size de la lista clavesTomadas antes de remover: %d\n", list_size(clavesTomadas));
 			RemoverClaveDeClavesTomadas(clave);
-			printf("Size de la lista clavesTomadas despues de remover: %d\n", list_size(clavesTomadas));
+			printf("ESI: Size de la lista clavesTomadas despues de remover: %d\n", list_size(clavesTomadas));
 
-			printf("Size de las clavesPropias antes de remover: %d\n", list_size(parametros->claves));
+			printf("ESI: Size de las clavesPropias antes de remover: %d\n", list_size(parametros->claves));
 			RemoverClaveDeClavesPropias(clave, parametros);
-			printf("Size de las clavesPropias despues de remover: %d\n", list_size(parametros->claves));
+			printf("ESI: Size de las clavesPropias despues de remover: %d\n", list_size(parametros->claves));
 
 			printf("ESI: le voy a avisar al planificador que se desbloqueo la clave: %s \n",clave);
 			sem_post(planificador->semaforo);
@@ -964,9 +848,8 @@
 		puts(StoreALoguear);
 
 		log_info(logger, StoreALoguear);
-		//free(StoreALoguear);
 
-		return 1;
+		return OK;
 	}
 
 	int ConexionESISinBloqueo(OperacionAEnviar* operacion,
@@ -988,6 +871,8 @@
 			pthread_mutex_unlock(&mutex);
 		}
 
+		ESIActual = parametros;
+
 		puts("ESI: Voy a seleccionar la Instancia");
 		int seleccionInstancia = SeleccionarInstancia(&CLAVE);
 		puts("ESI: Se selecciono la Instancia");
@@ -996,8 +881,13 @@
 
 			//esperamos el resultado para devolver
 			puts("ESI: Vamos a ver si hay algun resultado en la cola");
-			while (list_is_empty(colaResultados));
+
+			// ---------------------------------
+			// while (list_is_empty(colaResultados)); // TODO ESO ES UNA ESPERA ACTIVA
+			sem_wait(ESIActual->semaforo);
+			// ----------------------------------
 			puts("ESI: Tenemos un resultado en la cola");
+
 			// mientras la cola este vacia no puedo continuarputs("ESI: Hay resultado en la cola");
 			pthread_mutex_lock(&mutex);
 			tResultado* resultado = list_remove(colaResultados, 0);
@@ -1060,37 +950,27 @@
 		notificacion = malloc(sizeof(tNotificacionPlanificador));
 
 		// Creamos una cola donde dejamos todas las instancias que se conectan con nosotros y otra para los mensajes recibidos de cualquier ESI
-		int instanciasMaximas = 10;
 		colaInstancias = list_create();
-		//colaInstancias->head = malloc(sizeof(parametrosConexion) * instanciasMaximas);
 
-		int mensajesMaximos = 5;
 		colaMensajes = list_create();
-		//colaMensajes->head = malloc(sizeof(OperacionAEnviar) * mensajesMaximos);
 
-		int resultadosMaximos = 5;
 		colaResultados = list_create();
-		//colaResultados->head = malloc(sizeof(tResultado) * resultadosMaximos);
 
-		int esisMaximos = 10;
 		colaESIS = list_create();
-		//colaESIS->head = malloc(sizeof(parametrosConexion) * esisMaximos);
 
 		listaBloqueos = list_create();
 
 		clavesTomadas = list_create();
 
 		//colaMensajesParaPlanificador = list_create();
-		//colaBloqueos->head = malloc(TBLOQUEO * ENTRADAS);
 
-		return 1;
+		return EXIT_SUCCESS;
 	}
 
     int exit_gracefully(int return_nr) {
 
     	puts("ENTRE AL EXIT GRACEFULLY ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR");
        log_destroy(logger);
-       exit(return_nr);
        free(colaInstancias);
        free(colaMensajes);
        free(colaResultados);
@@ -1098,6 +978,8 @@
        free(listaBloqueos);
        free(notificacion);
        free(clavesTomadas);
+       pthread_mutex_destroy(&mutex);
+       exit(return_nr);
 
 		return return_nr;
      }
@@ -1105,7 +987,7 @@
     int configure_logger() {
       logger = log_create("Coordinador.log", "CORD", true, LOG_LEVEL_INFO);
 
-      return 1;
+      return EXIT_SUCCESS;
      }
 
     bool EncontrarEnLista(t_list * lista, char * claveABuscar){
@@ -1144,10 +1026,21 @@
     parametrosConexion* BuscarInstanciaQuePoseeLaClave(char * clave){
     	bool tieneLaClave(char * claveAComparar){
     		printf("ESI: Buscando instancia, comparando la clave %s con %s \n", clave, claveAComparar);
-    		return string_equals_ignore_case(clave,claveAComparar) == true;
+    		if(string_equals_ignore_case(clave,claveAComparar) == true){
+    			puts("ESI: Las claves coincidieron");
+    			return true;
+    		}
+    		puts("ESI: Las claves no coincidieron");
+    		return false;
     	}
     	bool lePerteneceLaClave(parametrosConexion * parametros){
-    		return list_any_satisfy(parametros->claves,tieneLaClave);
+    		printf("ESI: Busco una instancia que tenga la clave: %s \n", clave);
+    		if(list_any_satisfy(parametros->claves,tieneLaClave) == true){
+    			printf("ESI: Encontre la instancia que posee la clave: %d \n",parametros->pid);
+    			return true;
+    		}
+    		printf("ESI: La instancia %d no posee la clave \n",parametros->pid);
+    		return false;
     	}
     	return list_find(colaInstancias,(void*) lePerteneceLaClave);
     }
@@ -1312,8 +1205,11 @@
 
 		if(OPERACION_ACTUAL == OPERACION_GET){
 			instancia = list_get(colaInstancias,0);
-			printf("ESI: Agrego la clave %s a una instancia \n",clave);
-			list_add(instancia->claves,clave);
+			printf("ESI: Agrego la clave %s a la instancia %d \n",clave,instancia->pid);
+			char * claveCopia = malloc(TAMANIO_CLAVE);
+			strcpy(claveCopia,clave);
+			printf("ESI: Agrego la copia clave %s a la instancia %d \n",claveCopia,instancia->pid);
+			list_add(instancia->claves,claveCopia);
 			MandarAlFinalDeLaLista(colaInstancias,instancia);
 		}
 		else{

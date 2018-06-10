@@ -183,6 +183,7 @@ tNotificacionPlanificador * notificacion;
 char CLAVE[TAMANIO_CLAVE];
 tTipoOperacion OPERACION_ACTUAL;
 
+parametrosConexion * ESIActual;
 parametrosConexion * planificador;
 t_list* colaInstancias;
 t_list* colaESIS;
