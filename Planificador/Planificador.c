@@ -184,7 +184,7 @@
 											t_esi * desbloqueado = malloc(sizeof(t_esi));
 											//notificacion->clave
 											
-											desbloqueado=buscarEsi(bloqueados,notificacion->clave);
+											desbloqueado=buscarEsi(bloqueados,notificacion->clave,desbloqueado);
 											if(desbloqueado!=NULL)
 											{
 												puts("desbloqueado no es nulo");
@@ -382,23 +382,23 @@ void ordenarEsis(t_queue *cola)
 		
 	}
 	
-	t_esi * buscarEsi(t_queue *lista,char clave[TAMANIO_CLAVE])
+	t_esi * buscarEsi(t_queue *lista,char clave[TAMANIO_CLAVE],t_esi* esi)
 	{
 		int coincidir(t_esi *unEsi){
           	    	    		return (string_equals_ignore_case(unEsi->clave,clave));//unEsi->clave == clave;
           	    	    	}
-		t_esi *esi=malloc(sizeof(t_esi));
+		//t_esi *esi=malloc(sizeof(t_esi));
 		esi=list_find(lista->elements,(void*)coincidir);
 		return esi;
 		//free(esi);
 	}
 
-	t_esi * buscarEsiPorId(t_queue *lista,int id)
+	t_esi * buscarEsiPorId(t_queue *lista,int id,t_esi * esi)
 	{
 		int coincidir(t_esi *unEsi){
           	    	    		return (string_equals_ignore_case(unEsi->id,id));//unEsi->clave == clave;
           	    	    	}
-		t_esi *esi=malloc(sizeof(t_esi));
+		//t_esi *esi=malloc(sizeof(t_esi));
 		esi=list_find(lista->elements,(void*)coincidir);
 		return esi;
 		//free(esi);
@@ -611,7 +611,7 @@ void ordenarEsis(t_queue *cola)
 		t_esi * desbloqueado = malloc(sizeof(t_esi));
 											//notificacion->clave
 											
-		desbloqueado=buscarEsi(bloqueados,clave);
+		desbloqueado=buscarEsi(bloqueados,clave,desbloqueado);
 		if(desbloqueado!=NULL)
 		{
 			puts("desbloqueado no es nulo");
@@ -635,7 +635,7 @@ void ordenarEsis(t_queue *cola)
 			 //  free(header->idProceso);
 
 		   }
-		   printf("Se envió header de clave desbloqueada %d \n",solicitud);
+		   printf("Se envió header de clave desbloqueada %d \n",solicitud->solicitud);
 		  //free(solicitud);
 
 		puts("Envio la clave desbloqueada");
@@ -656,19 +656,21 @@ void ordenarEsis(t_queue *cola)
 			if(algoritmo==SJFD)
 			{
 				t_esi* esi1 = malloc(sizeof(t_esi));
-				esi1=queue_pop(ejecucion);
-				queue_push(ready,esi1);
+				esi1=queue_pop(ejecucion);//(int id,int fd,int esti,char clave[TAMANIO_CLAVE])
+				queue_push(ready,new_ESI(esi1->id,esi1->fd,esi1->estimacion,esi1->clave));
 				ordenarEsis(ready);
+				free(esi1);
 			}
 			
 		}
+		free(solicitud);
 	}
 	
 	void bloquearEsi(int id,char clave[TAMANIO_CLAVE])
 	{
 		// TODO: Comprobar que este en ready o en ejecucion nomas
 		t_esi* esi = malloc(sizeof(t_esi));
-		esi=buscarEsiPorId(ready,id);
+		esi=buscarEsiPorId(ready,id,esi);
 		if(esi!=NULL)
 		{
 			//Esi estaba en ready
@@ -679,7 +681,7 @@ void ordenarEsis(t_queue *cola)
 		}{
 			puts("esi no estaba en ready");
 		}
-		esi=buscarEsiPorId(ejecucion,id);
+		esi=buscarEsiPorId(ejecucion,id,esi);
 		if(esi!=NULL)
 		{
 			//Esi estaba en ready
