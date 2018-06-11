@@ -513,6 +513,7 @@
     				printf("Vamos a eliminar la clave %s de la listaBloqueos\n",claveABuscar);
     				return true;
     			}
+    			return false;
     		}
     		pthread_mutex_lock(&mutex);
     		list_remove_and_destroy_by_condition(listaBloqueos,yaExisteLaClave,(void*)destruirBloqueo);
@@ -608,6 +609,16 @@
 			tResultado * resultadoCompleto = malloc(sizeof(tResultado));
 			resultadoCompleto->resultado = OK;
 			strcpy(resultadoCompleto->clave,operacion->clave);
+
+			if(operacion->tipo == OPERACION_STORE){ // Si es STORE la instancia no tiene mas la clave
+				bool CompararClaves(char * claveAComprar){
+					return string_equals_ignore_case(operacion->clave,claveAComprar);
+				}
+				void DestruirClaveDeInstancia(char * clave){
+					free(clave);
+				}
+				list_remove_and_destroy_by_condition(parametros->claves,(void *)CompararClaves,(void *)DestruirClaveDeInstancia);
+			}
 
 			//Debo avisarle al ESI que me invoco el resultado
 			pthread_mutex_lock(&mutex);

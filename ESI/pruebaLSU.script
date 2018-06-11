@@ -1,0 +1,15 @@
+GET jugador
+SET jugador 1234567890
+GET arquero
+SET jugador 12345
+GET alguien
+SET aaaaabbbbbcccccddddd
+GET otro 
+SET otro 123456
+GET unoMas
+SET unoMas ultimo
+STORE jugador
+STORE arquero
+STORE alguien
+STORE otro
+STORE unoMas
