@@ -9,7 +9,7 @@
 
 	void intHandler(int dummy) { // para atajar ctrl c
 		keepRunning = 0;
-		sleep(10);
+		sleep(4);
 		exit_gracefully(EXIT_SUCCESS);
 	}
 
@@ -139,18 +139,17 @@
 	   tHeader *headerRecibido = malloc(sizeof(tHeader));
 	   parametrosConexion *parametrosNuevos=  malloc(sizeof(parametrosConexion));
 
-	   // Realizo una copia de los parametros que contiene la informacion de la conexion que acabo de recibir
-	   strcpy(parametrosNuevos->nombreProceso, parametros->nombreProceso);
 	   parametrosNuevos->new_fd = parametros->new_fd;
-	   parametrosNuevos-> cantidadEntradasMaximas = parametros->cantidadEntradasMaximas;
-	   parametrosNuevos-> entradasUsadas = parametros->entradasUsadas;
-
 
 	   if ((recv(parametrosNuevos->new_fd, headerRecibido, sizeof(tHeader), 0)) <= 0){
 			perror("recv");
 			log_info(logger, "Mensaje: recv error");//process_get_thread_id()); //asienta error en logger y corta
-
 	   }
+
+	   // Realizo una copia de los parametros que contiene la informacion de la conexion que acabo de recibir
+	   strcpy(parametrosNuevos->nombreProceso, headerRecibido->nombreProceso);
+	   parametrosNuevos-> cantidadEntradasMaximas = parametros->cantidadEntradasMaximas;
+	   parametrosNuevos-> entradasUsadas = parametros->entradasUsadas;
 
 	   if (headerRecibido->tipoMensaje == CONECTARSE){
 		   parametrosNuevos->pid = headerRecibido->idProceso;
@@ -210,7 +209,7 @@
     		free(semaforoPlanif);
     		break;
     	case INSTANCIA:
-    		printf("Instancia: Se conecto el proceso %d \n", headerRecibido->idProceso);
+    		printf("Instancia: Se conecto el proceso %d con nombre %s \n", headerRecibido->idProceso,headerRecibido->nombreProceso);
     		printf("Instancia: Socket de la instancia: %d\n", parametros->new_fd);
 
     		sem_t * semaforo = malloc(sizeof(sem_t));
@@ -244,7 +243,9 @@
 
     int BuscarSiLaInstanciaSeEstaReincorporando(parametrosConexion * parametros){
     	bool EsLaInstanciaDesconectada(parametrosConexion * parametrosAComparar){
+    		printf("Instancia: Comparo instancia %s, con %s \n",parametros->nombreProceso,parametrosAComparar->nombreProceso);
     		if(string_equals_ignore_case(parametros->nombreProceso,parametrosAComparar->nombreProceso) == true){
+
     						puts("Instancia: La Instancia se esta reincorporando");
     						return true;
     		}
@@ -389,10 +390,14 @@
 		{
 			clave[TAMANIO_CLAVE-1] = '\0';
 			printf("Planificador: Agrego la clave %s a la cola de bloqueadas \n", clave);
+
+			char* claveCopia = malloc(strlen(clave)+1);
+			strcpy(claveCopia,clave);
 			pthread_mutex_lock(&mutex);
 			list_add(clavesTomadas, (char *)clave);
 			pthread_mutex_unlock(&mutex);
 		}
+		free(clave);
 		return EXIT_SUCCESS;
 	}
 
@@ -436,9 +441,11 @@
 
 				}
 				else{
-					printf("Planificador: voy a agregar a las bloqueadas a la clave %s \n",clave);
+					char* claveCopia = malloc(strlen(clave)+1);
+					strcpy(claveCopia,clave);
+					printf("Planificador: voy a agregar a las bloqueadas a la clave %s \n",claveCopia);
 					pthread_mutex_lock(&mutex);
-					list_add(clavesTomadas,clave); //Estaba &clave, cambie por clave para probar.
+					list_add(clavesTomadas,claveCopia); //Estaba &clave, cambie por clave para probar.
 					pthread_mutex_unlock(&mutex);
 				}
 				break;
@@ -715,11 +722,13 @@
 		}
 
 		//list_add(clavesTomadas,&clave);
-		char * claveCopia = malloc(strlen(clave)+1);
-		strcpy(claveCopia,clave);
+		char * claveCopia1 = malloc(strlen(clave)+1);
+		char * claveCopia2 = malloc(strlen(clave)+1);
+		strcpy(claveCopia1,clave);
+		strcpy(claveCopia2,clave);
 		pthread_mutex_lock(&mutex);
-		list_add(clavesTomadas,claveCopia);
-		list_add(parametros->claves,claveCopia);
+		list_add(clavesTomadas,claveCopia1);
+		list_add(parametros->claves,claveCopia2);
 		pthread_mutex_unlock(&mutex);
 
 		operacion->tipo = OPERACION_GET;
