@@ -209,7 +209,7 @@
     		free(semaforoPlanif);
     		break;
     	case INSTANCIA:
-    		printf("Instancia: Se conecto el proceso %d con nombre %s \n", headerRecibido->idProceso,headerRecibido->nombreProceso);
+    		printf("Instancia: Se conecto el proceso %d con nombre %s \n", parametros->pid ,headerRecibido->nombreProceso);
     		printf("Instancia: Socket de la instancia: %d\n", parametros->new_fd);
 
     		sem_t * semaforo = malloc(sizeof(sem_t));
@@ -1136,23 +1136,14 @@
     }
 
     int MandarAlFinalDeLaLista(t_list * lista, parametrosConexion * instancia){
-    	void Notificar(parametrosConexion * instanciaAComparar){
-    		if(instanciaAComparar->pid == instancia->pid){
-    			//puts("Voy a hacer el sem_post a la Instancia seleccionada \n");
-    			//printf("Semaforo en direccion: %p\n", (void*)&(instanciaAComparar->semaforo));
-    			//sem_post(&(instanciaAComparar->semaforo));
-    		}
-    	}
     	bool Comparar(parametrosConexion * instanciaAComparar){
     		return instanciaAComparar->new_fd == instancia->new_fd;
     	}
-    	t_list * listaNueva = malloc(sizeof(lista));
-    	puts("ESI: Voy a iterar la lista");
-    	list_iterate(lista,Notificar);
-    	puts("ESI: Itere la lista");
-    	listaNueva = list_take_and_remove(lista, 1);
+    	//t_list * listaNueva = malloc(sizeof(lista));
+
+    	t_list * listaNueva = list_take_and_remove(lista, 1);
     	list_add_all(lista,listaNueva);
-    	free(listaNueva);
+    	//free(listaNueva);
     	return 1;
     }
 
@@ -1279,13 +1270,15 @@
 		parametrosConexion * instancia;
 
 		if(OPERACION_ACTUAL == OPERACION_GET){
-			instancia = list_get(colaInstancias,0);
+			//instancia = list_get(colaInstancias,0);
+			instancia = list_remove(colaInstancias,0);
 			printf("ESI: Agrego la clave %s a la instancia %d \n",clave,instancia->pid);
 			char * claveCopia = malloc(TAMANIO_CLAVE);
 			strcpy(claveCopia,clave);
 			printf("ESI: Agrego la copia clave %s a la instancia %d \n",claveCopia,instancia->pid);
 			list_add(instancia->claves,claveCopia);
-			MandarAlFinalDeLaLista(colaInstancias,instancia);
+			//MandarAlFinalDeLaLista(colaInstancias,instancia);
+			list_add(colaInstancias, instancia);
 		}
 		else{
 			instancia = BuscarInstanciaQuePoseeLaClave(clave);
