@@ -1,0 +1,11 @@
+GET jugador
+SET jugador letra10
+GET ganzo
+SET ganzo letra7
+GET nadie
+SET nadie letra14
+GET zeta ultimaLetra 
+STORE jugador
+STORE ganzo
+STORE nadie
+STORE zeta

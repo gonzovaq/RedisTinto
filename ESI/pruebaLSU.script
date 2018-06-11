@@ -1,9 +1,9 @@
 GET jugador
 SET jugador 1234567890
 GET arquero
-SET jugador 12345
+SET jugador cinco
 GET alguien
-SET aaaaabbbbbcccccddddd
+SET arquero aaaaabbbbbcccccddddd
 GET otro 
 SET otro 123456
 GET unoMas
