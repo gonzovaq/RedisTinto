@@ -431,6 +431,7 @@
 			}
 			printf("Planificador: Recibi una solicitud de tipo %d \n", *solicitud);
 			char clave[TAMANIO_CLAVE];
+			char idS[4];
 			switch(solicitud->solicitud){
 			case BLOQUEAR:
 				if ( (recv(parametros->new_fd, clave, TAMANIO_CLAVE, 0)) <= 0) {
@@ -463,6 +464,21 @@
 					printf("Size de la lista clavesTomadas antes de remover: %d\n", list_size(clavesTomadas));
 					RemoverClaveDeClavesTomadas(clave);//Aca habia un &clave, pruebo sacandoselo
 					printf("Size de la lista clavesTomadas despues de remover: %d\n", list_size(clavesTomadas));
+				break;
+				}
+			case KILL:
+				if ( (recv(parametros->new_fd,idS,sizeof(idS), 0)) <= 0) {
+					perror("recv");
+					/*log_info(logger, "TID %d  Mensaje: ERROR en ESI",
+							process_get_thread_id());*/
+					return ERROR;
+
+				}
+				else{
+					printf("id del esi KILLED a liberar todas sus claves %s \n",idS);
+					int id=atoi(idS);
+					printf("En int %d \n",id);
+					//RemoverClaveDeClavesTomadas(clave);//Aca habia un &clave, pruebo sacandoselo
 				break;
 				}
 			case LISTAR:

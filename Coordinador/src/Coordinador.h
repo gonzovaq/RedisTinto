@@ -73,7 +73,8 @@ typedef enum{
 typedef enum{
 	LISTAR = 1,
 	BLOQUEAR = 2,
-	DESBLOQUEAR = 3
+	DESBLOQUEAR = 3,
+	KILL = 4
 }tSolicitudesDeConsola;
 
 typedef enum{

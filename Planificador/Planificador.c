@@ -396,7 +396,7 @@ void ordenarEsis(t_queue *cola)
 	t_esi * buscarEsiPorId(t_queue *lista,int id,t_esi * esi)
 	{
 		int coincidir(t_esi *unEsi){
-          	    	    		return (string_equals_ignore_case(unEsi->id,id));//unEsi->clave == clave;
+          	    	    		return (unEsi->id==id);//unEsi->clave == clave;
           	    	    	}
 		//t_esi *esi=malloc(sizeof(t_esi));
 		esi=list_find(lista->elements,(void*)coincidir);
@@ -572,6 +572,7 @@ void ordenarEsis(t_queue *cola)
 				int id=obtenerId(4,linea);
 				printf("id: %d \n",id);
 				kill(id,SIGTERM);
+				liberarEsi(id);
 			}
 			if(strncmp(linea,"status",6)==0)
 			{
@@ -605,6 +606,28 @@ void ordenarEsis(t_queue *cola)
 
 	return 0;
 	}
+	void liberarEsi (int id)
+	{
+		tSolicitudPlanificador * solicitud = malloc(sizeof(tSolicitudPlanificador));
+		solicitud->solicitud= KILL;
+		   if (send(sockCord, solicitud, sizeof(tSolicitudPlanificador), 0) <= 0){
+			   puts("Error al enviar header de KILL un esi");
+			   perror("Send");
+		   }
+		   printf("Se envió header de KILL  %d \n",solicitud->solicitud);
+		char idS[4];//=malloc(sizeof(int));
+		sprintf(idS,"%d",id);
+		 if (send(sockCord,idS,sizeof(idS), 0) == -1){
+			   printf("Error al enviar el id: %d \n",id);
+			   perror("Send");
+			   //free(&header->tipoMensaje);
+			   //free(&header->tipoProceso);
+			 //  free(header->idProceso);
+
+		   }
+		   printf("Se envió el id del esi: %d \n",id);
+
+	}
 	
 	void desbloquearEsi(char clave[TAMANIO_CLAVE])
 	{
@@ -620,7 +643,9 @@ void ordenarEsis(t_queue *cola)
 		}
 		else
 		{
-			puts("desbloqueado es nulo");
+			puts("No hay ningun esi bloqueado con esa clave");
+			free(desbloqueado);
+			return;
 		}
 		free(desbloqueado);
 		
@@ -630,9 +655,6 @@ void ordenarEsis(t_queue *cola)
 		   if (send(sockCord, solicitud, sizeof(tSolicitudPlanificador), 0) <= 0){
 			   puts("Error al enviar header de una clave bloqueada");
 			   perror("Send");
-			   //free(&header->tipoMensaje);
-			   //free(&header->tipoProceso);
-			 //  free(header->idProceso);
 
 		   }
 		   printf("Se envió header de clave desbloqueada %d \n",solicitud->solicitud);
@@ -681,7 +703,9 @@ void ordenarEsis(t_queue *cola)
 		}{
 			puts("esi no estaba en ready");
 		}
+		puts("Voy a buscar en ejecucion");
 		esi=buscarEsiPorId(ejecucion,id,esi);
+		puts("Ya busque");
 		if(esi!=NULL)
 		{
 			//Esi estaba en ready
@@ -724,20 +748,16 @@ void ordenarEsis(t_queue *cola)
 								printf("Comparando clave %s con clave %s \n",unEsi->clave,clave);
           	    	    		return (string_equals_ignore_case(unEsi->clave,clave));//unEsi->clave == clave;
           	    	    	}
-		queue_push(bloqueados,new_ESI(1,2,5,clave));
-		puts("meti algo en la cola");
 		aux->elements=list_filter(bloqueados->elements,coincidir);
-		puts("filtre");
-		
 		t_esi *esi=malloc(sizeof(t_esi));
 		puts("voy a ver si hay algo adentro");
 		while(queue_is_empty(aux)==0)
 		{
 			esi=queue_pop(aux);
-			printf("Esi de id: %d esperando recurso %s",esi->id,esi->clave);
+			printf("Esi de id: %d esperando recurso %s \n",esi->id,esi->clave);
 		}
-		free(esi);
 		free(aux);
+		//free(esi);
 		
 
 	}
