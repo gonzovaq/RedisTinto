@@ -178,6 +178,20 @@
 											printf("Vamos a matar al esi de id: %d \n",esi->id);//abortar al esi
 											kill(esi->id,SIGTERM);
 										}
+										if(notificacion->tipoNotificacion==STATUS)
+										{
+											printf("TODO: IMPLEMENTAR RCV DE LA INSTANCIA");
+											char instancia[TAMANIO_NOMBREPROCESO];
+											if ( (recv(i, instancia, TAMANIO_NOMBREPROCESO, 0)) <= 0) {
+												perror("recv");
+												puts("Error recibir el nombre de la instancia");
+												//return ERROR;
+											}else{
+												printf("La instancia que utiliza la clave es: %s \n",instancia);
+											}
+
+
+										}
 										if(notificacion->tipoNotificacion==DESBLOQUEO)
 										{
 											printf("coordi nos dijo se desbloquea la clave: %s \n ",notificacion->clave);
@@ -216,27 +230,7 @@
 									
 									}
 								}
-								/*else{
-								 if (flagEjecutar==1 && i!=sockCord){
-									 puts("Cerramos el socket del ESI y lo borramos del conjunto maestro");
-									 if (FD_ISSET(i, &master)) {
-										 flagEjecutar=0;
-										 close(i);
-										 FD_CLR(i, &master);
-									 	 }
-	                                   }
-
-							  	   }*/
-							//}cierre el else recibir
-							 //}//ciere del fdset 
-						//}
-						//Planificar
-					//int f_ejecutar=0;//Flag para mandar de ready a ejecucion.
-					//puts("voy a verificar las colas");	
-					//if(flagOperar==1){
-						//puts("entre ");
-						//if(recibi==1)
-						//{
+								
 							tResultado * resultado = malloc(sizeof(tResultado));
 							//int re=0;
 							//printf("fd del esi es: %d",esi->fd);
@@ -571,13 +565,25 @@ void ordenarEsis(t_queue *cola)
 				//obtener id
 				int id=obtenerId(4,linea);
 				printf("id: %d \n",id);
-				kill(id,SIGTERM);
-				liberarEsi(id);
+				
+				killEsi(id);
 			}
 			if(strncmp(linea,"status",6)==0)
 			{
-				int id=obtenerId(6,linea);
-				printf("id: %d \n",id);
+				//int id=obtenerId(6,linea);
+				//printf("id: %d \n",id);
+				char clave[TAMANIO_CLAVE];
+				int i=7;
+				int j=0;
+				while(linea[i]!='\0')
+				{
+					clave[j]=linea[i];
+					j++;
+					i++;
+				}
+				clave[j]='\0';
+				printf("La clave es: %s \n",clave);
+				status(clave);
 			}
 			if(strncmp(linea,"deadlocks",9)==0)
 			{
@@ -606,8 +612,28 @@ void ordenarEsis(t_queue *cola)
 
 	return 0;
 	}
-	void liberarEsi (int id)
+	void status (char clave[TAMANIO_CLAVE])
 	{
+		tSolicitudPlanificador * solicitud = malloc(sizeof(tSolicitudPlanificador));
+		solicitud->solicitud= STATUS;
+		   if (send(sockCord, solicitud, sizeof(tSolicitudPlanificador), 0) <= 0){
+			   puts("Error al enviar header de STATUS de una clave");
+			   perror("Send");
+		   }
+		   printf("Se envió header de STATUS  %d \n",solicitud->solicitud);
+		   	puts("Envio la clave desbloqueada");
+
+		   if (send(sockCord, clave, TAMANIO_CLAVE, 0) == -1){
+			   puts("Error al enviar una clave");
+			   perror("Send");
+
+		   }
+		   printf("Se envió la clave de status: %s \n",clave);
+
+	}
+	void killEsi (int id)
+	{
+		kill(id,SIGTERM);
 		tSolicitudPlanificador * solicitud = malloc(sizeof(tSolicitudPlanificador));
 		solicitud->solicitud= KILL;
 		   if (send(sockCord, solicitud, sizeof(tSolicitudPlanificador), 0) <= 0){
@@ -626,6 +652,7 @@ void ordenarEsis(t_queue *cola)
 
 		   }
 		   printf("Se envió el id del esi: %d \n",id);
+
 
 	}
 	

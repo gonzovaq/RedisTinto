@@ -74,7 +74,8 @@ typedef enum{
 	LISTAR = 1,
 	BLOQUEAR = 2,
 	DESBLOQUEAR = 3,
-	KILL = 4
+	KILL = 4,
+	STATUS = 5
 }tSolicitudesDeConsola;
 
 typedef enum{

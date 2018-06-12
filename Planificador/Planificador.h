@@ -75,7 +75,8 @@ typedef enum{
 	LISTAR = 1,
 	BLOQUEAR = 2,
 	DESBLOQUEAR = 3,
-	KILL = 4
+	KILL = 4,
+	STATUS= 5
 }tSolicitudesDeConsola;
 
 typedef struct{
@@ -159,3 +160,4 @@ void obtenerBloqueados(char clave[TAMANIO_CLAVE]);
 void bloquearEsi(int id,char clave[TAMANIO_CLAVE]);
 void enviarClaveCoordinador(char clave[TAMANIO_CLAVE],tSolicitudesDeConsola *solicitud);
 t_esi * buscarEsiPorId(t_queue *lista,int id,t_esi * esi);
+void killEsi (int id);

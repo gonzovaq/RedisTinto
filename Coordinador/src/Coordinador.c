@@ -481,6 +481,18 @@
 					//RemoverClaveDeClavesTomadas(clave);//Aca habia un &clave, pruebo sacandoselo
 				break;
 				}
+			case STATUS:
+			if ( (recv(parametros->new_fd, clave, TAMANIO_CLAVE, 0)) <= 0) {
+					perror("recv");
+					log_info(logger, "TID %d  Mensaje: ERROR en ESI",
+							process_get_thread_id());
+					return ERROR;
+
+				}
+				else{
+					printf("Planificador: recibi la clave y voy a mostrar la instancia %s \n",clave);
+				break;
+				}
 			case LISTAR:
 				/*
 				char clave[TAMANIO_CLAVE];
