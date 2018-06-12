@@ -247,5 +247,7 @@ int RemoverClaveDeLaListaBloqueos(char * claveABuscar);
 int RemoverClaveDeClavesPropias(char * clave, parametrosConexion *parametros);
 int BuscarSiLaInstanciaSeEstaReincorporando(parametrosConexion * parametros);
 void intHandler(int dummy);
+int EncontrarAlESIYEliminarlo(int id);
+int LiberarLasClavesDelESI(parametrosConexion * parametros);
 
 

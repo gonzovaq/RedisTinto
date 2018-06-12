@@ -279,6 +279,8 @@
 			if ((recvHeader = recv(parametros->new_fd, header, sizeof(OperaciontHeader), 0)) <= 0) {
 				perror("recv");
 				log_info(logger, "TID %d  Mensaje: ERROR en ESI",process_get_thread_id());
+				// Liberamos sus claves
+				LiberarLasClavesDelESI(parametros);
 				close(parametros->new_fd);
 				free(header);
 				return EXIT_SUCCESS;
@@ -340,6 +342,36 @@
         }
 		close(parametros->new_fd);
 		return EXIT_SUCCESS;
+    }
+
+    int LiberarLasClavesDelESI(parametrosConexion * parametros){
+
+    	for(int i = 0; i< list_size(parametros->claves); i++){
+
+    		EliminarClaveDeClavesTomadas(list_get(parametros->claves,i));
+    	}
+
+    	void LiberarClave(char * clave){
+    		printf("ESI: Se va a eliminar la clave %s del ESI de id %d \n",clave,parametros->pid);
+    		free(clave);
+    	}
+
+    	list_clean_and_destroy_elements(parametros->claves,(void*)LiberarClave);
+
+    	return EXIT_SUCCESS;
+    }
+
+    int EliminarClaveDeClavesTomadas(char * claveABorrar){
+    	bool EsLaMismaClave(char * claveAComparar){
+    		return string_equals_ignore_case(claveABorrar, claveAComparar);
+    	}
+    	void BorrarClave(char * clave){
+    		printf("ESI: Voy a borrar la clave %s de las clavesTomadas",clave);
+    		free(clave);
+    	}
+    	list_remove_and_destroy_by_condition(clavesTomadas,(void*)EsLaMismaClave,(void*)BorrarClave);
+
+    	return EXIT_SUCCESS;
     }
 
     int *conexionPlanificador(parametrosConexion* parametros){
@@ -461,26 +493,27 @@
 				}
 				else{
 				printf("Planificador: voy a remover de las bloqueadas a la clave %s \n",clave);
-					printf("Size de la lista clavesTomadas antes de remover: %d\n", list_size(clavesTomadas));
+					printf("Planificador: Size de la lista clavesTomadas antes de remover: %d\n", list_size(clavesTomadas));
 					RemoverClaveDeClavesTomadas(clave);//Aca habia un &clave, pruebo sacandoselo
-					printf("Size de la lista clavesTomadas despues de remover: %d\n", list_size(clavesTomadas));
+					printf("Planificador: Size de la lista clavesTomadas despues de remover: %d\n", list_size(clavesTomadas));
 				break;
 				}
 			case KILL:
 				if ( (recv(parametros->new_fd,idS,sizeof(idS), 0)) <= 0) {
-					perror("recv");
+					perror("Planificador: recv");
 					/*log_info(logger, "TID %d  Mensaje: ERROR en ESI",
 							process_get_thread_id());*/
 					return ERROR;
 
+
 				}
 				else{
-					printf("id del esi KILLED a liberar todas sus claves %s \n",idS);
+					printf("Planificador: id del esi KILLED a liberar todas sus claves %s \n",idS);
 					int id=atoi(idS);
-					printf("En int %d \n",id);
-					//RemoverClaveDeClavesTomadas(clave);//Aca habia un &clave, pruebo sacandoselo
-				break;
+					printf("Planificador: En int %d \n",id);
+					EncontrarAlESIYEliminarlo(id);
 				}
+				break;
 			case STATUS:
 			if ( (recv(parametros->new_fd, clave, TAMANIO_CLAVE, 0)) <= 0) {
 					perror("recv");
@@ -491,8 +524,10 @@
 				}
 				else{
 					printf("Planificador: recibi la clave y voy a mostrar la instancia %s \n",clave);
-				break;
+
 				}
+				break;
+
 			case LISTAR:
 				/*
 				char clave[TAMANIO_CLAVE];
@@ -518,6 +553,22 @@
 
 			free(solicitud);
 		}
+
+    	return EXIT_SUCCESS;
+    }
+
+    int EncontrarAlESIYEliminarlo(int id){
+
+    	bool EsElESIaBorrar(parametrosConexion* parametrosAComparar){
+    		return parametrosAComparar->pid == id;
+    	}
+
+    	void LiberarParametros(parametrosConexion * parametros){
+    		printf("Planificador: Se va a Eliminar el ESI de id %d \n",parametros->pid);
+    		LiberarLasClavesDelESI(parametros);
+    		//free(parametros);
+    	}
+    	list_remove_and_destroy_by_condition(colaESIS,(void*)EsElESIaBorrar,(void*)LiberarParametros);
 
     	return EXIT_SUCCESS;
     }
