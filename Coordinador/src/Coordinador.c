@@ -352,7 +352,7 @@
 
     	for(int i = 0; i< list_size(parametros->claves); i++){
 
-    		EliminarClaveDeClavesTomadas(list_get(parametros->claves,i));
+    		EliminarClaveDeClavesTomadas(list_remove(parametros->claves,i));
     	}
 
     	void LiberarClave(char * clave){
