@@ -742,6 +742,22 @@
 				pthread_mutex_unlock(&mutex);
 
 			}
+			else{
+				OperaciontHeader * headerGET = malloc(sizeof(OperaciontHeader));  // Creo el header que le voy a enviar a la instancia para que identifique la operacion
+				headerGET->tipo = operacion->tipo;
+				headerGET->tamanioValor = 0;
+
+				int sendHeader;
+				if ((sendHeader = send(parametros->new_fd, headerGET, sizeof(OperaciontHeader), 0))
+						<= 0) {
+					puts("Fallo al enviar el header");
+					perror("send");
+					//exit_gracefully(1);
+					RemoverInstanciaDeLaLista(parametros);
+					close(parametros->new_fd);
+					return 2;
+				}
+			}
 
 			sem_post(ESIActual->semaforo); // SE HACE AFUERA PORQUE EL GET TAMBIEN DEBE TENER SU POST
 
