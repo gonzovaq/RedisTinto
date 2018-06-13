@@ -1238,7 +1238,9 @@
     	for (int i = 0; i< tamanioLista; i++){
     		parametrosConexion* instanciaAComparar = malloc(sizeof(parametrosConexion));
         	instancia = list_get(colaInstancias,i);
-        	if (instancia->entradasUsadas > instanciaAComparar->entradasUsadas)
+        	if (instancia->conectada == 0)
+        		instancia = instanciaAComparar;
+        	if (instancia->entradasUsadas > instanciaAComparar->entradasUsadas && instanciaAComparar->conectada == 1)
         		instancia = instanciaAComparar;
     		free(instanciaAComparar);
     	}
@@ -1391,18 +1393,24 @@
 	int SeleccionarPorEquitativeLoad(char* clave) {
 		// mientras la cola este vacia no puedo continuarpthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
 		parametrosConexion * instancia;
+		int conectada = 1;
 
 		if(OPERACION_ACTUAL == OPERACION_GET){
-			//instancia = list_get(colaInstancias,0);
-			instancia = list_remove(colaInstancias,0);
-			printf("ESI: Agrego la clave %s a la instancia %d \n",clave,instancia->pid);
-			char * claveCopia = malloc(TAMANIO_CLAVE);
-			strcpy(claveCopia,clave);
-			printf("ESI: Agrego la copia clave %s a la instancia %d \n",claveCopia,instancia->pid);
-			list_add(instancia->claves,claveCopia);
-			//MandarAlFinalDeLaLista(colaInstancias,instancia);
-			sem_post(instancia->semaforo);
-			list_add(colaInstancias, instancia);
+				while(conectada){
+				//instancia = list_get(colaInstancias,0);
+				instancia = list_remove(colaInstancias,0);
+				if (instancia->conectada == 1){
+					printf("ESI: Agrego la clave %s a la instancia %d \n",clave,instancia->pid);
+					char * claveCopia = malloc(TAMANIO_CLAVE);
+					strcpy(claveCopia,clave);
+					printf("ESI: Agrego la copia clave %s a la instancia %d \n",claveCopia,instancia->pid);
+					list_add(instancia->claves,claveCopia);
+					//MandarAlFinalDeLaLista(colaInstancias,instancia);
+					sem_post(instancia->semaforo);
+					conectada = 0;
+				}
+				list_add(colaInstancias, instancia);
+			}
 		}
 		else{
 			instancia = BuscarInstanciaQuePoseeLaClave(clave);
@@ -1434,12 +1442,13 @@
 			char * claveCopia = malloc(TAMANIO_CLAVE);
 			strcpy(claveCopia,clave);
 			printf("ESI: Agrego la copia clave %s a la instancia %d \n",claveCopia,instanciaMenosUsada->pid);
+			sem_post(instanciaMenosUsada->semaforo);
 			list_add(instanciaMenosUsada->claves,claveCopia);
 		}
 		else{
 			instanciaMenosUsada = BuscarInstanciaQuePoseeLaClave(clave);
 
-			if (instanciaMenosUsada == NULL){ //Hay que ver si devuelve NULL, esto es en caso de que se desconecte la instancia
+			if (instanciaMenosUsada == NULL || instanciaMenosUsada->conectada == 0){ //Hay que ver si devuelve NULL, esto es en caso de que se desconecte la instancia
 				puts("ESI: Se desconecto la instancia");
 				return ERROR;
 			}
@@ -1455,6 +1464,7 @@
 	int SeleccionarPorKeyExplicit(char* clave){
 		parametrosConexion * instancia;
 		if(OPERACION_ACTUAL == OPERACION_GET){
+			// TODO: Debo filtrar las instancias que no esten conectadas para no contar con ellas!
 			int cantidadInstancias = list_size(colaInstancias);
 			char primerCaracter = clave[0];
 			int x = 0;
@@ -1500,7 +1510,7 @@
 		else {
 			instancia = BuscarInstanciaQuePoseeLaClave(clave);
 
-			if (instancia == NULL){ //Hay que ver si devuelve NULL, esto es en caso de que se desconecte la instancia
+			if (instancia == NULL || instancia->conectada == 0){ //Hay que ver si devuelve NULL, esto es en caso de que se desconecte la instancia
 				puts("ESI: Se desconecto la instancia");
 				return ERROR;
 			}
