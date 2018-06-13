@@ -45,6 +45,7 @@
 		//sem_wait(semaforo);
 
         while(1){
+        	EnviarAvisoDeQueEstoyViva(socketCoordinador);
         	OperaciontHeader *headerRecibido = malloc(sizeof(OperaciontHeader)); // El malloc esta en recibir header
         	puts("Intento recibir header del Coordinador");
         	headerRecibido = recibirHeader(socketCoordinador);
@@ -225,6 +226,8 @@
 
     	recibirConfiguracion(socketCoordinador);
 
+    	//recibirClavesPrevias(socketCoordinador);
+
     	return socketCoordinador;
 
     	}
@@ -306,6 +309,21 @@
         }
 
         return buf;
+    }
+
+    int EnviarAvisoDeQueEstoyViva(int socketCoordinador){
+    	tEntradasUsadas * entradas = malloc(sizeof(tEntradasUsadas));
+    	entradas->entradasUsadas = 1;
+        if ((send(socketCoordinador, entradas, sizeof(tEntradasUsadas) , 0)) <= 0) {
+        	puts("Error al enviar el mensaje.");
+        	perror("send");
+        	free(entradas);
+            exit(1);
+        }
+
+        free(entradas);
+
+        return EXIT_SUCCESS;
     }
 
     OperaciontHeader *recibirHeader(int socketCoordinador){

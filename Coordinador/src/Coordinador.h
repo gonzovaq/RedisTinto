@@ -48,6 +48,7 @@ typedef struct{
 	int entradasUsadas;
 	int pid;
 	t_list * claves;
+	int conectada;
 }parametrosConexion;  // Aqui dejamos los descriptores y un semaforo para los hilos que lo necesiten
 
 

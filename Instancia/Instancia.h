@@ -181,3 +181,6 @@ int enviarEntradasUsadas(int socketCoordinador,t_list *tablaEntradas, char *buff
 void eliminarEntradasStorageLFU(char **arrayEntradas, int cantidadEntradasABorrar);
 void eliminarEntradasStorageBSU(char **arrayEntradas, t_list *entradasABorrar);
 t_list *obtenerTablaParaBSU(t_list *tablaEntradas, int cantidadEntradasPendientes);
+
+int EnviarAvisoDeQueEstoyViva(int socketCoordinador);
+int RecibirClavesPrevias(int socketCoordinador);

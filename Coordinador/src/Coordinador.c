@@ -150,6 +150,7 @@
 	   strcpy(parametrosNuevos->nombreProceso, headerRecibido->nombreProceso);
 	   parametrosNuevos-> cantidadEntradasMaximas = parametros->cantidadEntradasMaximas;
 	   parametrosNuevos-> entradasUsadas = parametros->entradasUsadas;
+	   parametrosNuevos->conectada = 1;
 
 	   if (headerRecibido->tipoMensaje == CONECTARSE){
 		   parametrosNuevos->pid = headerRecibido->idProceso;
@@ -231,6 +232,8 @@
 			//TODO: Debo revisar si la instancia se esta reincorporando !!!!
 			BuscarSiLaInstanciaSeEstaReincorporando(parametros);
     		list_add(colaInstancias,(void*)parametros);
+    		int cantidadInstancias = list_size(colaInstancias);
+    		printf("Instancia: Ahora tengo %d instancias ",cantidadInstancias);
     		conexionInstancia(parametros);
     		free(semaforo);
     		break;
@@ -259,6 +262,7 @@
 
     	puts("Instancia: Voy a actualizar la informacion de la Instancia");
     	parametros->entradasUsadas = instancia->entradasUsadas;
+    	parametros->conectada = 1;
     	list_add_all(parametros->claves,instancia->claves);
     	puts("Instancia: Actualice la informacion de la Instancia");
 
@@ -426,7 +430,7 @@
 			char* claveCopia = malloc(strlen(clave)+1);
 			strcpy(claveCopia,clave);
 			pthread_mutex_lock(&mutex);
-			list_add(clavesTomadas, (char *)clave);
+			list_add(clavesTomadas, (char *)claveCopia);
 			pthread_mutex_unlock(&mutex);
 		}
 		free(clave);
@@ -648,70 +652,98 @@
 			sem_wait(parametros->semaforo); // Caundo me avisen que hay una operacion para enviar, la voy a levantar de la cola
 			printf("Instancia: Me hicieron un sem_post y tengo de id %d \n",parametros->pid);
 			OperacionAEnviar * operacion = list_remove(colaMensajes,0); //hay que borrar esa operacion
-			printf("Instancia: clave operacion en direccion: %p\n", (void*)&(operacion->clave));
-			puts("Instancia: levante un mensaje de la cola de mensajes");
-			printf("Instancia: la clave es %s \n",operacion->clave);
-			printf("Instancia: el valor es %s \n",operacion->valor);
-			int tamanioValor;
 
-			if (operacion->valor == NULL){
-				tamanioValor=0;
-			}
-			else{
-				tamanioValor = strlen(operacion->valor);
-			}
-			printf("Instancia: el tamanioValor es %d \n",tamanioValor);
-			tTipoOperacion tipo = operacion->tipo;
-			puts("Instancia: hago malloc de OperacionTHeader");
-			OperaciontHeader * header = malloc(sizeof(OperaciontHeader));  // Creo el header que le voy a enviar a la instancia para que identifique la operacion
-			header->tipo = tipo;
-			header->tamanioValor = tamanioValor;
-
-			int conexion = EnviarClaveYValorAInstancia(tipo, tamanioValor, parametros, header,	operacion);
-			if (conexion==2){
-				puts("Desaparecio una Instancia");
-				return OK;
-			}
-
-			//puts("Instancia: Espero resultado de la instancia");
-			// Espero el resultado de la operacion
-			//tResultadoOperacion * resultado = malloc(sizeof(tResultadoOperacion));
-
-
-			tEntradasUsadas *buffer = malloc(sizeof(tEntradasUsadas));
-			if ((recv(parametros->new_fd, buffer, sizeof(tEntradasUsadas), 0)) <= 0) {
-				perror("recv");
-
+			tEntradasUsadas *estasConecatada = malloc(sizeof(tEntradasUsadas));
+			if ((recv(parametros->new_fd, estasConecatada, sizeof(tEntradasUsadas), 0)) <= 0) {
+				perror("Instancia: se desconecto!!!");
+				parametros->conectada = 0;
+				tResultado * resultadoCompleto = malloc(sizeof(tResultado));
+				resultadoCompleto->resultado = ERROR;
+				strcpy(resultadoCompleto->clave,operacion->clave);
+				pthread_mutex_lock(&mutex);
+				list_add(colaResultados,(void*)resultadoCompleto);
+				pthread_mutex_unlock(&mutex);
+				sem_post(ESIActual->semaforo);
+				free(estasConecatada);
 				return 1;
 			}
 
-			puts("Instancia: recibi el resultado de la instancia");
+			free(estasConecatada);
 
-			parametros->entradasUsadas = buffer->entradasUsadas;
+			if (operacion->tipo != OPERACION_GET){
 
-			free(buffer);
+				printf("Instancia: clave operacion en direccion: %p\n", (void*)&(operacion->clave));
+				puts("Instancia: levante un mensaje de la cola de mensajes");
+				printf("Instancia: la clave es %s \n",operacion->clave);
+				printf("Instancia: el valor es %s \n",operacion->valor);
+				printf("Instancia: el tipo de operacion es %d \n",operacion->tipo);
+				int tamanioValor;
 
-			puts("Preparamos el resultado");
-			tResultado * resultadoCompleto = malloc(sizeof(tResultado));
-			resultadoCompleto->resultado = OK;
-			strcpy(resultadoCompleto->clave,operacion->clave);
-
-			if(operacion->tipo == OPERACION_STORE){ // Si es STORE la instancia no tiene mas la clave
-				bool CompararClaves(char * claveAComprar){
-					return string_equals_ignore_case(operacion->clave,claveAComprar);
+				if (operacion->valor == NULL){
+					tamanioValor=0;
 				}
-				void DestruirClaveDeInstancia(char * clave){
-					free(clave);
+				else{
+					tamanioValor = strlen(operacion->valor);
 				}
-				list_remove_and_destroy_by_condition(parametros->claves,(void *)CompararClaves,(void *)DestruirClaveDeInstancia);
+				printf("Instancia: el tamanioValor es %d \n",tamanioValor);
+				tTipoOperacion tipo = operacion->tipo;
+				puts("Instancia: hago malloc de OperacionTHeader");
+				OperaciontHeader * header = malloc(sizeof(OperaciontHeader));  // Creo el header que le voy a enviar a la instancia para que identifique la operacion
+				header->tipo = tipo;
+				header->tamanioValor = tamanioValor;
+
+				int conexion = EnviarClaveYValorAInstancia(tipo, tamanioValor, parametros, header,	operacion);
+
+				if (conexion==2){
+					parametros->conectada = 0;
+					puts("Desaparecio una Instancia");
+					free(header);
+					return OK;
+				}
+
+				//puts("Instancia: Espero resultado de la instancia");
+				// Espero el resultado de la operacion
+				//tResultadoOperacion * resultado = malloc(sizeof(tResultadoOperacion));
+
+
+				tEntradasUsadas *buffer = malloc(sizeof(tEntradasUsadas));
+				if ((recv(parametros->new_fd, buffer, sizeof(tEntradasUsadas), 0)) <= 0) {
+					perror("recv");
+					parametros->conectada = 0;
+					free(header);
+					free(buffer);
+					return 1;
+				}
+
+				puts("Instancia: recibi el resultado de la instancia");
+
+				parametros->entradasUsadas = buffer->entradasUsadas;
+
+				free(buffer);
+
+				puts("Preparamos el resultado");
+				tResultado * resultadoCompleto = malloc(sizeof(tResultado));
+				resultadoCompleto->resultado = OK;
+				strcpy(resultadoCompleto->clave,operacion->clave);
+
+				if(operacion->tipo == OPERACION_STORE){ // Si es STORE la instancia no tiene mas la clave
+					bool CompararClaves(char * claveAComprar){
+						return string_equals_ignore_case(operacion->clave,claveAComprar);
+					}
+					void DestruirClaveDeInstancia(char * clave){
+						free(clave);
+					}
+					list_remove_and_destroy_by_condition(parametros->claves,(void *)CompararClaves,(void *)DestruirClaveDeInstancia);
+				}
+
+				//Debo avisarle al ESI que me invoco el resultado
+				pthread_mutex_lock(&mutex);
+				list_add(colaResultados,(void*)resultadoCompleto);
+				pthread_mutex_unlock(&mutex);
+
 			}
 
-			//Debo avisarle al ESI que me invoco el resultado
-			pthread_mutex_lock(&mutex);
-			list_add(colaResultados,(void*)resultadoCompleto);
-			pthread_mutex_unlock(&mutex);
-
-			sem_post(ESIActual->semaforo);
+			sem_post(ESIActual->semaforo); // SE HACE AFUERA PORQUE EL GET TAMBIEN DEBE TENER SU POST
 
 		}
 	close(parametros->new_fd);
@@ -1000,12 +1032,12 @@
 
 		puts("ESI: Vamos a chequear el tipo");
 
-		if(operacion->tipo != OPERACION_GET){
+		//if(operacion->tipo != OPERACION_GET){
 			pthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
 			printf("ESI: clave operacion en direccion: %p\n", (void*)&(operacion->clave));
 			list_add(colaMensajes, (void*) operacion);
 			pthread_mutex_unlock(&mutex);
-		}
+		//}
 
 		ESIActual = parametros;
 
@@ -1059,6 +1091,7 @@
 			free(resultado);
 		}
 		else {
+			sem_wait(ESIActual->semaforo);
 			if(seleccionInstancia==2){
 				tResultado* resultado = malloc(sizeof(tResultado));
 
@@ -1275,8 +1308,12 @@
 			parametrosConexion* parametros, OperaciontHeader* header,
 			OperacionAEnviar* operacion) {
 
+		if (parametros->conectada == 0)
+			return 2;
+
 		puts("Instancia: Envio header a la instancia");
 		// Envio el header a la instancia
+
 
 		int sendHeader;
 		if ((sendHeader = send(parametros->new_fd, header, sizeof(OperaciontHeader), 0))
@@ -1288,6 +1325,10 @@
 			close(parametros->new_fd);
 			return 2;
 		}
+
+		if (parametros->conectada == 0)
+			return 2;
+
 		printf("Instancia: Voy a enviarle la operacion de tipo: %d\n",header->tipo);
 		free(header);
 		printf("Instancia: Envio clave %s a la instancia\n", operacion->clave);
@@ -1301,6 +1342,9 @@
 			close(parametros->new_fd);
 			return 2;
 		}
+
+		if (parametros->conectada == 0)
+			return 2;
 
 		if (tipo == OPERACION_SET) {
 			int sendSet;
@@ -1357,12 +1401,13 @@
 			printf("ESI: Agrego la copia clave %s a la instancia %d \n",claveCopia,instancia->pid);
 			list_add(instancia->claves,claveCopia);
 			//MandarAlFinalDeLaLista(colaInstancias,instancia);
+			sem_post(instancia->semaforo);
 			list_add(colaInstancias, instancia);
 		}
 		else{
 			instancia = BuscarInstanciaQuePoseeLaClave(clave);
 
-			if (instancia == NULL){ //Hay que ver si devuelve NULL, esto es en caso de que se desconecte la instancia
+			if (instancia == NULL || instancia->conectada == 0){ //Hay que ver si devuelve NULL, esto es en caso de que se desconecte la instancia
 				puts("ESI: Se desconecto la instancia");
 				return ERROR;
 			}
