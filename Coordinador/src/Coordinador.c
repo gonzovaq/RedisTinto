@@ -44,7 +44,7 @@
         }
 
         mi_direccion.sin_family = AF_INET;         // Ordenación de bytes de la máquina
-        mi_direccion.sin_port = htons(MYPORT);     // short, Ordenación de bytes de la red
+        mi_direccion.sin_port = htons(PUERTO);     // short, Ordenación de bytes de la red
         mi_direccion.sin_addr.s_addr = INADDR_ANY; // Rellenar con mi dirección IP
         memset(&(mi_direccion.sin_zero), '\0', 8); // Poner a cero el resto de la estructura
 

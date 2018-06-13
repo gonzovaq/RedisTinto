@@ -29,7 +29,6 @@
 
 ///// DEFINES
 
-#define MYPORT 3490    // Puerto al que conectarán los usuarios
 #define ARCHIVO_CONFIGURACION "configuracion.config"
 #define BACKLOG 10     // Cuántas conexiones pendientes se mantienen en cola
 #define TAMANIO_CLAVE 41
