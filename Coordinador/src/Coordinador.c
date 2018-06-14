@@ -496,7 +496,7 @@
 
 				}
 				else{
-				printf("Planificador: voy a remover de las bloqueadas a la clave %s \n",clave);
+					printf("Planificador: voy a remover de las bloqueadas a la clave %s \n",clave);
 					printf("Planificador: Size de la lista clavesTomadas antes de remover: %d\n", list_size(clavesTomadas));
 					RemoverClaveDeClavesTomadas(clave);//Aca habia un &clave, pruebo sacandoselo
 					printf("Planificador: Size de la lista clavesTomadas despues de remover: %d\n", list_size(clavesTomadas));
@@ -529,6 +529,8 @@
 				else{
 					printf("Planificador: recibi la clave y voy a mostrar la instancia %s \n",clave);
 
+					BuscarClaveEnInstanciaYEnviar(&clave);
+
 				}
 				break;
 
@@ -558,6 +560,26 @@
 			free(solicitud);
 		}
 
+    	return EXIT_SUCCESS;
+    }
+
+    int BuscarClaveEnInstanciaYEnviar(char * clave){
+
+    	bool EsLaMismaClave(char * claveAComparar){
+    		return string_equals_ignore_case(clave, claveAComparar);
+    	}
+
+    	bool TieneLaClave(parametrosConexion * parametros){
+    		return list_any_satisfy(parametros->claves,(void *)EsLaMismaClave);
+    	}
+
+    	parametrosConexion * instancia = list_find(colaInstancias,(void*)TieneLaClave);
+
+    	printf("Planificador: La Instancia que tiene la clave %s es %s \n",instancia->nombreProceso,clave);
+
+    	if ((send(planificador->new_fd,instancia->nombreProceso,TAMANIO_NOMBREPROCESO,0) <= 0)){
+    		perror("Planificador: Error al enviarle el nombre de la Instancia");
+    	}
     	return EXIT_SUCCESS;
     }
 
@@ -635,15 +657,25 @@
 
         printf("Instancia conectandose de id %d \n",parametros->pid);
 
+        int clavesPrevias = list_size(parametros->claves);
+
         tInformacionParaLaInstancia * informacion = malloc(sizeof(tInformacionParaLaInstancia));
         informacion->entradas = ENTRADAS;
         informacion->tamanioEntradas = TAMANIO_ENTRADAS;
+        informacion->cantidadClaves = clavesPrevias;
 		if ((send(parametros->new_fd, informacion, sizeof(tInformacionParaLaInstancia), 0))
 				<= 0) {
-			perror("send");
-
+			perror("Instancia: send informacion");
 		}
 		free(informacion);
+
+		for(int i = 0; i < clavesPrevias; i++){
+			puts("Instancia: Se envio una clave previa a la instancia");
+			if ((send(parametros->new_fd, list_get(parametros->claves,i), TAMANIO_CLAVE, 0))
+					<= 0) {
+				perror("Instancia: send clave previa");
+			}
+		}
 
         while(keepRunning){ // Debo atajar cuando una instancia se me desconecta
 

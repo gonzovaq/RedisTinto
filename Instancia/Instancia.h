@@ -109,6 +109,7 @@ typedef struct {
 typedef struct{
 	int entradas;
 	int tamanioEntradas;
+	int cantidadClaves;
 }tInformacionParaLaInstancia;
 
 typedef struct{
@@ -134,6 +135,7 @@ typedef struct{
 	    int tamanioValor = 0;
 	    int posicionPunteroCirc = 0;
 	    t_list *tablaEntradas;
+	    t_list *claves;
 	    tAlgoritmoReemplazo algoritmoReemplazo;
 	    int cantidadClavesEnTabla = 0;
 	    sem_t *semaforo;
@@ -184,3 +186,4 @@ t_list *obtenerTablaParaBSU(t_list *tablaEntradas, int cantidadEntradasPendiente
 
 int EnviarAvisoDeQueEstoyViva(int socketCoordinador);
 int RecibirClavesPrevias(int socketCoordinador);
+FILE *leerArchivo(char **argv);

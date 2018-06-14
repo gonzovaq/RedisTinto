@@ -238,16 +238,60 @@
     int recibirConfiguracion(int sockeCoordinador){
     	tInformacionParaLaInstancia * informacion = malloc(sizeof(tInformacionParaLaInstancia));
 
+    	claves = list_create();
+
     	if((recv(sockeCoordinador, informacion, sizeof(tInformacionParaLaInstancia), 0)) <= 0){
     		perror("Fallo al recibir la configuracion");
     	}
 
     	cantidadEntradas = informacion->entradas;
     	tamanioValor = informacion->tamanioEntradas;
+    	int clavesPrevias = informacion->cantidadClaves;
     	free(informacion);
+
     	printf("La cantidad de entradas que manejo es %d y tienen un tamanio de %d \n", cantidadEntradas,tamanioValor);
 
+        char * line = NULL;
+        size_t len = 0;
+        FILE * archivo;
+
+    	for(int i = 0; i < clavesPrevias; i++){
+    		char clave[TAMANIO_CLAVE];
+        	if((recv(sockeCoordinador, clave, TAMANIO_CLAVE, 0)) <= 0){
+        		perror("Fallo al recibir la configuracion");
+        	}
+        	printf("Recibi la clave %s \n",clave);
+
+    		char nombreArchivo[strlen(clave)+5];
+    		strcpy(nombreArchivo,clave);
+    		strcat(nombreArchivo,".txt\0");
+    		archivo = leerArchivo(nombreArchivo);
+
+        	if(getline(&line, &len, nombreArchivo) == -1){
+        		puts("No habia nada dentro del archivo");
+        	}else{
+        		printf("El valor de la clave %s es %s \n",clave,line);
+        		list_add(claves,clave);
+        	}
+    	}
+
     	return EXIT_SUCCESS;
+    }
+
+    FILE *leerArchivo(char **argv){
+
+    	//Esto lo copié literal del ejemplo del ParSI. A medida que avancemos, esto en vez de imprimir en pantalla,
+    	//va a tener que enviarle los scripts al coordinador (siempre y cuando el planificador me lo indique)
+
+    	FILE * file;
+        file = fopen(argv[1], "r");
+        if (file == NULL){
+            perror("Error al abrir el archivo: ");
+            exit(EXIT_FAILURE);
+        }
+
+
+        return file;
     }
 
     int enviarHeader(int socketCoordinador){

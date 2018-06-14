@@ -157,6 +157,7 @@ typedef struct{
 typedef struct{
 	int entradas;
 	int tamanioEntradas;
+	int cantidadClaves;
 }tInformacionParaLaInstancia;
 
 typedef struct{
@@ -249,5 +250,6 @@ int BuscarSiLaInstanciaSeEstaReincorporando(parametrosConexion * parametros);
 void intHandler(int dummy);
 int EncontrarAlESIYEliminarlo(int id);
 int LiberarLasClavesDelESI(parametrosConexion * parametros);
+int BuscarClaveEnInstanciaYEnviar(char * clave);
 
 
