@@ -262,29 +262,33 @@
         	}
         	printf("Recibi la clave %s \n",clave);
 
-    		char nombreArchivo[strlen(clave)+5];
-    		strcpy(nombreArchivo,clave);
+    		char nombreArchivo[strlen(PuntoMontaje)+strlen(clave)+5];
+    		strcpy(nombreArchivo,PuntoMontaje);
+    		strcat(nombreArchivo,clave);
     		strcat(nombreArchivo,".txt\0");
-    		archivo = leerArchivo(nombreArchivo);
-
-        	if(getline(&line, &len, nombreArchivo) == -1){
+    		printf("El archivo a abrir esta en %s \n",nombreArchivo);
+    		archivo = leerArchivo(&nombreArchivo);
+    		puts("Voy a leer la linea del archivo");
+        	if(getline(&line, &len, archivo) == -1){
         		puts("No habia nada dentro del archivo");
         	}else{
         		printf("El valor de la clave %s es %s \n",clave,line);
         		list_add(claves,clave);
-        	}
+        	} // TODO: Ale te dejo aca para que veas que hacer con esto!
     	}
 
     	return EXIT_SUCCESS;
     }
 
-    FILE *leerArchivo(char **argv){
+    FILE *leerArchivo(char *archivo){
 
     	//Esto lo copié literal del ejemplo del ParSI. A medida que avancemos, esto en vez de imprimir en pantalla,
     	//va a tener que enviarle los scripts al coordinador (siempre y cuando el planificador me lo indique)
 
+    	printf("El archivo a abrir esta en %s \n",archivo);
+
     	FILE * file;
-        file = fopen(argv[1], "r");
+        file = fopen(archivo, "r");
         if (file == NULL){
             perror("Error al abrir el archivo: ");
             exit(EXIT_FAILURE);

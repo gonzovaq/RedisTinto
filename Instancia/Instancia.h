@@ -186,4 +186,4 @@ t_list *obtenerTablaParaBSU(t_list *tablaEntradas, int cantidadEntradasPendiente
 
 int EnviarAvisoDeQueEstoyViva(int socketCoordinador);
 int RecibirClavesPrevias(int socketCoordinador);
-FILE *leerArchivo(char **argv);
+FILE *leerArchivo(char *archivo);
