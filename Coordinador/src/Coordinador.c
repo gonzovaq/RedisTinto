@@ -370,6 +370,7 @@
     		return string_equals_ignore_case(claveABorrar, claveAComparar);
     	}
     	void BorrarClave(char * clave){
+    		RemoverClaveDeLaListaBloqueos(clave);
     		printf("ESI: Voy a borrar la clave %s de las clavesTomadas",clave);
     		free(clave);
     	}
@@ -530,7 +531,7 @@
 					printf("Planificador: recibi la clave y voy a mostrar la instancia %s \n",clave);
 
 					BuscarClaveEnInstanciaYEnviar(&clave);
-
+					pthread_mutex_unlock(&mutex); // El LOCK ESTA DENTRO
 				}
 				break;
 
@@ -575,11 +576,52 @@
 
     	parametrosConexion * instancia = list_find(colaInstancias,(void*)TieneLaClave);
 
+    	if ((send(instancia->new_fd, clave, TAMANIO_CLAVE, 0)) <= 0) {
+        	puts("Planificador: Error al enviar la clave a la Instancia");
+        	perror("Planificador: send");
+        	return ERROR;
+        }
+
+    	tEntradasUsadas * tamanioValor = malloc(sizeof(tEntradasUsadas));
+    	if((recv(instancia->new_fd, tamanioValor, sizeof(tEntradasUsadas), 0)) <= 0){
+    		perror("Planificador: Fallo al recibir el tamanio valor");
+    		free(tamanioValor);
+    		return ERROR;
+    	}
+
+    	pthread_mutex_lock(&mutex);
+
+    	char * valor = malloc(tamanioValor+1);
+    	if((recv(instancia->new_fd, valor, tamanioValor+1, 0)) <= 0){
+    		perror("Planificador: Fallo al recibir el valor");
+    		free(valor);
+    		free(tamanioValor);
+    		return ERROR;
+    	}
+
     	printf("Planificador: La Instancia que tiene la clave %s es %s \n",instancia->nombreProceso,clave);
 
-    	if ((send(planificador->new_fd,instancia->nombreProceso,TAMANIO_NOMBREPROCESO,0) <= 0)){
-    		perror("Planificador: Error al enviarle el nombre de la Instancia");
+    	tStatusParaPlanificador * status = malloc(sizeof(tStatusParaPlanificador));
+    	strcpy(status,instancia->nombreProceso);
+    	status->tamanioValor = tamanioValor->entradasUsadas;
+
+    	free(tamanioValor);
+
+    	if ((send(planificador->new_fd,status,sizeof(tStatusParaPlanificador),0) <= 0)){
+    		perror("Planificador: Error al enviarle el nombre de la Instancia y tamanioValor");
+    		free(status);
+    		free(valor);
+    		return ERROR;
     	}
+    	free(status);
+
+    	if ((send(planificador->new_fd,valor,tamanioValor+1,0) <= 0)){
+    		perror("Planificador: Error al enviarle el valor");
+    		free(valor);
+    		return ERROR;
+    	}
+    	free(valor);
+
     	return EXIT_SUCCESS;
     }
 
@@ -724,7 +766,9 @@
 				header->tipo = tipo;
 				header->tamanioValor = tamanioValor;
 
+				pthread_mutex_lock(&mutex);
 				int conexion = EnviarClaveYValorAInstancia(tipo, tamanioValor, parametros, header,	operacion);
+				pthread_mutex_unlock(&mutex);
 
 				if (conexion==2){
 					parametros->conectada = 0;
@@ -859,7 +903,7 @@
 		printf("ESI: Recibi la clave: %s \n", clave);
 		strcpy(CLAVE,clave);
 
-		puts("ESI: Verifico en los ESIS si aluno tiene la clave");
+		puts("ESI: Verifico en los ESIS si alguno tiene la clave");
 		if (((!list_is_empty(listaBloqueos)) && EncontrarEnLista(listaBloqueos, &clave))){
 			puts("ESI: La clave esta bloqueada por un ESI");
 
@@ -1516,12 +1560,15 @@
 			int cantidadInstancias = list_size(colaInstancias);
 			char primerCaracter = clave[0];
 			int x = 0;
-			while (clave[x] < 97 && clave[x] > 122){ // Busco el primer caracter en minuscula
+			while ((clave[x] < 97 && clave[x] > 122) && (clave[x] < 65 && clave[x] > 90)){ // Busco el primer caracter en minuscula/mayuscula
 				primerCaracter = clave[x];
 				x++;
 			}
-
-			int posicionLetraEnASCII = primerCaracter - 97;
+			int posicionLetraEnASCII;
+			if (primerCaracter >= 97)
+				posicionLetraEnASCII = primerCaracter - 97;
+			else
+				posicionLetraEnASCII = primerCaracter - 65;
 			int rango = KEYS_POSIBLES/cantidadInstancias;
 			int restoRango = KEYS_POSIBLES%cantidadInstancias;
 			int entradasUltimaInstancia;

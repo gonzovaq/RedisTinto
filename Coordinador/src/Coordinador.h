@@ -172,6 +172,11 @@ typedef struct{
 	tSolicitudesDeConsola solicitud;
 }tSolicitudPlanificador;
 
+typedef struct{
+	int tamanioValor;
+	char proceso[TAMANIO_NOMBREPROCESO];
+}tStatusParaPlanificador;
+
 
 // VARIABLES GLOBALES
 

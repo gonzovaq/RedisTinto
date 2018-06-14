@@ -229,11 +229,45 @@
 
     	recibirConfiguracion(socketCoordinador);
 
+    	pthread_t tid;
+    	int stat = pthread_create(&tid, NULL, (void*)PedidoDeValores, (void*)socketCoordinador);
+		if (stat != 0){
+			puts("error al generar el hilo");
+			perror("thread");
+			//continue;
+		}
+		pthread_detach(tid); //Con esto decis que cuando el hilo termine libere sus recursos
+
     	//recibirClavesPrevias(socketCoordinador);
 
     	return socketCoordinador;
 
     	}
+
+    int PedidoDeValores(int socketCoordinador)
+    {
+		char clave[TAMANIO_CLAVE];
+    	if((recv(sockeCoordinador, clave, TAMANIO_CLAVE, 0)) <= 0){
+    		perror("Fallo al recibir la clave");
+    	}
+
+    	// TODO: BUSCO VALOR!
+
+    	char* valor;
+    	int tamanioValor;
+    	tEntradasUsadas * tamanio = malloc(sizeof(tEntradasUsadas));
+
+	    if (send(socketCoordinador, tamanio, sizeof(tEntradasUsadas), 0) <= 0){
+		   puts("Error al enviar el el tamanio valor");
+		   perror("Send");
+	    }
+	    free(tamanio);
+
+	    if (send(socketCoordinador, valor, tamanioValor, 0) <= 0){
+		   puts("Error al enviar el valor");
+		   perror("Send");
+	    }
+    }
 
     int recibirConfiguracion(int sockeCoordinador){
     	tInformacionParaLaInstancia * informacion = malloc(sizeof(tInformacionParaLaInstancia));
