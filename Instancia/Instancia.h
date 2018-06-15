@@ -77,6 +77,15 @@ typedef enum{
 	DESBLOQUEO = 4
 }tResultadoOperacion;
 
+typedef enum{
+	SOLICITAR_VALOR = 1,
+	OPERAR = 2
+}tOperacionInstancia;
+
+typedef struct{
+	tOperacionInstancia operacion;
+}__attribute__((packed)) tOperacionInstanciaStruct;
+
 typedef struct{
 	tResultadoOperacion resultado;
 	int tamanioValor;
