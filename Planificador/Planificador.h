@@ -58,7 +58,8 @@ int SOCKET_READ_TIMEOUT_SEC=4;
 typedef enum{
 	FIFO=1,
 	SJF=2,
-	SJFD=3
+	SJFD=3,
+	HRRN=4
 }tAlgoritmo;
 
 tAlgoritmo algoritmo;
@@ -68,6 +69,8 @@ typedef struct {
       int fd;
       int cont;
       float estimacion;
+      float tasaTransf;
+      int Espera;
 	  char clave[TAMANIO_CLAVE];
 }t_esi;
 
