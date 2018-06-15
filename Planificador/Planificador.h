@@ -29,6 +29,7 @@
 #define TAMANIO_CLAVE 41 //Por enunciado la clave sera de 40 caracteres.
 #define TAMANIO_NOMBREPROCESO 40
 
+static volatile int keepRunning = 1;
 struct hostent *he;
 struct sockaddr_in cord_addr; // información de la dirección del Coordinador
 	t_queue *ready;
@@ -86,12 +87,14 @@ typedef struct{
 	tSolicitudesDeConsola solicitud;
 }tSolicitudPlanificador;
 
-static t_esi * new_ESI(int id,int fd,int esti,char clave[TAMANIO_CLAVE]){
+static t_esi * new_ESI(int id,int fd,int esti,float tasa,float espera,char clave[TAMANIO_CLAVE]){
 	t_esi *new = malloc(sizeof(t_esi));
 	new->id = id;
 	new->fd = fd;
 	new->cont = 0;
 	new->estimacion=esti;
+	new->tasaTransf=tasa;
+	new->Espera=espera;
 	strcpy(new->clave,clave);	
 	return new;
 }
@@ -164,3 +167,4 @@ void bloquearEsi(int id,char clave[TAMANIO_CLAVE]);
 void enviarClaveCoordinador(char clave[TAMANIO_CLAVE],tSolicitudesDeConsola *solicitud);
 t_esi * buscarEsiPorId(t_queue *lista,int id,t_esi * esi);
 void killEsi (int id);
+void sumarEspera();

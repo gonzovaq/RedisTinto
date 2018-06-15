@@ -1,7 +1,17 @@
 	#include "Planificador.h"
 
+void intHandler(int dummy) { // para atajar ctrl c
+		keepRunning = 0;
+		sleep(1);
+		puts("CHAU ME VOY!");
+		exit(1);
+	}
     int main(int argc, char *argv[])
     {
+		signal(SIGINT, intHandler);
+
+    			while (keepRunning) {
+
     	verificarParametrosAlEjecutar(argc, argv);
     	LeerArchivoDeConfiguracion(argv);
 
@@ -106,7 +116,8 @@
 						int enviarConfirmacion=1;
 						t_esi *esi=malloc(sizeof(t_esi));
 						char clave[TAMANIO_CLAVE];
-    	        for(;;) {
+    	        
+				for(;;) {
     	        	/*
     	        	dos conjuntos de descriptores de fichero: master y read_fds.
     	        	El primero, master, contiene todos los descriptores de fichero que están actualmente conectados,
@@ -148,24 +159,43 @@
 									
 									int idEsi=obtenerEsi(newfd);
 									
-									queue_push(ready,new_ESI(idEsi,newfd,estimacionIni,"\0"));
+									
 									
 									if(algoritmo==SJF || algoritmo==SJFD)
 									{
+										queue_push(ready,new_ESI(idEsi,newfd,estimacionIni,0,0,"\0"));
 										ordenarEsis(ready);
 										if(algoritmo==SJFD)
 												{
 													t_esi* esi1 = malloc(sizeof(t_esi));
+													if(queue_is_empty(ejecucion)==0){
 													esi1=queue_pop(ejecucion);
-													queue_push(ready,esi1);
+													queue_push(ready,new_ESI(esi1->id,esi1->fd,esi1->estimacion,esi1->tasaTransf,esi1->Espera,esi1->clave));
 													ordenarEsis(ready);
+													}
+													free(esi1);
 												}		
 									}
 									if(algoritmo==HRRN)
 									{
-										puts("entro al algoritmo");
-										EstimarHRRN(ready);
-										puts("Salio de ESTIMAR HHRRN");
+										t_esi * esi = malloc(sizeof(t_esi));
+										esi->id=idEsi;esi->fd=newfd;esi->estimacion=estimacionIni;
+										esi->Espera=0;
+										EstimacionHRRN(esi);
+										//	puts("entro al algoritmo");
+										//EstimarHRRN(ready);
+										//puts("Salio de ESTIMAR HHRRN");
+										queue_push(ready,new_ESI(esi->id,esi->fd,esi->estimacion,esi->tasaTransf,esi->Espera,esi->clave));
+
+													t_esi* esi1 = malloc(sizeof(t_esi));//Esi de ejecucion
+													if(queue_is_empty(ejecucion)==0){
+													esi1=queue_pop(ejecucion);
+													queue_push(ready,new_ESI(esi1->id,esi1->fd,esi1->estimacion,esi1->tasaTransf,esi1->Espera,esi1->clave));
+													//ordenarEsis(ready);
+													}
+													free(esi1);
+													free(esi);
+
 										ordenarEsis(ready);
 
 									}
@@ -211,7 +241,7 @@
 											if(desbloqueado!=NULL)
 											{
 												puts("desbloqueado no es nulo");
-												queue_push(ready,new_ESI(desbloqueado->id,desbloqueado->fd,desbloqueado->estimacion,desbloqueado->clave));
+												queue_push(ready,new_ESI(desbloqueado->id,desbloqueado->fd,desbloqueado->estimacion,desbloqueado->tasaTransf,desbloqueado->Espera,desbloqueado->clave));
 												eliminarEsiPorId(bloqueados,desbloqueado->id);
 											}
 											else
@@ -225,17 +255,28 @@
 												ordenarEsis(ready);
 												if(algoritmo==SJFD)
 												{
-													t_esi* esi1 = malloc(sizeof(t_esi));
-													esi1=queue_pop(ejecucion);
-													queue_push(ready,esi1);
-													ordenarEsis(ready);
+													if(queue_is_empty(ejecucion)==0){
+														t_esi* esi1 = malloc(sizeof(t_esi));
+														esi1=queue_pop(ejecucion);
+														queue_push(ready,new_ESI(esi1->id,esi1->fd,esi1->estimacion,esi1->tasaTransf,esi1->Espera,esi1->clave));
+														ordenarEsis(ready);
+														free(esi1);
+													}
 												}
 												
 											}
 											if(algoritmo==HRRN)
 											{
-												EstimarHRRN(ready);
+												//EstimarHRRN(ready);
 												ordenarEsis(ready);
+												if(queue_is_empty(ejecucion)==0)
+												{
+													t_esi* esi1 = malloc(sizeof(t_esi));
+													esi1=queue_pop(ejecucion);//(int id,int fd,int esti,char clave[TAMANIO_CLAVE])
+													queue_push(ready,new_ESI(esi1->id,esi1->fd,esi1->estimacion,esi1->tasaTransf,esi1->Espera,esi1->clave));
+													ordenarEsis(ready);
+													free(esi1);
+												}
 
 											}
 											
@@ -300,15 +341,20 @@
 							if(re==2)
 							{
 								//Si se bloquea
+								esi->cont++;
 								queue_pop(ejecucion);
 								if(algoritmo==SJF ||algoritmo==SJFD)
 									estimacionEsi(esi);
 								if(algoritmo==HRRN)
+								{
 									puts("ESTIMACION HRRN");
+									estimacionEsi(esi);
 									EstimacionHRRN(esi);
+									//EstimacionHRRN(esi);
 									//haria algo mas	
+								}
 								printf("Esi de id:%d entro a bloqueados \n",esi->id);
-								queue_push(bloqueados,esi);
+								queue_push(bloqueados,new_ESI(esi->id,esi->fd,esi->estimacion,esi->tasaTransf,esi->Espera,esi->clave));
 								puts("Se agrego a la cola de bloqueados");
 								f_ejecutar=1;
 								enviarConfirmacion=0;
@@ -318,15 +364,17 @@
 									puts("Hay algo en ready");
 							}
 							if (re==1){
-
 								esi->cont++;
-								estimacionEsi(esi);
+								if(algoritmo==HRRN)
+								{
+									sumarEspera();
+								}
 								printf("Contador De ESI %d  estimacion %f Espera %d\n",esi->cont, esi->estimacion,esi->Espera);
 							}
 							if(re==-5)
 							{
 								queue_pop(ejecucion);
-								queue_push(finalizados,new_ESI(esi->id,esi->fd,esi->estimacion,esi->clave));
+								queue_push(finalizados,new_ESI(esi->id,esi->fd,esi->estimacion,esi->tasaTransf,esi->Espera,esi->clave));
 								puts("____________________________FIN ESI_________________________");
 								printf("Estimacion final del ESI %d es %f\n", esi->id, esi->estimacion);
 								puts("____________________________FIN ESI_________________________");
@@ -359,16 +407,14 @@
 							if(f_ejecutar==1)
 							{
 								puts("Voy a seleccionar alguno para ejecutar de la cola de ready");
-								//t_esi *esi2=malloc(sizeof(t_esi));
-								if(algoritmo==SJF || algoritmo==SJFD)
+								//if(algoritmo==SJF || algoritmo==SJFD)
 									ordenarEsis(ready);
 								esi = queue_pop(ready);
 								re=0;
 								enviarConfirmacion=1;
 								printf("Id del esi a buscar:%d \n",esi->id);
 								printf("esi de id %d cambiado de cola \n",esi->id);
-								queue_push(ejecucion,new_ESI(esi->id,esi->fd,esi->estimacion,esi->clave));
-								//free(esi2);
+								queue_push(ejecucion,new_ESI(esi->id,esi->fd,esi->estimacion,esi->tasaTransf,0,esi->clave));
 							}
 							//puts("Ready no vacia");
 						}
@@ -380,44 +426,31 @@
 				}//Cierra el for del main
     	        
     	        return 0;
+				}//cierro el while keeprunning
     }//Cierra el main
+	
 
 void ordenarEsis(t_queue *cola)
 	{
-	if(algoritmo==SJF || algoritmo==SJFD)
-	{
-		bool compare(t_esi *esi1,t_esi *esi2)
+		if(algoritmo==SJF || algoritmo==SJFD)
 		{
-			/*
-			float resul;
-			resul= esi2->estimacion-esi1->estimacion;
-			return resul;
-			*/
-			return esi1->estimacion <= esi2->estimacion;
+			bool compare(t_esi *esi1,t_esi *esi2)
+			{
+				return esi1->estimacion <= esi2->estimacion;
+			}
+			list_sort(cola->elements,(void *)compare);
+
 		}
-		list_sort(cola->elements,(void *)compare);
-
-
-	}
-	if(algoritmo==HRRN)
+		if(algoritmo==HRRN)
 		{
 			bool HrrnComp(t_esi *esi1,t_esi *esi2)
 			{
-				/*
-				float resul;
-				resul= esi2->estimacion-esi1->estimacion;
-				return resul;
-				*/
-
-
-				return esi1->tasaTransf <= esi2->tasaTransf;
+				return esi2->tasaTransf <= esi1->tasaTransf;
 			}
 			list_sort(cola->elements,(void *)HrrnComp);
-			return cola;
 
 		}
-	return cola;
-
+		return cola;
 	}
 	
 	t_esi * buscarEsi(t_queue *lista,char clave[TAMANIO_CLAVE],t_esi* esi)
@@ -704,12 +737,13 @@ void ordenarEsis(t_queue *cola)
 	{
 		t_esi * desbloqueado = malloc(sizeof(t_esi));
 											//notificacion->clave
-											
+		ordenarEsis(bloqueados);
+		
 		desbloqueado=buscarEsi(bloqueados,clave,desbloqueado);
 		if(desbloqueado!=NULL)
 		{
 			puts("desbloqueado no es nulo");
-			queue_push(ready,new_ESI(desbloqueado->id,desbloqueado->fd,desbloqueado->estimacion,desbloqueado->clave));
+			queue_push(ready,new_ESI(desbloqueado->id,desbloqueado->fd,desbloqueado->estimacion,desbloqueado->tasaTransf,desbloqueado->Espera,desbloqueado->clave));
 			eliminarEsiPorId(bloqueados,desbloqueado->id);
 		}
 		else
@@ -748,20 +782,28 @@ void ordenarEsis(t_queue *cola)
 			ordenarEsis(ready);
 			if(algoritmo==SJFD)
 			{
-				t_esi* esi1 = malloc(sizeof(t_esi));
-				esi1=queue_pop(ejecucion);//(int id,int fd,int esti,char clave[TAMANIO_CLAVE])
-				queue_push(ready,new_ESI(esi1->id,esi1->fd,esi1->estimacion,esi1->clave));
-				ordenarEsis(ready);
-				free(esi1);
+				if(queue_is_empty(ejecucion)==0){
+					t_esi* esi1 = malloc(sizeof(t_esi));
+					esi1=queue_pop(ejecucion);
+					queue_push(ready,new_ESI(esi1->id,esi1->fd,esi1->estimacion,esi1->tasaTransf,esi1->Espera,esi1->clave));
+					ordenarEsis(ready);
+					free(esi1);
+				}
 			}
 			
 		}
 		if(algoritmo==HRRN)
 		{
-			EstimarHRRN(ready);
+			//EstimarHRRN(ready);
 			ordenarEsis(ready);
-
-
+			if(queue_is_empty(ejecucion)==0)
+			{
+				t_esi* esi1 = malloc(sizeof(t_esi));
+				esi1=queue_pop(ejecucion);//(int id,int fd,int esti,char clave[TAMANIO_CLAVE])
+				queue_push(ready,new_ESI(esi1->id,esi1->fd,esi1->estimacion,esi1->tasaTransf,esi1->Espera,esi1->clave));
+				ordenarEsis(ready);
+				free(esi1);
+			}
 		}
 		free(solicitud);
 	}
@@ -776,7 +818,7 @@ void ordenarEsis(t_queue *cola)
 			//Esi estaba en ready
 			puts("esi estaba en ready");
 			eliminarEsiPorId(ready,id);
-			queue_push(bloqueados,new_ESI(esi->id,esi->fd,esi->estimacion,clave));
+			queue_push(bloqueados,new_ESI(esi->id,esi->fd,esi->estimacion,esi->tasaTransf,esi->Espera,clave));
 			enviarClaveCoordinador(clave,BLOQUEAR);
 		}{
 			puts("esi no estaba en ready");
@@ -791,7 +833,7 @@ void ordenarEsis(t_queue *cola)
 			if(algoritmo==SJF||algoritmo==SJFD)
 				estimacionEsi(esi);
 			eliminarEsiPorId(ready,id);
-			queue_push(bloqueados,new_ESI(esi->id,esi->fd,esi->estimacion,clave));
+			queue_push(bloqueados,new_ESI(esi->id,esi->fd,esi->estimacion,esi->tasaTransf,esi->Espera,clave));
 			enviarClaveCoordinador(clave,BLOQUEAR);
 		}
 		else{
@@ -894,7 +936,7 @@ void ordenarEsis(t_queue *cola)
 		}
  void estimacionEsi (t_esi* esi){ //float EstimacionEsi (t_esi* esi)
 
-	 	 puts("recaculamos la estimacion");
+	 	 puts("recalculamos la estimacion");
 		esi->estimacion= ((0.01*Alfa*esi->cont)+((1-(Alfa*0.01))*(esi->estimacion)));
 		printf("La estimacion ahora es %f :     ",esi->estimacion);
 		//return (esi);
@@ -918,8 +960,6 @@ int recibirResultado2(tResultado * resultado){
 	switch(resultado->tipoResultado){
     		case OK:
     			puts("La operación salio OK");
-    			if (algoritmo == HRRN)PlanificacionHRRN(ready);
-    			//EN ESTOS CASE DEBERIA LOGGEAR O ALGO ASI, PREGUNTAR MAS ADELANTE
     			return 1;
     			break;
     		case BLOQUEO:
@@ -1054,7 +1094,27 @@ int recibirResultadoDelEsi(int sockfd, tResultado * resultado){
 		free(cantidadClavesBloqueadas);
 	}
 
-
+	void sumarEspera()
+	{
+		void * SumarEspera(t_esi * esi)
+		{
+			esi->Espera=(esi->Espera)+1;
+			//return esi;
+		}
+		puts("Voy a mapear ready");
+		if(queue_is_empty(ready)==0){
+			puts("ready no vacia");
+		ready->elements=list_map(ready->elements,(void *)SumarEspera);
+		puts("mapie ready");
+		}
+		puts("Voy a mapear bloqueados");
+		if(queue_is_empty(bloqueados)==0){
+			puts("ejecucion no vacia");
+		bloqueados->elements=list_map(ready->elements,(void *)SumarEspera);
+		puts("mapie bloqueados");
+		}
+	}
+	
 	void PlanificacionHRRN(){   // Suma 1 a la Espera de todos los esis en la lista ready y Recalcula su Tasa de resp
 		/*
 		 *
@@ -1063,7 +1123,7 @@ int recibirResultadoDelEsi(int sockfd, tResultado * resultado){
 		 *
 		 */
 		SumarTiempoAEsis(ready);
-		//	list_map(bloqueados->elements,SumarTiempoAEsis(id));
+	//	list_map(bloqueados->elements,SumarTiempoAEsis(id));
 		EstimarHRRN(ready);
 
 		//	list_map(bloqueados->elements,EstimarHRRN);
@@ -1095,31 +1155,29 @@ int recibirResultadoDelEsi(int sockfd, tResultado * resultado){
 	void SumarTiempoAEsis(t_queue * cola){   //Suma tiempo de espera a los esis en la cola ready
 		puts("Sumo tiempo");
 		t_queue * map;
-	void * SumarEspera(t_esi * esi){
-		esi->Espera++;
-		return esi;
-	}
-
-	puts("hago el map para sumar tiempo");
-	printf("sssssssss%d",cola->elements->elements_count);
-	if(cola->elements->elements_count!= 0){
-		puts("Entro al IF");
-	map->elements = list_map(cola->elements,(void*)SumarEspera);
-	cola = map;
-	puts("termino el IF");
-	//queue_destroy_and_destroy_elements(map,(void*)ESI_destroy);
-	}
+		void * SumarEspera(t_esi * esi)
+		{
+			esi->Espera++;
+			return esi;
+		}
+		puts("hago el map para sumar tiempo");
+		printf("sssssssss%d",cola->elements->elements_count);
+		if(cola->elements->elements_count!= 0)
+		{
+			puts("Entro al IF");
+			map->elements = list_map(cola->elements,(void*)SumarEspera);
+			cola = map;
+			puts("termino el IF");
+			//queue_destroy_and_destroy_elements(map,(void*)ESI_destroy);
+		}
 	}
 
 
 	void EstimacionHRRN(t_esi* esi){    //Calcula la tasa de Transferencia de los esis
 		puts("estimamos TASA de trans");
-		printf("estimacion incial : %f ",esi->estimacion);
-		estimacionEsi(esi);
+		//estimacionEsi(esi);
 		esi->tasaTransf = ((esi->Espera + esi->estimacion)/(esi->estimacion));
-		printf("ya la estimamos da : %f",esi->estimacion);
-
-		return esi;
-
+		printf("ya la estimamos da : %f \n",esi->tasaTransf);
+		//return esi;
 		}
 
