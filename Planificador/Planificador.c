@@ -307,6 +307,9 @@
 							{
 								queue_pop(ejecucion);
 								queue_push(finalizados,new_ESI(esi->id,esi->fd,esi->estimacion,esi->clave));
+								puts("____________________________FIN ESI_________________________");
+								printf("Estimacion final del ESI %d es %f\n", esi->id, esi->estimacion);
+								puts("____________________________FIN ESI_________________________");
 								f_ejecutar=1;
 								puts("Dame otro esi");
 								f_ejecutar=1;
