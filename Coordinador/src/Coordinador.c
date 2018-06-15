@@ -71,6 +71,19 @@
 
         puts("A trabajar");
 
+        // Inicializo un semaforo general para la Instancia
+        int ret;
+        int value;
+        int pshared;
+        /* initialize a private semaphore */
+        pshared = 0;
+        value= 1;
+        if ((ret = sem_init(&semaforoInstancia,pshared,value)) != 0){
+			perror("Semaforo para instancia");
+        	exit_gracefully(1);
+		} // Inicializo el semaforo en 0
+
+
         EscucharConexiones(sockfd);
 
         close(sockfd);
@@ -370,6 +383,7 @@
     		return string_equals_ignore_case(claveABorrar, claveAComparar);
     	}
     	void BorrarClave(char * clave){
+    		RemoverClaveDeLaListaBloqueos(clave);
     		printf("ESI: Voy a borrar la clave %s de las clavesTomadas",clave);
     		free(clave);
     	}
@@ -529,8 +543,9 @@
 				else{
 					printf("Planificador: recibi la clave y voy a mostrar la instancia %s \n",clave);
 
+					sem_wait(&semaforoInstancia);
 					BuscarClaveEnInstanciaYEnviar(&clave);
-
+					sem_post(&semaforoInstancia);
 				}
 				break;
 
@@ -575,11 +590,84 @@
 
     	parametrosConexion * instancia = list_find(colaInstancias,(void*)TieneLaClave);
 
+
+		tEntradasUsadas *estasConecatada = malloc(sizeof(tEntradasUsadas));
+		if ((recv(instancia->new_fd, estasConecatada, sizeof(tEntradasUsadas), 0)) <= 0) {
+			puts("Instancia: Fallo al enviar el tipo de operacion");
+			instancia->conectada = 0;
+			//exit_gracefully(1);
+			RemoverInstanciaDeLaLista(instancia);
+			close(instancia->new_fd);
+			return ERROR;
+		}
+
+		tOperacionInstancia * operacionInstancia = malloc(sizeof(tOperacionInstancia));
+		operacionInstancia = SOLICITAR_VALOR;
+		if ((send(instancia->new_fd, operacionInstancia, sizeof(tOperacionInstancia), 0)) // Le informamos que quiero hacer!
+						<= 0) {
+					puts("Instancia: Fallo al enviar el tipo de operacion");
+					perror("send");
+					//exit_gracefully(1);
+					RemoverInstanciaDeLaLista(instancia);
+					close(instancia->new_fd);
+					return ERROR;
+				}
+		free(operacionInstancia);
+
+    	if ((send(instancia->new_fd, clave, TAMANIO_CLAVE, 0)) <= 0) {
+        	puts("Planificador: Error al enviar la clave a la Instancia");
+        	perror("Planificador: send");
+			RemoverInstanciaDeLaLista(instancia);
+			close(instancia->new_fd);
+        	return ERROR;
+        }
+
+    	tEntradasUsadas * tamanioValor = malloc(sizeof(tEntradasUsadas));
+    	if((recv(instancia->new_fd, tamanioValor, sizeof(tEntradasUsadas), 0)) <= 0){
+    		perror("Planificador: Fallo al recibir el tamanio valor");
+    		free(tamanioValor);
+			RemoverInstanciaDeLaLista(instancia);
+			close(instancia->new_fd);
+    		return ERROR;
+    	}
+
+    	char * valor = malloc(tamanioValor+1);
+    	if((recv(instancia->new_fd, valor, tamanioValor+1, 0)) <= 0){
+    		perror("Planificador: Fallo al recibir el valor");
+    		free(valor);
+    		free(tamanioValor);
+			RemoverInstanciaDeLaLista(instancia);
+			close(instancia->new_fd);
+    		return ERROR;
+    	}
+
     	printf("Planificador: La Instancia que tiene la clave %s es %s \n",instancia->nombreProceso,clave);
 
-    	if ((send(planificador->new_fd,instancia->nombreProceso,TAMANIO_NOMBREPROCESO,0) <= 0)){
-    		perror("Planificador: Error al enviarle el nombre de la Instancia");
+    	tStatusParaPlanificador * status = malloc(sizeof(tStatusParaPlanificador));
+    	strcpy(status,instancia->nombreProceso);
+    	status->tamanioValor = tamanioValor->entradasUsadas;
+
+    	free(tamanioValor);
+
+    	if ((send(planificador->new_fd,status,sizeof(tStatusParaPlanificador),0) <= 0)){
+    		perror("Planificador: Error al enviarle el nombre de la Instancia y tamanioValor");
+    		free(status);
+    		free(valor);
+			RemoverInstanciaDeLaLista(instancia);
+			close(instancia->new_fd);
+    		return ERROR;
     	}
+    	free(status);
+
+    	if ((send(planificador->new_fd,valor,tamanioValor+1,0) <= 0)){
+    		perror("Planificador: Error al enviarle el valor");
+    		free(valor);
+			RemoverInstanciaDeLaLista(instancia);
+			close(instancia->new_fd);
+    		return ERROR;
+    	}
+    	free(valor);
+
     	return EXIT_SUCCESS;
     }
 
@@ -682,6 +770,7 @@
 			puts("Instancia: Hago un sem_wait");
 			printf("Semaforo en direccion: %p\n", (void*)&(parametros->semaforo));
 			sem_wait(parametros->semaforo); // Caundo me avisen que hay una operacion para enviar, la voy a levantar de la cola
+			sem_wait(&semaforoInstancia);
 			printf("Instancia: Me hicieron un sem_post y tengo de id %d \n",parametros->pid);
 			OperacionAEnviar * operacion = list_remove(colaMensajes,0); //hay que borrar esa operacion
 
@@ -699,6 +788,19 @@
 				free(estasConecatada);
 				return 1;
 			}
+
+			tOperacionInstanciaStruct * operacionInstancia = malloc(sizeof(tOperacionInstanciaStruct));
+			operacionInstancia->operacion = OPERAR;
+			if ((send(parametros->new_fd, operacionInstancia, sizeof(tOperacionInstanciaStruct), 0)) // Le informamos que quiero hacer!
+							<= 0) {
+						puts("Instancia: Fallo al enviar el tipo de operacion");
+						perror("send");
+						//exit_gracefully(1);
+						RemoverInstanciaDeLaLista(parametros);
+						close(parametros->new_fd);
+						return 2;
+					}
+			free(operacionInstancia);
 
 			free(estasConecatada);
 
@@ -724,7 +826,9 @@
 				header->tipo = tipo;
 				header->tamanioValor = tamanioValor;
 
+				pthread_mutex_lock(&mutex);
 				int conexion = EnviarClaveYValorAInstancia(tipo, tamanioValor, parametros, header,	operacion);
+				pthread_mutex_unlock(&mutex);
 
 				if (conexion==2){
 					parametros->conectada = 0;
@@ -792,7 +896,7 @@
 			}
 
 			sem_post(ESIActual->semaforo); // SE HACE AFUERA PORQUE EL GET TAMBIEN DEBE TENER SU POST
-
+			sem_post(&semaforoInstancia);
 		}
 	close(parametros->new_fd);
 			return 1;
@@ -859,7 +963,7 @@
 		printf("ESI: Recibi la clave: %s \n", clave);
 		strcpy(CLAVE,clave);
 
-		puts("ESI: Verifico en los ESIS si aluno tiene la clave");
+		puts("ESI: Verifico en los ESIS si alguno tiene la clave");
 		if (((!list_is_empty(listaBloqueos)) && EncontrarEnLista(listaBloqueos, &clave))){
 			puts("ESI: La clave esta bloqueada por un ESI");
 
@@ -1516,12 +1620,15 @@
 			int cantidadInstancias = list_size(colaInstancias);
 			char primerCaracter = clave[0];
 			int x = 0;
-			while (clave[x] < 97 && clave[x] > 122){ // Busco el primer caracter en minuscula
+			while ((clave[x] < 97 && clave[x] > 122) && (clave[x] < 65 && clave[x] > 90)){ // Busco el primer caracter en minuscula/mayuscula
 				primerCaracter = clave[x];
 				x++;
 			}
-
-			int posicionLetraEnASCII = primerCaracter - 97;
+			int posicionLetraEnASCII;
+			if (primerCaracter >= 97)
+				posicionLetraEnASCII = primerCaracter - 97;
+			else
+				posicionLetraEnASCII = primerCaracter - 65;
 			int rango = KEYS_POSIBLES/cantidadInstancias;
 			int restoRango = KEYS_POSIBLES%cantidadInstancias;
 			int entradasUltimaInstancia;

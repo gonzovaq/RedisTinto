@@ -46,85 +46,100 @@
 
         while(1){
         	EnviarAvisoDeQueEstoyViva(socketCoordinador);
-        	OperaciontHeader *headerRecibido = malloc(sizeof(OperaciontHeader)); // El malloc esta en recibir header
-        	puts("Intento recibir header del Coordinador");
-        	headerRecibido = recibirHeader(socketCoordinador);
 
-        	if (headerRecibido->tipo != OPERACION_GET){
-				tamanioValorRecibido = headerRecibido->tamanioValor;
-				char *bufferClave;
-				char *bufferValor;
-				char *valorGet;
-				operacionRecibida *operacion = malloc(sizeof(operacionRecibida));
+        	tOperacionInstanciaStruct * operacion = malloc(sizeof(tOperacionInstanciaStruct));
+        	if ((recv(socketCoordinador, operacion, sizeof(tOperacionInstanciaStruct), 0)) <= 0){
+        	    		puts("Fallo al recibir el tipo de operacion");
+        	    		perror("recv");
+        	    		exit(1);
+        	    	}
 
+        	if(operacion->operacion == SOLICITAR_VALOR){
+        		free(operacion);
+        		PedidoDeValores(socketCoordinador);
+        	}
+        	else{
+        		free(operacion);
+				OperaciontHeader *headerRecibido = malloc(sizeof(OperaciontHeader)); // El malloc esta en recibir header
+				puts("Intento recibir header del Coordinador");
+				headerRecibido = recibirHeader(socketCoordinador);
 
-				bufferClave = recibirMensaje(socketCoordinador, TAMANIO_CLAVE);
-
-
-				if (headerRecibido->tipo == OPERACION_SET){
-					//pthread_mutex_lock(&mutex);
-					puts("ENTRO A UN SET");
-					cantidadClavesEnTabla++;
-					if(validarClaveExistente(bufferClave, tablaEntradas) == true){
-						eliminarNodosyValores(bufferClave, tablaEntradas, arrayEntradas);
-						cantidadClavesEnTabla--;
-							}
-					bufferValor = recibirMensaje(socketCoordinador, tamanioValorRecibido);
+				if (headerRecibido->tipo != OPERACION_GET){
 					tamanioValorRecibido = headerRecibido->tamanioValor;
-					memcpy(operacion->clave, bufferClave, strlen(bufferClave) + 1);
-					operacion->valor = bufferValor;
-					agregarEntrada(operacion, arrayEntradas, cantidadEntradas, tamanioValor, tablaEntradas, tamanioValorRecibido);
+					char *bufferClave;
+					char *bufferValor;
+					char *valorGet;
+					operacionRecibida *operacion = malloc(sizeof(operacionRecibida));
 
-					enviarEntradasUsadas(socketCoordinador, tablaEntradas, bufferClave);
-					free(headerRecibido);
-					//free(operacion);
-					free(bufferClave);
-					free(bufferValor);
-					mostrarArray(arrayEntradas, cantidadEntradas);
-					puts("HICE UN SET");
-					printf("Cantidad de elementos en mi tabla de entradas: %d\n", list_size(tablaEntradas));
-					printf("LO QUE ME MUSTRA EL PUNTERO CIRCULAR %s\n", arrayEntradas[posicionPunteroCirc]);
-					printf("POSICION PUNTERO CIRCULAR: %d\n", posicionPunteroCirc);
-					//sem_post(semaforo);
-					//pthread_mutex_unlock(&mutex);
+
+					bufferClave = recibirMensaje(socketCoordinador, TAMANIO_CLAVE);
+
+
+					if (headerRecibido->tipo == OPERACION_SET){
+						//pthread_mutex_lock(&mutex);
+						puts("ENTRO A UN SET");
+						cantidadClavesEnTabla++;
+						if(validarClaveExistente(bufferClave, tablaEntradas) == true){
+							eliminarNodosyValores(bufferClave, tablaEntradas, arrayEntradas);
+							cantidadClavesEnTabla--;
+								}
+						bufferValor = recibirMensaje(socketCoordinador, tamanioValorRecibido);
+						tamanioValorRecibido = headerRecibido->tamanioValor;
+						memcpy(operacion->clave, bufferClave, strlen(bufferClave) + 1);
+						operacion->valor = bufferValor;
+						agregarEntrada(operacion, arrayEntradas, cantidadEntradas, tamanioValor, tablaEntradas, tamanioValorRecibido);
+
+						enviarEntradasUsadas(socketCoordinador, tablaEntradas, bufferClave);
+						free(headerRecibido);
+						//free(operacion);
+						free(bufferClave);
+						free(bufferValor);
+						mostrarArray(arrayEntradas, cantidadEntradas);
+						puts("HICE UN SET");
+						printf("Cantidad de elementos en mi tabla de entradas: %d\n", list_size(tablaEntradas));
+						printf("LO QUE ME MUSTRA EL PUNTERO CIRCULAR %s\n", arrayEntradas[posicionPunteroCirc]);
+						printf("POSICION PUNTERO CIRCULAR: %d\n", posicionPunteroCirc);
+						//sem_post(semaforo);
+						//pthread_mutex_unlock(&mutex);
+						}
+
+
+		//        	if (headerRecibido->tipo == OPERACION_GET){
+		//        		printf("Buffer claveeeee %s\n",bufferClave);
+		//        		if(validarClaveExistente(bufferClave, tablaEntradas) == true)
+		//        		{
+		//        			puts("ENCONTROOOOOOOOOOOOOOOOOOOOOOOOO");
+		//        		}
+		//        		longitudMaximaValorBuscado = calcularLongitudMaxValorBuscado(bufferClave,tablaEntradas); //Cantidad de entradas para ese valor (despues multiplico por TamanioValor)
+		//        		printf("Longitud maxima valor buscado: %d\n", longitudMaximaValorBuscado);
+		//        		valorGet = obtenerValor(longitudMaximaValorBuscado, tablaEntradas, bufferClave,arrayEntradas, tamanioValor);
+		//        		printf("A ver que pija sdale: %s\n", valorGet);
+		//        		puts("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+		//        		enviarValorGet(socketCoordinador, valorGet);
+		//        		free(valorGet);
+		//        		free(headerRecibido);
+		//        		//free(operacion);
+		//        		free(bufferClave);
+		//        	}
+					if (headerRecibido->tipo == OPERACION_STORE){
+						//pthread_mutex_lock(&mutex);
+						puts("ENTRO A UN STORE");
+						longitudMaximaValorBuscado = calcularLongitudMaxValorBuscado(bufferClave, tablaEntradas);
+						valorGet = obtenerValor(longitudMaximaValorBuscado, tablaEntradas, bufferClave, arrayEntradas, tamanioValor);
+						guardarUnArchivo(bufferClave, valorGet);
+						puts("Guarde un archivo");
+						enviarEntradasUsadas(socketCoordinador, tablaEntradas, bufferClave);
+
+
+						free(valorGet);
+						free(headerRecibido);
+						free(bufferClave);
+						puts("TERMINE UN STORE");
+						//sem_post(semaforo);
+						//pthread_mutex_unlock(&mutex);
 					}
-
-
-	//        	if (headerRecibido->tipo == OPERACION_GET){
-	//        		printf("Buffer claveeeee %s\n",bufferClave);
-	//        		if(validarClaveExistente(bufferClave, tablaEntradas) == true)
-	//        		{
-	//        			puts("ENCONTROOOOOOOOOOOOOOOOOOOOOOOOO");
-	//        		}
-	//        		longitudMaximaValorBuscado = calcularLongitudMaxValorBuscado(bufferClave,tablaEntradas); //Cantidad de entradas para ese valor (despues multiplico por TamanioValor)
-	//        		printf("Longitud maxima valor buscado: %d\n", longitudMaximaValorBuscado);
-	//        		valorGet = obtenerValor(longitudMaximaValorBuscado, tablaEntradas, bufferClave,arrayEntradas, tamanioValor);
-	//        		printf("A ver que pija sdale: %s\n", valorGet);
-	//        		puts("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-	//        		enviarValorGet(socketCoordinador, valorGet);
-	//        		free(valorGet);
-	//        		free(headerRecibido);
-	//        		//free(operacion);
-	//        		free(bufferClave);
-	//        	}
-				if (headerRecibido->tipo == OPERACION_STORE){
-					//pthread_mutex_lock(&mutex);
-					puts("ENTRO A UN STORE");
-					longitudMaximaValorBuscado = calcularLongitudMaxValorBuscado(bufferClave, tablaEntradas);
-					valorGet = obtenerValor(longitudMaximaValorBuscado, tablaEntradas, bufferClave, arrayEntradas, tamanioValor);
-					guardarUnArchivo(bufferClave, valorGet);
-					puts("Guarde un archivo");
-					enviarEntradasUsadas(socketCoordinador, tablaEntradas, bufferClave);
-
-
-					free(valorGet);
-					free(headerRecibido);
-					free(bufferClave);
-					puts("TERMINE UN STORE");
-					//sem_post(semaforo);
-					//pthread_mutex_unlock(&mutex);
 				}
-			}
+        	}
         }
         close(socketCoordinador);
         return 0;
@@ -235,6 +250,31 @@
 
     	}
 
+    int PedidoDeValores(int socketCoordinador)
+    {
+		char clave[TAMANIO_CLAVE];
+    	if((recv(socketCoordinador, clave, TAMANIO_CLAVE, 0)) <= 0){
+    		perror("Fallo al recibir la clave");
+    	}
+
+    	// TODO: BUSCO VALOR!
+
+    	char* valor;
+    	int tamanioValor;
+    	tEntradasUsadas * tamanio = malloc(sizeof(tEntradasUsadas));
+
+	    if (send(socketCoordinador, tamanio, sizeof(tEntradasUsadas), 0) <= 0){
+		   puts("Error al enviar el el tamanio valor");
+		   perror("Send");
+	    }
+	    free(tamanio);
+
+	    if (send(socketCoordinador, valor, tamanioValor, 0) <= 0){
+		   puts("Error al enviar el valor");
+		   perror("Send");
+	    }
+    }
+
     int recibirConfiguracion(int sockeCoordinador){
     	tInformacionParaLaInstancia * informacion = malloc(sizeof(tInformacionParaLaInstancia));
 
@@ -262,29 +302,33 @@
         	}
         	printf("Recibi la clave %s \n",clave);
 
-    		char nombreArchivo[strlen(clave)+5];
-    		strcpy(nombreArchivo,clave);
+    		char nombreArchivo[strlen(PuntoMontaje)+strlen(clave)+5];
+    		strcpy(nombreArchivo,PuntoMontaje);
+    		strcat(nombreArchivo,clave);
     		strcat(nombreArchivo,".txt\0");
-    		archivo = leerArchivo(nombreArchivo);
-
-        	if(getline(&line, &len, nombreArchivo) == -1){
+    		printf("El archivo a abrir esta en %s \n",nombreArchivo);
+    		archivo = leerArchivo(&nombreArchivo);
+    		puts("Voy a leer la linea del archivo");
+        	if(getline(&line, &len, archivo) == -1){
         		puts("No habia nada dentro del archivo");
         	}else{
         		printf("El valor de la clave %s es %s \n",clave,line);
         		list_add(claves,clave);
-        	}
+        	} // TODO: Ale te dejo aca para que veas que hacer con esto!
     	}
 
     	return EXIT_SUCCESS;
     }
 
-    FILE *leerArchivo(char **argv){
+    FILE *leerArchivo(char *archivo){
 
     	//Esto lo copié literal del ejemplo del ParSI. A medida que avancemos, esto en vez de imprimir en pantalla,
     	//va a tener que enviarle los scripts al coordinador (siempre y cuando el planificador me lo indique)
 
+    	printf("El archivo a abrir esta en %s \n",archivo);
+
     	FILE * file;
-        file = fopen(argv[1], "r");
+        file = fopen(archivo, "r");
         if (file == NULL){
             perror("Error al abrir el archivo: ");
             exit(EXIT_FAILURE);

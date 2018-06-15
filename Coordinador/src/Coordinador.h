@@ -96,6 +96,12 @@ typedef enum{
 	OPERACION_INVALIDA= -1
 }tValidezOperacion;
 
+typedef enum{
+	SOLICITAR_VALOR = 1,
+	OPERAR = 2
+}tOperacionInstancia;
+
+
 
 typedef struct{
 	tResultadoOperacion resultado;
@@ -172,6 +178,15 @@ typedef struct{
 	tSolicitudesDeConsola solicitud;
 }tSolicitudPlanificador;
 
+typedef struct{
+	int tamanioValor;
+	char proceso[TAMANIO_NOMBREPROCESO];
+}tStatusParaPlanificador;
+
+typedef struct{
+	tOperacionInstancia operacion;
+}__attribute__((packed)) tOperacionInstanciaStruct;
+
 
 // VARIABLES GLOBALES
 
@@ -201,6 +216,7 @@ t_list* procesosBloqueadosEsperandoClave;
 static volatile int keepRunning = 1;
 
 pthread_mutex_t mutex;
+sem_t semaforoInstancia;
 
 
 // FUNCIONES
