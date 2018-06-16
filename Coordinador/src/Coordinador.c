@@ -1659,7 +1659,10 @@
 		parametrosConexion * instancia;
 		if(OPERACION_ACTUAL == OPERACION_GET){
 			// TODO: Debo filtrar las instancias que no esten conectadas para no contar con ellas!
-			int cantidadInstancias = list_size(colaInstancias);
+			t_list * listaFiltrada;
+			listaFiltrada = list_filter(colaInstancias,(void*)EstaConectada);
+
+			int cantidadInstancias = list_size(listaFiltrada);
 			char primerCaracter = clave[0];
 			int x = 0;
 			while ((clave[x] < 97 && clave[x] > 122) && (clave[x] < 65 && clave[x] > 90)){ // Busco el primer caracter en minuscula/mayuscula
@@ -1681,17 +1684,17 @@
 			for (int i = 0; i < cantidadInstancias; i++){
 				if (i!= cantidadInstancias - 1 && restoRango == 0){    // Si no es la ultima instancia debo redondear hacia arriba
 						if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + rango)){
-							instancia = list_get(colaInstancias, i);
+							instancia = list_get(listaFiltrada, i);
 							//sem_post(instancia->semaforo);
 						}
 					}
 					else if (i!= cantidadInstancias - 1 && restoRango != 0){ // si es la ultima instancia debo recalcular y ver cuantas entradas puedo aceptar
 						if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + rango + 1)){
-							instancia = list_get(colaInstancias, i);
+							instancia = list_get(listaFiltrada, i);
 							//sem_post(instancia->semaforo);
 						}else{
 							if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + entradasUltimaInstancia)){
-								instancia = list_get(colaInstancias, i);
+								instancia = list_get(listaFiltrada, i);
 								//sem_post(instancia->semaforo);
 						}
 					}
@@ -1761,13 +1764,16 @@
         return EXIT_SUCCESS;
     }
 
+    bool EstaConectada(parametrosConexion * instancia){
+    	return instancia->conectada == 1;
+    }
+
 
     char * SimulacionSeleccionarPorEquitativeLoad(char* clave) {
     		// mientras la cola este vacia no puedo continuarpthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
     		parametrosConexion * instancia;
 
-    		//TODO: BUSCAR CON FILTER conectada = 1
-			instancia = list_get(colaInstancias,0);
+			instancia = list_find(colaInstancias,(void*)EstaConectada);
 
 			if(instancia == NULL)
 				return NULL;
@@ -1781,7 +1787,6 @@
     	char * SimulacionSeleccionarPorLeastSpaceUsed(char * clave){
     		parametrosConexion* instanciaMenosUsada;
 
-    		//TODO: BUSCAR CON FILTER conectada = 1
 			instanciaMenosUsada = BuscarInstanciaMenosUsada(clave); // Va a buscar la instancia que menos entradas tenga, desempata con fifo
 
 			if (instanciaMenosUsada == NULL)
@@ -1795,7 +1800,10 @@
     	char *  SimulacionSeleccionarPorKeyExplicit(char* clave){
     		parametrosConexion * instancia;
 
-			int cantidadInstancias = list_size(colaInstancias);
+			t_list * listaFiltrada;
+			listaFiltrada = list_filter(colaInstancias,(void*)EstaConectada);
+
+			int cantidadInstancias = list_size(listaFiltrada);
 			char primerCaracter = clave[0];
 			int x = 0;
 			while ((clave[x] < 97 && clave[x] > 122) && (clave[x] < 65 && clave[x] > 90)){ // Busco el primer caracter en minuscula/mayuscula
@@ -1813,21 +1821,21 @@
 			if (restoRango !=0){
 				entradasUltimaInstancia = KEYS_POSIBLES - ((cantidadInstancias-1) * (rango + 1));
 			}
-			//TODO: BUSCAR CON FILTER conectada = 1
+
 			for (int i = 0; i < cantidadInstancias; i++){
 				if (i!= cantidadInstancias - 1 && restoRango == 0){    // Si no es la ultima instancia debo redondear hacia arriba
 						if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + rango)){
-							instancia = list_get(colaInstancias, i);
+							instancia = list_get(listaFiltrada, i);
 							//sem_post(instancia->semaforo);
 						}
 					}
 					else if (i!= cantidadInstancias - 1 && restoRango != 0){ // si es la ultima instancia debo recalcular y ver cuantas entradas puedo aceptar
 						if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + rango + 1)){
-							instancia = list_get(colaInstancias, i);
+							instancia = list_get(listaFiltrada, i);
 							//sem_post(instancia->semaforo);
 						}else{
 							if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + entradasUltimaInstancia)){
-								instancia = list_get(colaInstancias, i);
+								instancia = list_get(listaFiltrada, i);
 								//sem_post(instancia->semaforo);
 						}
 					}

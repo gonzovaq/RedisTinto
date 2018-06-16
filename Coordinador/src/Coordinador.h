@@ -270,5 +270,6 @@ int BuscarClaveEnInstanciaYEnviar(char * clave);
 char * SimulacionSeleccionarPorEquitativeLoad(char* clave);
 char * SimulacionSeleccionarPorLeastSpaceUsed(char * clave);
 char *  SimulacionSeleccionarPorKeyExplicit(char* clave);
+bool EstaConectada(parametrosConexion * instancia);
 
 
