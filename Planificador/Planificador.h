@@ -71,8 +71,8 @@ typedef struct {
       int fd;
       int cont;
       float estimacion;
-      float tasaTransf;
-      int Espera;
+      float responseRatio;
+      int espera;
 	  char clave[TAMANIO_CLAVE];
 }t_esi;
 
@@ -99,8 +99,8 @@ static t_esi * new_ESI(int id,int fd,int esti,float tasa,int espera,char clave[T
 	new->fd = fd;
 	new->cont = 0;
 	new->estimacion=esti;
-	new->tasaTransf=tasa;
-	new->Espera=espera;
+	new->responseRatio=tasa;
+	new->espera=espera;
 	strcpy(new->clave,clave);	
 	return new;
 }
@@ -174,3 +174,4 @@ void enviarClaveCoordinador(char clave[TAMANIO_CLAVE],tSolicitudesDeConsola *sol
 t_esi * buscarEsiPorId(t_queue *lista,int id,t_esi * esi);
 void killEsi (int id);
 void sumarEspera(t_queue *cola);
+void estimacionHRRN(t_esi* esi);
