@@ -687,8 +687,18 @@
 
 			printf("Planificador: La Instancia que tendria la clave %s es %s \n",clave,nombreInstancia);
 
+			tNotificacionPlanificador * notif = malloc(sizeof(tNotificacionPlanificador));
+
+			strcpy(notif->clave,clave);
+			notif->tipoNotificacion = STATUS;
+        	if (send(planificador->new_fd,notif,sizeof(tNotificacionPlanificador),0) <= 0){
+        		puts("Planificador: Fallo al enviar mensaje al planificador");
+        		perror("send planificador");
+        	}
+        	free(notif);
+
 			tStatusParaPlanificador * status = malloc(sizeof(tStatusParaPlanificador));
-			strcpy(status,nombreInstancia);
+			strcpy(status->proceso,nombreInstancia);
 			status->tamanioValor = 0;
 
 			if ((send(planificador->new_fd,status,sizeof(tStatusParaPlanificador),0) <= 0)){
