@@ -87,7 +87,7 @@ typedef struct{
 	tSolicitudesDeConsola solicitud;
 }tSolicitudPlanificador;
 
-static t_esi * new_ESI(int id,int fd,int esti,float tasa,float espera,char clave[TAMANIO_CLAVE]){
+static t_esi * new_ESI(int id,int fd,int esti,float tasa,int espera,char clave[TAMANIO_CLAVE]){
 	t_esi *new = malloc(sizeof(t_esi));
 	new->id = id;
 	new->fd = fd;
@@ -167,4 +167,4 @@ void bloquearEsi(int id,char clave[TAMANIO_CLAVE]);
 void enviarClaveCoordinador(char clave[TAMANIO_CLAVE],tSolicitudesDeConsola *solicitud);
 t_esi * buscarEsiPorId(t_queue *lista,int id,t_esi * esi);
 void killEsi (int id);
-void sumarEspera();
+void sumarEspera(t_queue *cola);
