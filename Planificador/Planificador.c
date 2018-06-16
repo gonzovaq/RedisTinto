@@ -232,7 +232,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 											{
 												printf("El nombre de la instancia es: %s \n",status->proceso);
 												//printf("La instancia que utiliza la clave es: %s \n",);
-												if(status->valor==0)
+												if(status->tamanioValor==0)
 												{
 													puts("La clave no posee valor");
 												}

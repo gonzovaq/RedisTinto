@@ -54,6 +54,7 @@ struct parametrosConexion{
 int flagOperar=1;
 int PORT;
 int SOCKET_READ_TIMEOUT_SEC=4;
+int tamanioValor;
 
 
 typedef enum{
