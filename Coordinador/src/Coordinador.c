@@ -642,7 +642,7 @@
 				return ERROR;
 			}
 
-			printf("Planificador: La Instancia que tiene la clave %s es %s \n",instancia->nombreProceso,clave);
+			printf("Planificador: La Instancia que tiene la clave %s es %s \n",clave,instancia->nombreProceso);
 
 			tStatusParaPlanificador * status = malloc(sizeof(tStatusParaPlanificador));
 			strcpy(status,instancia->nombreProceso);
@@ -654,8 +654,6 @@
 				perror("Planificador: Error al enviarle el nombre de la Instancia y tamanioValor");
 				free(status);
 				free(valor);
-				RemoverInstanciaDeLaLista(instancia);
-				close(instancia->new_fd);
 				return ERROR;
 			}
 			free(status);
@@ -663,14 +661,43 @@
 			if ((send(planificador->new_fd,valor,tamanioValor+1,0) <= 0)){
 				perror("Planificador: Error al enviarle el valor");
 				free(valor);
-				RemoverInstanciaDeLaLista(instancia);
-				close(instancia->new_fd);
+
 				return ERROR;
 			}
 			free(valor);
     	}
     	else{
-    		// Aca debo ver que le aviso si la clave no existe
+    		puts("Planificador: No hay ninguna Instancia que posea la clave, simulemos buscar una");
+
+    		char * nombreInstancia;
+    		switch (ALGORITMO){
+    		case EL: ; // Si no se deja un statement vacio rompe
+    			nombreInstancia = SimulacionSeleccionarPorEquitativeLoad(&clave);
+    			break;
+    		case LSU:
+    			nombreInstancia = SimulacionSeleccionarPorLeastSpaceUsed(&clave);
+    			break;
+    		case KE:
+    			nombreInstancia = SimulacionSeleccionarPorKeyExplicit(&clave);
+    			break;
+    		default:
+    			puts("Planificador: Hubo un problema al seleccionar la instancia correcta");
+    			exit_gracefully(1);
+    		}
+
+			printf("Planificador: La Instancia que tendria la clave %s es %s \n",clave,nombreInstancia);
+
+			tStatusParaPlanificador * status = malloc(sizeof(tStatusParaPlanificador));
+			strcpy(status,nombreInstancia);
+			status->tamanioValor = 0;
+
+			if ((send(planificador->new_fd,status,sizeof(tStatusParaPlanificador),0) <= 0)){
+				perror("Planificador: Error al enviarle el nombre de la Instancia y tamanioValor");
+				free(status);
+				close(instancia->new_fd);
+				return ERROR;
+			}
+			free(status);
     	}
 
     	return EXIT_SUCCESS;
@@ -1723,6 +1750,85 @@
 
         return EXIT_SUCCESS;
     }
+
+
+    char * SimulacionSeleccionarPorEquitativeLoad(char* clave) {
+    		// mientras la cola este vacia no puedo continuarpthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
+    		parametrosConexion * instancia;
+
+			instancia = list_get(colaInstancias,0);
+
+			if(instancia == NULL)
+				return NULL;
+
+			printf("Planificador: El nombre de la Instancia que tendria el planificador es %s \n",instancia->nombreProceso);
+
+			return instancia->nombreProceso;
+
+    	}
+
+    	char * SimulacionSeleccionarPorLeastSpaceUsed(char * clave){
+    		parametrosConexion* instanciaMenosUsada;
+
+			instanciaMenosUsada = BuscarInstanciaMenosUsada(clave); // Va a buscar la instancia que menos entradas tenga, desempata con fifo
+
+			if (instanciaMenosUsada == NULL)
+				return NULL;
+
+			printf("Planificador: El nombre de la Instancia que tendria el planificador es %s \n",instanciaMenosUsada->nombreProceso);
+
+			return instanciaMenosUsada->nombreProceso;
+    	}
+
+    	char *  SimulacionSeleccionarPorKeyExplicit(char* clave){
+    		parametrosConexion * instancia;
+
+			int cantidadInstancias = list_size(colaInstancias);
+			char primerCaracter = clave[0];
+			int x = 0;
+			while ((clave[x] < 97 && clave[x] > 122) && (clave[x] < 65 && clave[x] > 90)){ // Busco el primer caracter en minuscula/mayuscula
+				primerCaracter = clave[x];
+				x++;
+			}
+			int posicionLetraEnASCII;
+			if (primerCaracter >= 97)
+				posicionLetraEnASCII = primerCaracter - 97;
+			else
+				posicionLetraEnASCII = primerCaracter - 65;
+			int rango = KEYS_POSIBLES/cantidadInstancias;
+			int restoRango = KEYS_POSIBLES%cantidadInstancias;
+			int entradasUltimaInstancia;
+			if (restoRango !=0){
+				entradasUltimaInstancia = KEYS_POSIBLES - ((cantidadInstancias-1) * (rango + 1));
+			}
+
+			for (int i = 0; i < cantidadInstancias; i++){
+				if (i!= cantidadInstancias - 1 && restoRango == 0){    // Si no es la ultima instancia debo redondear hacia arriba
+						if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + rango)){
+							instancia = list_get(colaInstancias, i);
+							//sem_post(instancia->semaforo);
+						}
+					}
+					else if (i!= cantidadInstancias - 1 && restoRango != 0){ // si es la ultima instancia debo recalcular y ver cuantas entradas puedo aceptar
+						if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + rango + 1)){
+							instancia = list_get(colaInstancias, i);
+							//sem_post(instancia->semaforo);
+						}else{
+							if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + entradasUltimaInstancia)){
+								instancia = list_get(colaInstancias, i);
+								//sem_post(instancia->semaforo);
+						}
+					}
+				}
+			}
+
+			if(instancia == NULL)
+				return NULL;
+
+			printf("Planificador: El nombre de la Instancia que tendria el planificador es %s \n",instancia->nombreProceso);
+
+			return instancia->nombreProceso;
+    	}
 
 
 	// CERRAR CONEXIONES

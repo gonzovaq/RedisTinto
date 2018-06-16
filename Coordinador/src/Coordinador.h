@@ -267,5 +267,8 @@ void intHandler(int dummy);
 int EncontrarAlESIYEliminarlo(int id);
 int LiberarLasClavesDelESI(parametrosConexion * parametros);
 int BuscarClaveEnInstanciaYEnviar(char * clave);
+char * SimulacionSeleccionarPorEquitativeLoad(char* clave);
+char * SimulacionSeleccionarPorLeastSpaceUsed(char * clave);
+char *  SimulacionSeleccionarPorKeyExplicit(char* clave);
 
 
