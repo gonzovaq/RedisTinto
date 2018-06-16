@@ -541,7 +541,7 @@
 
 				}
 				else{
-					printf("Planificador: recibi la clave y voy a mostrar la instancia %s \n",clave);
+					printf("Planificador: recibi la clave %s y voy a mostrar la instancia \n",clave);
 
 					sem_wait(&semaforoInstancia);
 					BuscarClaveEnInstanciaYEnviar(&clave);
@@ -590,83 +590,88 @@
 
     	parametrosConexion * instancia = list_find(colaInstancias,(void*)TieneLaClave);
 
+    	if (instancia != NULL){
 
-		tEntradasUsadas *estasConecatada = malloc(sizeof(tEntradasUsadas));
-		if ((recv(instancia->new_fd, estasConecatada, sizeof(tEntradasUsadas), 0)) <= 0) {
-			puts("Instancia: Fallo al enviar el tipo de operacion");
-			instancia->conectada = 0;
-			//exit_gracefully(1);
-			RemoverInstanciaDeLaLista(instancia);
-			close(instancia->new_fd);
-			return ERROR;
-		}
+			tEntradasUsadas *estasConecatada = malloc(sizeof(tEntradasUsadas));
+			if ((recv(instancia->new_fd, estasConecatada, sizeof(tEntradasUsadas), 0)) <= 0) {
+				puts("Instancia: Fallo al enviar el tipo de operacion");
+				instancia->conectada = 0;
+				//exit_gracefully(1);
+				RemoverInstanciaDeLaLista(instancia);
+				close(instancia->new_fd);
+				return ERROR;
+			}
 
-		tOperacionInstancia * operacionInstancia = malloc(sizeof(tOperacionInstancia));
-		operacionInstancia = SOLICITAR_VALOR;
-		if ((send(instancia->new_fd, operacionInstancia, sizeof(tOperacionInstancia), 0)) // Le informamos que quiero hacer!
-						<= 0) {
-					puts("Instancia: Fallo al enviar el tipo de operacion");
-					perror("send");
-					//exit_gracefully(1);
-					RemoverInstanciaDeLaLista(instancia);
-					close(instancia->new_fd);
-					return ERROR;
-				}
-		free(operacionInstancia);
+			tOperacionInstancia * operacionInstancia = malloc(sizeof(tOperacionInstancia));
+			operacionInstancia = SOLICITAR_VALOR;
+			if ((send(instancia->new_fd, operacionInstancia, sizeof(tOperacionInstancia), 0)) // Le informamos que quiero hacer!
+							<= 0) {
+						puts("Instancia: Fallo al enviar el tipo de operacion");
+						perror("send");
+						//exit_gracefully(1);
+						RemoverInstanciaDeLaLista(instancia);
+						close(instancia->new_fd);
+						return ERROR;
+					}
+			free(operacionInstancia);
 
-    	if ((send(instancia->new_fd, clave, TAMANIO_CLAVE, 0)) <= 0) {
-        	puts("Planificador: Error al enviar la clave a la Instancia");
-        	perror("Planificador: send");
-			RemoverInstanciaDeLaLista(instancia);
-			close(instancia->new_fd);
-        	return ERROR;
-        }
+			if ((send(instancia->new_fd, clave, TAMANIO_CLAVE, 0)) <= 0) {
+				puts("Planificador: Error al enviar la clave a la Instancia");
+				perror("Planificador: send");
+				RemoverInstanciaDeLaLista(instancia);
+				close(instancia->new_fd);
+				return ERROR;
+			}
 
-    	tEntradasUsadas * tamanioValor = malloc(sizeof(tEntradasUsadas));
-    	if((recv(instancia->new_fd, tamanioValor, sizeof(tEntradasUsadas), 0)) <= 0){
-    		perror("Planificador: Fallo al recibir el tamanio valor");
-    		free(tamanioValor);
-			RemoverInstanciaDeLaLista(instancia);
-			close(instancia->new_fd);
-    		return ERROR;
+			tEntradasUsadas * tamanioValor = malloc(sizeof(tEntradasUsadas));
+			if((recv(instancia->new_fd, tamanioValor, sizeof(tEntradasUsadas), 0)) <= 0){
+				perror("Planificador: Fallo al recibir el tamanio valor");
+				free(tamanioValor);
+				RemoverInstanciaDeLaLista(instancia);
+				close(instancia->new_fd);
+				return ERROR;
+			}
+
+			char * valor = malloc(tamanioValor+1);
+			if((recv(instancia->new_fd, valor, tamanioValor+1, 0)) <= 0){
+				perror("Planificador: Fallo al recibir el valor");
+				free(valor);
+				free(tamanioValor);
+				RemoverInstanciaDeLaLista(instancia);
+				close(instancia->new_fd);
+				return ERROR;
+			}
+
+			printf("Planificador: La Instancia que tiene la clave %s es %s \n",instancia->nombreProceso,clave);
+
+			tStatusParaPlanificador * status = malloc(sizeof(tStatusParaPlanificador));
+			strcpy(status,instancia->nombreProceso);
+			status->tamanioValor = tamanioValor->entradasUsadas;
+
+			free(tamanioValor);
+
+			if ((send(planificador->new_fd,status,sizeof(tStatusParaPlanificador),0) <= 0)){
+				perror("Planificador: Error al enviarle el nombre de la Instancia y tamanioValor");
+				free(status);
+				free(valor);
+				RemoverInstanciaDeLaLista(instancia);
+				close(instancia->new_fd);
+				return ERROR;
+			}
+			free(status);
+
+			if ((send(planificador->new_fd,valor,tamanioValor+1,0) <= 0)){
+				perror("Planificador: Error al enviarle el valor");
+				free(valor);
+				RemoverInstanciaDeLaLista(instancia);
+				close(instancia->new_fd);
+				return ERROR;
+			}
+			free(valor);
     	}
-
-    	char * valor = malloc(tamanioValor+1);
-    	if((recv(instancia->new_fd, valor, tamanioValor+1, 0)) <= 0){
-    		perror("Planificador: Fallo al recibir el valor");
-    		free(valor);
-    		free(tamanioValor);
-			RemoverInstanciaDeLaLista(instancia);
-			close(instancia->new_fd);
-    		return ERROR;
+    	else{
+    		// Aca debo ver que le aviso si la clave no existe
     	}
-
-    	printf("Planificador: La Instancia que tiene la clave %s es %s \n",instancia->nombreProceso,clave);
-
-    	tStatusParaPlanificador * status = malloc(sizeof(tStatusParaPlanificador));
-    	strcpy(status,instancia->nombreProceso);
-    	status->tamanioValor = tamanioValor->entradasUsadas;
-
-    	free(tamanioValor);
-
-    	if ((send(planificador->new_fd,status,sizeof(tStatusParaPlanificador),0) <= 0)){
-    		perror("Planificador: Error al enviarle el nombre de la Instancia y tamanioValor");
-    		free(status);
-    		free(valor);
-			RemoverInstanciaDeLaLista(instancia);
-			close(instancia->new_fd);
-    		return ERROR;
-    	}
-    	free(status);
-
-    	if ((send(planificador->new_fd,valor,tamanioValor+1,0) <= 0)){
-    		perror("Planificador: Error al enviarle el valor");
-    		free(valor);
-			RemoverInstanciaDeLaLista(instancia);
-			close(instancia->new_fd);
-    		return ERROR;
-    	}
-    	free(valor);
 
     	return EXIT_SUCCESS;
     }
