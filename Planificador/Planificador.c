@@ -342,6 +342,11 @@ void intHandler(int dummy) { // para atajar ctrl c
 							{
 								//Si se bloquea
 								esi->cont++;
+								if(algoritmo==HRRN)
+								{
+									sumarEspera(ready);
+								}
+
 								queue_pop(ejecucion);
 								if(algoritmo==SJF ||algoritmo==SJFD)
 									estimacionEsi(esi);
@@ -367,7 +372,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 								esi->cont++;
 								if(algoritmo==HRRN)
 								{
-									sumarEspera();
+									sumarEspera(ready);
 								}
 								printf("Contador De ESI %d  estimacion %f Espera %d\n",esi->cont, esi->estimacion,esi->Espera);
 							}
@@ -413,7 +418,8 @@ void intHandler(int dummy) { // para atajar ctrl c
 								re=0;
 								enviarConfirmacion=1;
 								printf("Id del esi a buscar:%d \n",esi->id);
-								printf("esi de id %d cambiado de cola \n",esi->id);
+								printf("esi de id %d cambiado de cola con espera de: %d \n",esi->id,esi->Espera);
+								EstimacionHRRN(esi);
 								queue_push(ejecucion,new_ESI(esi->id,esi->fd,esi->estimacion,esi->tasaTransf,0,esi->clave));
 							}
 							//puts("Ready no vacia");
@@ -1094,25 +1100,29 @@ int recibirResultadoDelEsi(int sockfd, tResultado * resultado){
 		free(cantidadClavesBloqueadas);
 	}
 
-	void sumarEspera()
+	void sumarEspera(t_queue *cola)
 	{
 		void * SumarEspera(t_esi * esi)
 		{
+			
 			esi->Espera=(esi->Espera)+1;
-			//return esi;
+			printf("Esi de id: %d con espera actual de: %d \n",esi->id,esi->Espera);
+			return esi;
 		}
 		puts("Voy a mapear ready");
-		if(queue_is_empty(ready)==0){
+		if(queue_is_empty(cola)==0){
 			puts("ready no vacia");
-		ready->elements=list_map(ready->elements,(void *)SumarEspera);
+		cola->elements=list_map(cola->elements,SumarEspera);
 		puts("mapie ready");
 		}
+		/* Creo que bloqueados no se mapea debido a que no estan listo para ejecutarse por lo tanto no cuenta si esperan.
 		puts("Voy a mapear bloqueados");
 		if(queue_is_empty(bloqueados)==0){
 			puts("ejecucion no vacia");
 		bloqueados->elements=list_map(ready->elements,(void *)SumarEspera);
 		puts("mapie bloqueados");
 		}
+		*/
 	}
 	
 	void PlanificacionHRRN(){   // Suma 1 a la Espera de todos los esis en la lista ready y Recalcula su Tasa de resp
@@ -1174,10 +1184,10 @@ int recibirResultadoDelEsi(int sockfd, tResultado * resultado){
 
 
 	void EstimacionHRRN(t_esi* esi){    //Calcula la tasa de Transferencia de los esis
-		puts("estimamos TASA de trans");
-		//estimacionEsi(esi);
-		esi->tasaTransf = ((esi->Espera + esi->estimacion)/(esi->estimacion));
-		printf("ya la estimamos da : %f \n",esi->tasaTransf);
-		//return esi;
+			puts("estimamos TASA de trans");
+			//estimacionEsi(esi);
+			esi->tasaTransf = ((esi->Espera + esi->estimacion)/(esi->estimacion));
+			printf("El RR del esi: %d es : %f \n",esi->id,esi->tasaTransf);
+			//return esi;
 		}
 
