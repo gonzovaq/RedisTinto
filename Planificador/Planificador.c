@@ -220,14 +220,39 @@ void intHandler(int dummy) { // para atajar ctrl c
 										if(notificacion->tipoNotificacion==STATUS)
 										{
 											printf("TODO: IMPLEMENTAR RCV DE LA INSTANCIA");
-											char instancia[TAMANIO_NOMBREPROCESO];
-											if ( (recv(i, instancia, TAMANIO_NOMBREPROCESO, 0)) <= 0) {
+											//char instancia[TAMANIO_NOMBREPROCESO];
+											char * valor = malloc(tamanioValor+1);
+											tStatusParaPlanificador * status = malloc(sizeof(tStatusParaPlanificador));
+											if ( (recv(i, status,sizeof(tStatusParaPlanificador), 0)) <= 0) {
 												perror("recv");
-												puts("Error recibir el nombre de la instancia");
+												puts("Error recibir el status del planificador");
 												//return ERROR;
-											}else{
-												printf("La instancia que utiliza la clave es: %s \n",instancia);
 											}
+											else
+											{
+												printf("El nombre de la instancia es: %s \n",status->proceso);
+												//printf("La instancia que utiliza la clave es: %s \n",);
+												if(status->valor==0)
+												{
+													puts("La clave no posee valor");
+												}
+												else{
+													puts("La clave posee valor");
+													if ( (recv(i, valor,tamanioValor+1, 0)) <= 0) 
+													{
+														perror("recv");
+														puts("Error recibir el valor de la clave");
+														//return ERROR;
+													}
+													else
+													{
+														printf("El valor de la clave es: %s \n",valor);
+													}
+												}
+											}
+											free(status);
+											free(valor);
+										//	obtenerBloqueados()
 
 
 										}
@@ -713,6 +738,8 @@ void ordenarEsis(t_queue *cola)
 		   }
 		   printf("Se envió la clave de status: %s \n",clave);
 
+		   obtenerBloqueados(clave);
+
 	}
 	void killEsi (int id)
 	{
@@ -871,12 +898,12 @@ void ordenarEsis(t_queue *cola)
 		t_queue * aux=queue_create();
 	    //printf("La clave es: %s \n",clave);
 		int coincidir(t_esi *unEsi){
-								printf("Comparando clave %s con clave %s \n",unEsi->clave,clave);
+								//printf("Comparando clave %s con clave %s \n",unEsi->clave,clave);
           	    	    		return (string_equals_ignore_case(unEsi->clave,clave));//unEsi->clave == clave;
           	    	    	}
 		aux->elements=list_filter(bloqueados->elements,coincidir);
 		t_esi *esi=malloc(sizeof(t_esi));
-		puts("voy a ver si hay algo adentro");
+		//puts("voy a ver si hay algo adentro");
 		while(queue_is_empty(aux)==0)
 		{
 			esi=queue_pop(aux);

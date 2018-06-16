@@ -87,6 +87,11 @@ typedef struct{
 	tSolicitudesDeConsola solicitud;
 }tSolicitudPlanificador;
 
+typedef struct{
+	int tamanioValor;
+	char proceso[TAMANIO_NOMBREPROCESO];
+}tStatusParaPlanificador;
+
 static t_esi * new_ESI(int id,int fd,int esti,float tasa,int espera,char clave[TAMANIO_CLAVE]){
 	t_esi *new = malloc(sizeof(t_esi));
 	new->id = id;
