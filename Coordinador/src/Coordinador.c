@@ -1766,6 +1766,7 @@
     		// mientras la cola este vacia no puedo continuarpthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
     		parametrosConexion * instancia;
 
+    		//TODO: BUSCAR CON FILTER conectada = 1
 			instancia = list_get(colaInstancias,0);
 
 			if(instancia == NULL)
@@ -1780,6 +1781,7 @@
     	char * SimulacionSeleccionarPorLeastSpaceUsed(char * clave){
     		parametrosConexion* instanciaMenosUsada;
 
+    		//TODO: BUSCAR CON FILTER conectada = 1
 			instanciaMenosUsada = BuscarInstanciaMenosUsada(clave); // Va a buscar la instancia que menos entradas tenga, desempata con fifo
 
 			if (instanciaMenosUsada == NULL)
@@ -1811,7 +1813,7 @@
 			if (restoRango !=0){
 				entradasUltimaInstancia = KEYS_POSIBLES - ((cantidadInstancias-1) * (rango + 1));
 			}
-
+			//TODO: BUSCAR CON FILTER conectada = 1
 			for (int i = 0; i < cantidadInstancias; i++){
 				if (i!= cantidadInstancias - 1 && restoRango == 0){    // Si no es la ultima instancia debo redondear hacia arriba
 						if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + rango)){
