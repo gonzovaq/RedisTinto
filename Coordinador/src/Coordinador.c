@@ -602,9 +602,9 @@
 				return ERROR;
 			}
 
-			tOperacionInstancia * operacionInstancia = malloc(sizeof(tOperacionInstancia));
-			operacionInstancia = SOLICITAR_VALOR;
-			if ((send(instancia->new_fd, operacionInstancia, sizeof(tOperacionInstancia), 0)) // Le informamos que quiero hacer!
+			tOperacionInstanciaStruct * operacionInstancia = malloc(sizeof(tOperacionInstanciaStruct));
+			operacionInstancia->operacion= SOLICITAR_VALOR;
+			if ((send(instancia->new_fd, operacionInstancia, sizeof(tOperacionInstanciaStruct), 0)) // Le informamos que quiero hacer!
 							<= 0) {
 						puts("Instancia: Fallo al enviar el tipo de operacion");
 						perror("send");
