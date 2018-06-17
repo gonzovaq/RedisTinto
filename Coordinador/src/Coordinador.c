@@ -600,9 +600,9 @@
 			if ((recv(instancia->new_fd, estasConecatada, sizeof(tEntradasUsadas), 0)) <= 0) {
 				puts("Instancia: Fallo al enviar el tipo de operacion");
 				instancia->conectada = 0;
-				//exit_gracefully(1);
-				RemoverInstanciaDeLaLista(instancia);
+
 				free(estasConecatada);
+				sem_destroy(instancia->semaforo);
 				close(instancia->new_fd);
 				return ERROR;
 			}
@@ -615,7 +615,7 @@
 							<= 0) {
 						puts("Instancia: Fallo al enviar el tipo de operacion");
 						perror("send");
-						//exit_gracefully(1);
+
 						RemoverInstanciaDeLaLista(instancia);
 						close(instancia->new_fd);
 						return ERROR;
@@ -627,7 +627,7 @@
 				perror("Instancia: se desconecto!!!");
 				instancia->conectada = 0;
 				free(estasConecatada2);
-				return 1;
+				return OK;
 			}
 
 			free(estasConecatada2);
@@ -643,20 +643,19 @@
 			tEntradasUsadas * tamanioValor = malloc(sizeof(tEntradasUsadas));
 			if((recv(instancia->new_fd, tamanioValor, sizeof(tEntradasUsadas), 0)) <= 0){
 				perror("Planificador: Fallo al recibir el tamanio valor");
-				free(tamanioValor);
-				RemoverInstanciaDeLaLista(instancia);
-				close(instancia->new_fd);
-				return ERROR;
+				perror("Instancia: se desconecto!!!");
+				instancia->conectada = 0;
+				free(estasConecatada2);
+				return OK;
 			}
 
 			char * valor = malloc(tamanioValor+1);
 			if((recv(instancia->new_fd, valor, tamanioValor+1, 0)) <= 0){
 				perror("Planificador: Fallo al recibir el valor");
-				free(valor);
-				free(tamanioValor);
-				RemoverInstanciaDeLaLista(instancia);
-				close(instancia->new_fd);
-				return ERROR;
+				perror("Instancia: se desconecto!!!");
+				instancia->conectada = 0;
+				free(estasConecatada2);
+				return OK;
 			}
 
 			printf("Planificador: La Instancia que tiene la clave %s es %s \n",clave,instancia->nombreProceso);
@@ -815,6 +814,7 @@
 			perror("Instancia: send informacion");
 		}
 		free(informacion);
+		printf("Instancia: Tiene %d claves previas \n",clavesPrevias);
 
 		for(int i = 0; i < clavesPrevias; i++){
 			puts("Instancia: Se envio una clave previa a la instancia");
@@ -826,12 +826,15 @@
 
         while(keepRunning){ // Debo atajar cuando una instancia se me desconecta
 
+        	puts("Instancia: Recibo un aviso de que la Instancia sigue viva");
 			tEntradasUsadas *estasConecatada1 = malloc(sizeof(tEntradasUsadas));
 			if ((recv(parametros->new_fd, estasConecatada1, sizeof(tEntradasUsadas), 0)) <= 0) {
 				perror("Instancia: se desconecto!!!");
 				parametros->conectada = 0;
-				return 1;
+				sem_destroy(parametros->semaforo);
+				return OK;
 			}
+			puts("Instancia: La Instancia sigue viva");
 
 			free(estasConecatada1);
 
@@ -844,9 +847,6 @@
 			OperacionAEnviar * operacion = list_remove(colaMensajes,0); //hay que borrar esa operacion
 
 
-
-
-
 			tOperacionInstanciaStruct * operacionInstancia = malloc(sizeof(tOperacionInstanciaStruct));
 			operacionInstancia->operacion = OPERAR;
 			if ((send(parametros->new_fd, operacionInstancia, sizeof(tOperacionInstanciaStruct), 0)) // Le informamos que quiero hacer!
@@ -856,6 +856,7 @@
 						//exit_gracefully(1);
 						RemoverInstanciaDeLaLista(parametros);
 						close(parametros->new_fd);
+						sem_post(&semaforoInstancia);
 						return 2;
 					}
 			free(operacionInstancia);
@@ -866,14 +867,15 @@
 				parametros->conectada = 0;
 				tResultado * resultadoCompleto = malloc(sizeof(tResultado));
 				resultadoCompleto->resultado = ERROR;
+				sem_destroy(parametros->semaforo);
 				strcpy(resultadoCompleto->clave,operacion->clave);
 				pthread_mutex_lock(&mutex);
 				list_add(colaResultados,(void*)resultadoCompleto);
 				pthread_mutex_unlock(&mutex);
+				sem_post(&semaforoInstancia);
 				sem_post(ESIActual->semaforo);
 				free(estasConecatada2);
-				sem_post(&semaforoInstancia);
-				return 1;
+				return OK;
 			}
 
 			free(estasConecatada2);
@@ -909,6 +911,7 @@
 					puts("Desaparecio una Instancia");
 					free(header);
 					sem_post(&semaforoInstancia);
+					sem_destroy(parametros->semaforo);
 					return OK;
 				}
 
@@ -923,6 +926,7 @@
 					parametros->conectada = 0;
 					free(header);
 					sem_post(&semaforoInstancia);
+					sem_destroy(parametros->semaforo);
 					free(buffer);
 					return 1;
 				}
@@ -1387,14 +1391,15 @@
 
     	puts("ENTRE AL EXIT GRACEFULLY ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR");
        log_destroy(logger);
-       free(colaInstancias);
-       free(colaMensajes);
-       free(colaResultados);
-       free(colaESIS);
-       free(listaBloqueos);
+       // list_clean_and_destroy_elements(colaInstancias,(void *)destruirInstancia); // TIRA DOUBLE FREE CORRUPTION
+       list_clean_and_destroy_elements(colaMensajes,(void *)destruirOperacionAEnviar);
+       list_clean_and_destroy_elements(colaResultados,(void *)destruirResultado);
+       // list_clean_and_destroy_elements(colaESIS,(void *)destruirInstancia);// TIRA DOUBLE FREE CORRUPTION (hay que adaptar a ESIS)
+       list_clean_and_destroy_elements(listaBloqueos,(void *)destruirBloqueo);
        free(notificacion);
-       free(clavesTomadas);
+       list_clean_and_destroy_elements(clavesTomadas,(void *)borrarClave);
        pthread_mutex_destroy(&mutex);
+       sem_destroy(&semaforoInstancia);
        exit(return_nr);
 
 		return return_nr;
@@ -1626,8 +1631,22 @@
 
 		if(OPERACION_ACTUAL == OPERACION_GET){
 				while(conectada){
-				//instancia = list_get(colaInstancias,0);
+
+				bool NoEstaConectada(parametrosConexion * parametros){
+					printf("ESI: La instancia %s con pid %d tiene el flag conectada en %d",parametros->nombreProceso,parametros->pid,parametros->conectada);
+					return parametros->conectada != 1;
+				}
+
+				if (list_all_satisfy(colaInstancias,(void*)NoEstaConectada) == true){
+					puts("ESI: No hay Instancias conectadas para operar, se debe abortar");
+					return ERROR;
+				}
+
 				instancia = list_remove(colaInstancias,0);
+				if(instancia == NULL){
+					puts("ESI: No hay Instancia para operar, se debe abortar");
+					return ERROR;
+				}
 				if (instancia->conectada == 1){
 					printf("ESI: Agrego la clave %s a la instancia %d \n",clave,instancia->pid);
 					char * claveCopia = malloc(TAMANIO_CLAVE);
@@ -1758,6 +1777,14 @@
 			sem_post(instancia->semaforo);
 		}
 		return 1;
+	}
+
+	static void destruirOperacionAEnviar(OperacionAEnviar * operacion){
+		free(operacion);
+	}
+
+	static void destruirResultado(tResultado * resultado){
+		free(resultado);
 	}
 
 	static void destruirBloqueo(tBloqueo *bloqueo) {

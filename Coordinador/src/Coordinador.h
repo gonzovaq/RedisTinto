@@ -222,54 +222,69 @@ sem_t semaforoInstancia;
 // FUNCIONES
 
 void sigchld_handler(int s);
+void intHandler(int dummy);
 int main(int argc, char *argv[]);
+
 int EscucharConexiones(int sockfd);
 int IdentificarProceso(tHeader* headerRecibido, parametrosConexion* parametros);
-int configure_logger();
-int exit_gracefully(int return_nr);
+
 int *gestionarConexion(parametrosConexion *parametros);
 int *conexionESI(parametrosConexion* parametros);
 int *conexionPlanificador(parametrosConexion* parametros);
 int *conexionInstancia(parametrosConexion* parametros);
 int *escucharMensajesDelPlanificador(parametrosConexion* parametros);
+
+int ConexionESISinBloqueo(OperacionAEnviar* operacion, parametrosConexion* parametros);
+
 int AnalizarOperacion(int tamanioValor,OperaciontHeader* header, parametrosConexion* parametros,
 		OperacionAEnviar* operacion);
 int ManejarOperacionGET(parametrosConexion* parametros, OperacionAEnviar* operacion);
 int ManejarOperacionSET(int tamanioValor, parametrosConexion* parametros, OperacionAEnviar* operacion);
 int ManejarOperacionSTORE(parametrosConexion* parametros, OperacionAEnviar* operacion);
-int InicializarListasYColas();
+
 bool yaExisteLaClave(void *claveDeLista,char * clave);
 bool EncontrarEnLista(t_list * lista, char * claveABuscar);
 bool LePerteneceLaClave(t_list * lista, tBloqueo * bloqueoBuscado);
+
+int InicializarListasYColas();
+int configure_logger();
+int exit_gracefully(int return_nr);
 int LeerArchivoDeConfiguracion(char *argv[]);
+int verificarParametrosAlEjecutar(int argc, char *argv[]);
+int RecibirClavesBloqueadas(parametrosConexion* parametros);
+
 int SeleccionarInstancia(char * clave);
 int SeleccionarPorEquitativeLoad(char * clave);
 int SeleccionarPorLeastSpaceUsed(char * clave);
 int SeleccionarPorKeyExplicit(char* clave);
-static void destruirBloqueo(tBloqueo *bloqueo);
-static void destruirInstancia(parametrosConexion * parametros);
-int MandarAlFinalDeLaLista(t_list * lista, parametrosConexion * instancia);
+
+char * SimulacionSeleccionarPorEquitativeLoad(char* clave);
+char * SimulacionSeleccionarPorLeastSpaceUsed(char * clave);
+char * SimulacionSeleccionarPorKeyExplicit(char* clave);
+
 parametrosConexion* BuscarInstanciaMenosUsada();
-int ConexionESISinBloqueo(OperacionAEnviar* operacion, parametrosConexion* parametros);
+
+int MandarAlFinalDeLaLista(t_list * lista, parametrosConexion * instancia);
 int EnviarClaveYValorAInstancia(tTipoOperacion tipo, int tamanioValor,parametrosConexion* parametros, OperaciontHeader* header,OperacionAEnviar* operacion);
-int verificarParametrosAlEjecutar(int argc, char *argv[]);
-bool laClaveTuvoUnGETPrevio(char * clave,parametrosConexion * parametros);
 int RemoverInstanciaDeLaLista(parametrosConexion* parametros);
-int RecibirClavesBloqueadas(parametrosConexion* parametros);
-static void borrarClave(char * clave);
-bool EncontrarClaveEnClavesBloqueadas(t_list * lista, char * claveABuscar);
 int AgregarClaveBloqueada(parametrosConexion* parametros);
 int RemoverClaveDeClavesTomadas(char * clave);
 int RemoverClaveDeLaListaBloqueos(char * claveABuscar);
 int RemoverClaveDeClavesPropias(char * clave, parametrosConexion *parametros);
 int BuscarSiLaInstanciaSeEstaReincorporando(parametrosConexion * parametros);
-void intHandler(int dummy);
+
 int EncontrarAlESIYEliminarlo(int id);
 int LiberarLasClavesDelESI(parametrosConexion * parametros);
 int BuscarClaveEnInstanciaYEnviar(char * clave);
-char * SimulacionSeleccionarPorEquitativeLoad(char* clave);
-char * SimulacionSeleccionarPorLeastSpaceUsed(char * clave);
-char *  SimulacionSeleccionarPorKeyExplicit(char* clave);
+
 bool EstaConectada(parametrosConexion * instancia);
+bool EncontrarClaveEnClavesBloqueadas(t_list * lista, char * claveABuscar);
+bool laClaveTuvoUnGETPrevio(char * clave,parametrosConexion * parametros);
+
+static void destruirResultado(tResultado * resultado);
+static void destruirOperacionAEnviar(OperacionAEnviar * operacion);
+static void destruirBloqueo(tBloqueo *bloqueo);
+static void destruirInstancia(parametrosConexion * parametros);
+static void borrarClave(char * clave);
 
 
