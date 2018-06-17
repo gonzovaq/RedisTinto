@@ -13,6 +13,7 @@
 
 
     	socket_coordinador = conectarmeYPresentarme(PORT_COORDINADOR);
+	he = gethostbyname(IPPL);
     	socket_planificador = conectarmeYPresentarme(PORT_PLANIFICADOR);
 
 
