@@ -45,6 +45,7 @@
 		//sem_wait(semaforo);
 
         while(1){
+        	puts("Informo que estoy viva");
         	EnviarAvisoDeQueEstoyViva(socketCoordinador);
 
         	tOperacionInstanciaStruct * operacion = malloc(sizeof(tOperacionInstanciaStruct));
@@ -53,6 +54,8 @@
         	    		perror("recv");
         	    		exit(1);
         	    	}
+
+        	EnviarAvisoDeQueEstoyViva(socketCoordinador);
 
         	if(operacion->operacion == SOLICITAR_VALOR){
         		free(operacion);

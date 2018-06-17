@@ -598,9 +598,11 @@
 				instancia->conectada = 0;
 				//exit_gracefully(1);
 				RemoverInstanciaDeLaLista(instancia);
+				free(estasConecatada);
 				close(instancia->new_fd);
 				return ERROR;
 			}
+			free(estasConecatada);
 
 			tOperacionInstanciaStruct * operacionInstancia = malloc(sizeof(tOperacionInstanciaStruct));
 			operacionInstancia->operacion= SOLICITAR_VALOR;
@@ -614,6 +616,16 @@
 						return ERROR;
 					}
 			free(operacionInstancia);
+
+			tEntradasUsadas *estasConecatada2 = malloc(sizeof(tEntradasUsadas));
+			if ((recv(instancia->new_fd, estasConecatada2, sizeof(tEntradasUsadas), 0)) <= 0) {
+				perror("Instancia: se desconecto!!!");
+				instancia->conectada = 0;
+				free(estasConecatada2);
+				return 1;
+			}
+
+			free(estasConecatada2);
 
 			if ((send(instancia->new_fd, clave, TAMANIO_CLAVE, 0)) <= 0) {
 				puts("Planificador: Error al enviar la clave a la Instancia");
@@ -816,8 +828,8 @@
 			printf("Instancia: Me hicieron un sem_post y tengo de id %d \n",parametros->pid);
 			OperacionAEnviar * operacion = list_remove(colaMensajes,0); //hay que borrar esa operacion
 
-			tEntradasUsadas *estasConecatada = malloc(sizeof(tEntradasUsadas));
-			if ((recv(parametros->new_fd, estasConecatada, sizeof(tEntradasUsadas), 0)) <= 0) {
+			tEntradasUsadas *estasConecatada1 = malloc(sizeof(tEntradasUsadas));
+			if ((recv(parametros->new_fd, estasConecatada1, sizeof(tEntradasUsadas), 0)) <= 0) {
 				perror("Instancia: se desconecto!!!");
 				parametros->conectada = 0;
 				tResultado * resultadoCompleto = malloc(sizeof(tResultado));
@@ -827,9 +839,11 @@
 				list_add(colaResultados,(void*)resultadoCompleto);
 				pthread_mutex_unlock(&mutex);
 				sem_post(ESIActual->semaforo);
-				free(estasConecatada);
+				free(estasConecatada1);
 				return 1;
 			}
+
+			free(estasConecatada1);
 
 			tOperacionInstanciaStruct * operacionInstancia = malloc(sizeof(tOperacionInstanciaStruct));
 			operacionInstancia->operacion = OPERAR;
@@ -844,7 +858,22 @@
 					}
 			free(operacionInstancia);
 
-			free(estasConecatada);
+			tEntradasUsadas *estasConecatada2 = malloc(sizeof(tEntradasUsadas));
+			if ((recv(parametros->new_fd, estasConecatada2, sizeof(tEntradasUsadas), 0)) <= 0) {
+				perror("Instancia: se desconecto!!!");
+				parametros->conectada = 0;
+				tResultado * resultadoCompleto = malloc(sizeof(tResultado));
+				resultadoCompleto->resultado = ERROR;
+				strcpy(resultadoCompleto->clave,operacion->clave);
+				pthread_mutex_lock(&mutex);
+				list_add(colaResultados,(void*)resultadoCompleto);
+				pthread_mutex_unlock(&mutex);
+				sem_post(ESIActual->semaforo);
+				free(estasConecatada2);
+				return 1;
+			}
+
+			free(estasConecatada2);
 
 			if (operacion->tipo != OPERACION_GET){
 
