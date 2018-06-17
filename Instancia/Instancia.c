@@ -47,14 +47,14 @@
         while(1){
         	puts("Informo que estoy viva");
         	EnviarAvisoDeQueEstoyViva(socketCoordinador);
-
+        	puts("Recibo operacion");
         	tOperacionInstanciaStruct * operacion = malloc(sizeof(tOperacionInstanciaStruct));
         	if ((recv(socketCoordinador, operacion, sizeof(tOperacionInstanciaStruct), 0)) <= 0){
         	    		puts("Fallo al recibir el tipo de operacion");
         	    		perror("recv");
         	    		exit(1);
         	    	}
-
+        	puts("Informo que estoy viva");
         	EnviarAvisoDeQueEstoyViva(socketCoordinador);
 
         	if(operacion->operacion == SOLICITAR_VALOR){

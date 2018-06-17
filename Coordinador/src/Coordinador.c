@@ -246,7 +246,7 @@
 			BuscarSiLaInstanciaSeEstaReincorporando(parametros);
     		list_add(colaInstancias,(void*)parametros);
     		int cantidadInstancias = list_size(colaInstancias);
-    		printf("Instancia: Ahora tengo %d instancias ",cantidadInstancias);
+    		printf("Instancia: Ahora tengo %d instancias \n",cantidadInstancias);
     		conexionInstancia(parametros);
     		free(semaforo);
     		break;
@@ -346,6 +346,9 @@
 				if ((send(parametros->new_fd, ERROR, sizeof(tResultadoOperacion), 0)) <= 0){
 					perror("send");
 				}
+
+				LiberarLasClavesDelESI(parametros);
+
 				free(header);
 
 				break;
@@ -592,6 +595,7 @@
 
     	if (instancia != NULL){
 
+
 			tEntradasUsadas *estasConecatada = malloc(sizeof(tEntradasUsadas));
 			if ((recv(instancia->new_fd, estasConecatada, sizeof(tEntradasUsadas), 0)) <= 0) {
 				puts("Instancia: Fallo al enviar el tipo de operacion");
@@ -603,6 +607,7 @@
 				return ERROR;
 			}
 			free(estasConecatada);
+
 
 			tOperacionInstanciaStruct * operacionInstancia = malloc(sizeof(tOperacionInstanciaStruct));
 			operacionInstancia->operacion= SOLICITAR_VALOR;
@@ -828,6 +833,7 @@
 			printf("Instancia: Me hicieron un sem_post y tengo de id %d \n",parametros->pid);
 			OperacionAEnviar * operacion = list_remove(colaMensajes,0); //hay que borrar esa operacion
 
+
 			tEntradasUsadas *estasConecatada1 = malloc(sizeof(tEntradasUsadas));
 			if ((recv(parametros->new_fd, estasConecatada1, sizeof(tEntradasUsadas), 0)) <= 0) {
 				perror("Instancia: se desconecto!!!");
@@ -840,10 +846,12 @@
 				pthread_mutex_unlock(&mutex);
 				sem_post(ESIActual->semaforo);
 				free(estasConecatada1);
+				sem_post(&semaforoInstancia);
 				return 1;
 			}
 
 			free(estasConecatada1);
+
 
 			tOperacionInstanciaStruct * operacionInstancia = malloc(sizeof(tOperacionInstanciaStruct));
 			operacionInstancia->operacion = OPERAR;
@@ -870,6 +878,7 @@
 				pthread_mutex_unlock(&mutex);
 				sem_post(ESIActual->semaforo);
 				free(estasConecatada2);
+				sem_post(&semaforoInstancia);
 				return 1;
 			}
 
@@ -905,6 +914,7 @@
 					parametros->conectada = 0;
 					puts("Desaparecio una Instancia");
 					free(header);
+					sem_post(&semaforoInstancia);
 					return OK;
 				}
 
@@ -918,6 +928,7 @@
 					perror("recv");
 					parametros->conectada = 0;
 					free(header);
+					sem_post(&semaforoInstancia);
 					free(buffer);
 					return 1;
 				}
@@ -1282,6 +1293,8 @@
 			}
 			puts("ESI: Se envio el resultado");
 			free(resultadoError);
+			LiberarLasClavesDelESI(parametros);
+			return ERROR;
 		}
 
 		if(operacion->tipo != OPERACION_GET){
@@ -1588,7 +1601,6 @@
 	}
 
 	int SeleccionarInstancia(char* clave) {
-		while (list_is_empty(colaInstancias)); //TODO: Esto es una espera activa
 		int resultado;
 		// mientras la cola este vacia no puedo continuar
 
@@ -1629,6 +1641,7 @@
 					printf("ESI: Agrego la copia clave %s a la instancia %d \n",claveCopia,instancia->pid);
 					list_add(instancia->claves,claveCopia);
 					//MandarAlFinalDeLaLista(colaInstancias,instancia);
+					printf("ESI: Le hago el sem_post al semaforo en direccion %p \n",(void *)&(instancia->semaforo));
 					sem_post(instancia->semaforo);
 					conectada = 0;
 				}
@@ -1637,8 +1650,9 @@
 		}
 		else{
 			instancia = BuscarInstanciaQuePoseeLaClave(clave);
+			printf("ESI: La Instancia %s tiene el flag conectada en %d \n",instancia->nombreProceso,instancia->conectada);
 
-			if (instancia == NULL || instancia->conectada == 0){ //Hay que ver si devuelve NULL, esto es en caso de que se desconecte la instancia
+			if ((instancia == NULL) || (instancia->conectada != 1)){ //Hay que ver si devuelve NULL, esto es en caso de que se desconecte la instancia
 				puts("ESI: Se desconecto la instancia");
 				return ERROR;
 			}
@@ -1671,7 +1685,7 @@
 		else{
 			instanciaMenosUsada = BuscarInstanciaQuePoseeLaClave(clave);
 
-			if (instanciaMenosUsada == NULL || instanciaMenosUsada->conectada == 0){ //Hay que ver si devuelve NULL, esto es en caso de que se desconecte la instancia
+			if (instanciaMenosUsada == NULL || instanciaMenosUsada->conectada != 1){ //Hay que ver si devuelve NULL, esto es en caso de que se desconecte la instancia
 				puts("ESI: Se desconecto la instancia");
 				return ERROR;
 			}
@@ -1739,7 +1753,7 @@
 		else {
 			instancia = BuscarInstanciaQuePoseeLaClave(clave);
 
-			if (instancia == NULL || instancia->conectada == 0){ //Hay que ver si devuelve NULL, esto es en caso de que se desconecte la instancia
+			if (instancia == NULL || instancia->conectada != 1){ //Hay que ver si devuelve NULL, esto es en caso de que se desconecte la instancia
 				puts("ESI: Se desconecto la instancia");
 				return ERROR;
 			}
