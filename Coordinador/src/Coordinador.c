@@ -847,8 +847,9 @@
 
 			printf("Semaforo en direccion: %p\n", (void*)&(parametros->semaforo));
 			sem_wait(parametros->semaforo); // Caundo me avisen que hay una operacion para enviar, la voy a levantar de la cola
-			sem_wait(&semaforoInstancia);
 			printf("Instancia: Me hicieron un sem_post y tengo de id %d \n",parametros->pid);
+			sem_wait(&semaforoInstancia);
+			printf("Instancia: Accedi a la seccion de operacion con id %d \n",parametros->pid);
 			OperacionAEnviar * operacion = list_remove(colaMensajes,0); //hay que borrar esa operacion
 
 
@@ -858,17 +859,19 @@
 							<= 0) {
 						puts("Instancia: Fallo al enviar el tipo de operacion");
 						perror("send");
-						//exit_gracefully(1);
+						sem_post(&semaforoInstancia);
+
 						RemoverInstanciaDeLaLista(parametros);
 						close(parametros->new_fd);
-						sem_post(&semaforoInstancia);
 						return 2;
 					}
 			free(operacionInstancia);
+			puts("Instancia: Envie la operacion y voy a recibir respuesta de la Instancia");
 
 			tEntradasUsadas *estasConecatada2 = malloc(sizeof(tEntradasUsadas));
 			if ((recv(parametros->new_fd, estasConecatada2, sizeof(tEntradasUsadas), 0)) <= 0) {
 				perror("Instancia: se desconecto!!!");
+				sem_post(&semaforoInstancia);
 				parametros->conectada = 0;
 				tResultado * resultadoCompleto = malloc(sizeof(tResultado));
 				resultadoCompleto->resultado = ERROR;
@@ -877,13 +880,14 @@
 				pthread_mutex_lock(&mutex);
 				list_add(colaResultados,(void*)resultadoCompleto);
 				pthread_mutex_unlock(&mutex);
-				sem_post(&semaforoInstancia);
 				sem_post(ESIActual->semaforo);
 				free(estasConecatada2);
 				return OK;
 			}
 
 			free(estasConecatada2);
+
+			puts("Instancia: La instancia me respondio, asi que podemos operar");
 
 			if (operacion->tipo != OPERACION_GET){
 
@@ -917,6 +921,7 @@
 					free(header);
 					sem_post(&semaforoInstancia);
 					sem_destroy(parametros->semaforo);
+					RemoverInstanciaDeLaLista(parametros);
 					return OK;
 				}
 
@@ -973,7 +978,7 @@
 						<= 0) {
 					puts("Fallo al enviar el header");
 					perror("send");
-					//exit_gracefully(1);
+					sem_post(&semaforoInstancia);
 					RemoverInstanciaDeLaLista(parametros);
 					close(parametros->new_fd);
 					return 2;
@@ -1562,8 +1567,7 @@
 				<= 0) {
 			puts("Fallo al enviar el header");
 			perror("send");
-			//exit_gracefully(1);
-			RemoverInstanciaDeLaLista(parametros);
+
 			close(parametros->new_fd);
 			return 2;
 		}
@@ -1579,8 +1583,7 @@
 		if ((sendClave = send(parametros->new_fd, operacion->clave, TAMANIO_CLAVE,0)) <= 0) {
 			puts("Fallo al enviar la clave");
 			perror("send");
-			//exit_gracefully(1);
-			RemoverInstanciaDeLaLista(parametros);
+
 			close(parametros->new_fd);
 			return 2;
 		}
@@ -1594,8 +1597,6 @@
 			if ((sendSet = send(parametros->new_fd, operacion->valor, tamanioValor, 0)) <= 0){
 				perror("send");
 
-			//exit_gracefully(1);
-				RemoverInstanciaDeLaLista(parametros);
 				close(parametros->new_fd);
 				return 2;
 			}
