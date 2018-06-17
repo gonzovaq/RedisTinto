@@ -1402,14 +1402,22 @@
     	puts("ENTRE AL EXIT GRACEFULLY ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR");
        log_destroy(logger);
        // list_clean_and_destroy_elements(colaInstancias,(void *)destruirInstancia); // TIRA DOUBLE FREE CORRUPTION
+       puts("Destruyo operacion a enviar");
        list_clean_and_destroy_elements(colaMensajes,(void *)destruirOperacionAEnviar);
+       puts("Destruyo resultado");
        list_clean_and_destroy_elements(colaResultados,(void *)destruirResultado);
        // list_clean_and_destroy_elements(colaESIS,(void *)destruirInstancia);// TIRA DOUBLE FREE CORRUPTION (hay que adaptar a ESIS)
+       puts("Destruyo bloqueos");
        list_clean_and_destroy_elements(listaBloqueos,(void *)destruirBloqueo);
+       puts("Destruyo notificacion");
        free(notificacion);
+       puts("Destruyo claves tomadas");
        list_clean_and_destroy_elements(clavesTomadas,(void *)borrarClave);
+       puts("Destruyo mutex");
        pthread_mutex_destroy(&mutex);
+       puts("Destruyo semaforo instancia");
        sem_destroy(&semaforoInstancia);
+       puts("Ya destruimos todo!");
        exit(return_nr);
 
 		return return_nr;
@@ -1802,7 +1810,7 @@
 	static void destruirInstancia(parametrosConexion * parametros){
 		puts("Elimino una instancia");
 		free(parametros);
-		puts("Falle al eliminar una instanca");
+		puts("Logre eliminar una instanca");
 	}
 
 	static void borrarClave(char * clave){

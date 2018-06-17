@@ -46,7 +46,7 @@
 
         while(1){
         	puts("Informo que estoy viva");
-        	//EnviarAvisoDeQueEstoyViva(socketCoordinador);
+        	EnviarAvisoDeQueEstoyViva(socketCoordinador);
         	puts("Recibo operacion");
         	tOperacionInstanciaStruct * operacion = malloc(sizeof(tOperacionInstanciaStruct));
         	if ((recv(socketCoordinador, operacion, sizeof(tOperacionInstanciaStruct), 0)) <= 0){
