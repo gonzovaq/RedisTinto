@@ -111,7 +111,8 @@ void intHandler(int dummy) { // para atajar ctrl c
     	        	necesito almacenar ese conjunto en algún lugar seguro.
     	        	En el último momento copio master sobre read_fs y entonces llamo a select().
     	        	*/
-				
+					timeout.tv_sec=2;
+					timeout.tv_usec=50000;
     	            read_fds = master; // cópialo
     	            if (select(fdmax+1, &read_fds, NULL, NULL, &timeout) == -1) {
     	                perror("select");
