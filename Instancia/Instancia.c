@@ -46,7 +46,7 @@
 
         while(1){
         	puts("Informo que estoy viva");
-        	EnviarAvisoDeQueEstoyViva(socketCoordinador);
+        	//EnviarAvisoDeQueEstoyViva(socketCoordinador);
         	puts("Recibo operacion");
         	tOperacionInstanciaStruct * operacion = malloc(sizeof(tOperacionInstanciaStruct));
         	if ((recv(socketCoordinador, operacion, sizeof(tOperacionInstanciaStruct), 0)) <= 0){
@@ -60,13 +60,14 @@
         	if(operacion->operacion == SOLICITAR_VALOR){
         		free(operacion);
         		PedidoDeValores(socketCoordinador);
+        		puts("Terminamos el STATUS");
         	}
         	else{
         		free(operacion);
 				OperaciontHeader *headerRecibido = malloc(sizeof(OperaciontHeader)); // El malloc esta en recibir header
 				puts("Intento recibir header del Coordinador");
 				headerRecibido = recibirHeader(socketCoordinador);
-
+				puts("Recibi el header!");
 				if (headerRecibido->tipo != OPERACION_GET){
 					tamanioValorRecibido = headerRecibido->tamanioValor;
 					char *bufferClave;
@@ -142,6 +143,7 @@
 						//pthread_mutex_unlock(&mutex);
 					}
 				}
+				puts("Terminamos esta operacion");
         	}
         }
         close(socketCoordinador);

@@ -826,7 +826,17 @@
 
         while(keepRunning){ // Debo atajar cuando una instancia se me desconecta
 
+			tEntradasUsadas *estasConecatada1 = malloc(sizeof(tEntradasUsadas));
+			if ((recv(parametros->new_fd, estasConecatada1, sizeof(tEntradasUsadas), 0)) <= 0) {
+				perror("Instancia: se desconecto!!!");
+				parametros->conectada = 0;
+				return 1;
+			}
+
+			free(estasConecatada1);
+
 			puts("Instancia: Hago un sem_wait");
+
 			printf("Semaforo en direccion: %p\n", (void*)&(parametros->semaforo));
 			sem_wait(parametros->semaforo); // Caundo me avisen que hay una operacion para enviar, la voy a levantar de la cola
 			sem_wait(&semaforoInstancia);
@@ -834,23 +844,7 @@
 			OperacionAEnviar * operacion = list_remove(colaMensajes,0); //hay que borrar esa operacion
 
 
-			tEntradasUsadas *estasConecatada1 = malloc(sizeof(tEntradasUsadas));
-			if ((recv(parametros->new_fd, estasConecatada1, sizeof(tEntradasUsadas), 0)) <= 0) {
-				perror("Instancia: se desconecto!!!");
-				parametros->conectada = 0;
-				tResultado * resultadoCompleto = malloc(sizeof(tResultado));
-				resultadoCompleto->resultado = ERROR;
-				strcpy(resultadoCompleto->clave,operacion->clave);
-				pthread_mutex_lock(&mutex);
-				list_add(colaResultados,(void*)resultadoCompleto);
-				pthread_mutex_unlock(&mutex);
-				sem_post(ESIActual->semaforo);
-				free(estasConecatada1);
-				sem_post(&semaforoInstancia);
-				return 1;
-			}
 
-			free(estasConecatada1);
 
 
 			tOperacionInstanciaStruct * operacionInstancia = malloc(sizeof(tOperacionInstanciaStruct));
