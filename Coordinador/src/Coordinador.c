@@ -714,7 +714,12 @@
         	free(notif);
 
 			tStatusParaPlanificador * status = malloc(sizeof(tStatusParaPlanificador));
-			strcpy(status->proceso,nombreInstancia);
+			if(nombreInstancia==NULL){
+				strcpy(status->proceso,"No hay instancias disponibles \0");
+			}else
+			{
+				strcpy(status->proceso,nombreInstancia);
+			}
 			status->tamanioValor = 0;
 
 			if ((send(planificador->new_fd,status,sizeof(tStatusParaPlanificador),0) <= 0)){
@@ -1836,6 +1841,14 @@
     char * SimulacionSeleccionarPorEquitativeLoad(char* clave) {
     		// mientras la cola este vacia no puedo continuarpthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
     		parametrosConexion * instancia;
+
+    		int cantidadInstancias = list_size(colaInstancias);
+    		printf("Planificador: Hay %d instancias (conectadas y no conectadas) \n",cantidadInstancias);
+    		if(cantidadInstancias == 0)
+    			return NULL;
+
+    		if((list_any_satisfy(colaInstancias,(void*)EstaConectada)) == false)
+    			return NULL;
 
 			instancia = list_find(colaInstancias,(void*)EstaConectada);
 
