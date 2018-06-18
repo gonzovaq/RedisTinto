@@ -42,6 +42,7 @@
 typedef struct{
 	int new_fd;
 	sem_t * semaforo;
+	sem_t * semaforoCompactacion;
 	//struct node_t * colaProcesos;
 	char nombreProceso[TAMANIO_NOMBREPROCESO];
 	int cantidadEntradasMaximas;
@@ -286,5 +287,8 @@ static void destruirOperacionAEnviar(OperacionAEnviar * operacion);
 static void destruirBloqueo(tBloqueo *bloqueo);
 static void destruirInstancia(parametrosConexion * parametros);
 static void borrarClave(char * clave);
+
+int MandarInstanciasACompactar();
+int MandarInstanciaACompactar(parametrosConexion * parametros);
 
 

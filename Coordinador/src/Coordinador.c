@@ -226,8 +226,8 @@
     		printf("Instancia: Se conecto el proceso %d con nombre %s \n", parametros->pid ,headerRecibido->nombreProceso);
     		printf("Instancia: Socket de la instancia: %d\n", parametros->new_fd);
 
-    		sem_t * semaforo = malloc(sizeof(sem_t));
-    		parametros->semaforo = semaforo;
+    		sem_t * semaforoCompactacion= malloc(sizeof(sem_t));
+    		parametros->semaforoCompactacion = semaforoCompactacion;
 
             int ret;
             int value;
@@ -235,20 +235,31 @@
             /* initialize a private semaphore */
             pshared = 0;
             value = 0;
-            if ((ret = sem_init(parametros->semaforo,pshared,value)) != 0){
+            if ((ret = sem_init(parametros->semaforoCompactacion,pshared,value)) != 0){
 				perror("semaforo nuevo");
 	        	exit_gracefully(1);
 			} // Inicializo el semaforo en 0
-			printf("Instancia: Semaforo en direccion: %p\n", (void*)&(parametros->semaforo));
-			parametros->claves = list_create();
+			printf("Instancia: Semaforo en direccion: %p\n", (void*)&(parametros->semaforoCompactacion));
 
+    		parametros->claves = list_create();
 			//TODO: Debo revisar si la instancia se esta reincorporando !!!!
 			BuscarSiLaInstanciaSeEstaReincorporando(parametros);
     		list_add(colaInstancias,(void*)parametros);
     		int cantidadInstancias = list_size(colaInstancias);
     		printf("Instancia: Ahora tengo %d instancias \n",cantidadInstancias);
+
+            //Abro otro hilo para mandar a compactar las Instancias
+            pthread_t tid;
+            int stat = pthread_create(&tid, NULL, (void*)MandarInstanciaACompactar, (void*)parametros);
+    		if (stat != 0){
+    			puts("Instancia: error al generar el hilo");
+    			perror("thread");
+    			return ERROR;
+    		}
+    		pthread_detach(tid); //Con esto decis que cuando el hilo termine libere sus recursos
+
     		conexionInstancia(parametros);
-    		free(semaforo);
+    		free(semaforoCompactacion);
     		break;
     	default:
     		puts("Error al intentar conectar un proceso");
@@ -270,16 +281,52 @@
     	parametrosConexion * instancia = list_remove_by_condition(colaInstancias,(void*)EsLaInstanciaDesconectada);
     	if (instancia == NULL){
     		puts("Instancia: Es una nueva Instancia");
+    		sem_t * semaforo = malloc(sizeof(sem_t));
+    		parametros->semaforo = semaforo;
+
+            int ret;
+            int value;
+            int pshared;
+            /* initialize a private semaphore */
+            pshared = 0;
+            value = 0;
+            if ((ret = sem_init(parametros->semaforo,pshared,value)) != 0){
+				perror("semaforo nuevo");
+	        	exit_gracefully(1);
+			} // Inicializo el semaforo en 0
+			printf("Instancia: Semaforo en direccion: %p\n", (void*)&(parametros->semaforo));
+
     		return EXIT_SUCCESS;
     	}
 
     	puts("Instancia: Voy a actualizar la informacion de la Instancia");
     	parametros->entradasUsadas = instancia->entradasUsadas;
     	parametros->conectada = 1;
+    	parametros->semaforo = instancia->semaforo;
     	list_add_all(parametros->claves,instancia->claves);
     	puts("Instancia: Actualice la informacion de la Instancia");
 
     	return EXIT_SUCCESS;
+    }
+
+    int MandarInstanciaACompactar(parametrosConexion * parametros){
+    	while(1){
+    		puts("Instancia: Espero que me pidan que compacte");
+			sem_wait(parametros->semaforoCompactacion);
+			puts("Instancia: ELer voy a avisar que compacte");
+			//TODO: ACA ENVIAMOS ALGO PARA QUE COMPACTE LA INSTANCIA
+    	}
+
+    	return OK;
+    }
+
+    int MandarInstanciasACompactar(){
+		t_list * listaFiltrada;
+		listaFiltrada = list_filter(colaInstancias,(void*)EstaConectada);
+
+		list_iterate(listaFiltrada,(void *)MandarInstanciaACompactar);
+
+		return OK;
     }
 
     int *conexionESI(parametrosConexion* parametros){
@@ -836,7 +883,7 @@
 			if ((recv(parametros->new_fd, estasConecatada1, sizeof(tEntradasUsadas), 0)) <= 0) {
 				perror("Instancia: se desconecto!!!");
 				parametros->conectada = 0;
-				sem_destroy(parametros->semaforo);
+				//sem_destroy(parametros->semaforo);
 				return OK;
 			}
 			puts("Instancia: La Instancia sigue viva");
@@ -875,7 +922,7 @@
 				parametros->conectada = 0;
 				tResultado * resultadoCompleto = malloc(sizeof(tResultado));
 				resultadoCompleto->resultado = ERROR;
-				sem_destroy(parametros->semaforo);
+				//sem_destroy(parametros->semaforo);
 				strcpy(resultadoCompleto->clave,operacion->clave);
 				pthread_mutex_lock(&mutex);
 				list_add(colaResultados,(void*)resultadoCompleto);
@@ -920,7 +967,7 @@
 					puts("Desaparecio una Instancia");
 					free(header);
 					sem_post(&semaforoInstancia);
-					sem_destroy(parametros->semaforo);
+					//sem_destroy(parametros->semaforo);
 					RemoverInstanciaDeLaLista(parametros);
 					return OK;
 				}
@@ -936,7 +983,7 @@
 					parametros->conectada = 0;
 					free(header);
 					sem_post(&semaforoInstancia);
-					sem_destroy(parametros->semaforo);
+					//sem_destroy(parametros->semaforo);
 					free(buffer);
 					return 1;
 				}
