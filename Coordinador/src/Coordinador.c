@@ -16,7 +16,7 @@
     int main(int argc, char *argv[])
     {
     	signal(SIGINT, intHandler);
-
+    	DeboRecibir = 1;
     	while (keepRunning) {
     	verificarParametrosAlEjecutar(argc, argv);
 
@@ -641,19 +641,22 @@
     	parametrosConexion * instancia = list_find(colaInstancias,(void*)TieneLaClave);
 
     	if (instancia != NULL){
+    		printf("Planificador: La Instancia encontrada es %s \n",instancia->nombreProceso);
 
 
-			tEntradasUsadas *estasConecatada = malloc(sizeof(tEntradasUsadas));
-			if ((recv(instancia->new_fd, estasConecatada, sizeof(tEntradasUsadas), 0)) <= 0) {
-				puts("Instancia: Fallo al enviar el tipo de operacion");
-				instancia->conectada = 0;
+    		if (DeboRecibir){
+				tEntradasUsadas *estasConecatada = malloc(sizeof(tEntradasUsadas));
+				if ((recv(instancia->new_fd, estasConecatada, sizeof(tEntradasUsadas), 0)) <= 0) {
+					puts("Instancia: Fallo al enviar el tipo de operacion");
+					instancia->conectada = 0;
 
+					free(estasConecatada);
+					//sem_destroy(instancia->semaforo);
+					close(instancia->new_fd);
+					return ERROR;
+				}
 				free(estasConecatada);
-				sem_destroy(instancia->semaforo);
-				close(instancia->new_fd);
-				return ERROR;
-			}
-			free(estasConecatada);
+    		}
 
 
 			tOperacionInstanciaStruct * operacionInstancia = malloc(sizeof(tOperacionInstanciaStruct));
@@ -662,8 +665,8 @@
 							<= 0) {
 						puts("Instancia: Fallo al enviar el tipo de operacion");
 						perror("send");
-
-						RemoverInstanciaDeLaLista(instancia);
+						instancia->conectada = 0;
+						//RemoverInstanciaDeLaLista(instancia);
 						close(instancia->new_fd);
 						return ERROR;
 					}
@@ -682,7 +685,8 @@
 			if ((send(instancia->new_fd, clave, TAMANIO_CLAVE, 0)) <= 0) {
 				puts("Planificador: Error al enviar la clave a la Instancia");
 				perror("Planificador: send");
-				RemoverInstanciaDeLaLista(instancia);
+				instancia->conectada = 0;
+				//RemoverInstanciaDeLaLista(instancia);
 				close(instancia->new_fd);
 				return ERROR;
 			}
@@ -887,6 +891,7 @@
 				return OK;
 			}
 			puts("Instancia: La Instancia sigue viva");
+			DeboRecibir = 0;
 
 			free(estasConecatada1);
 
@@ -896,6 +901,7 @@
 			sem_wait(parametros->semaforo); // Caundo me avisen que hay una operacion para enviar, la voy a levantar de la cola
 			printf("Instancia: Me hicieron un sem_post y tengo de id %d \n",parametros->pid);
 			sem_wait(&semaforoInstancia);
+			DeboRecibir = 1;
 			printf("Instancia: Accedi a la seccion de operacion con id %d \n",parametros->pid);
 			OperacionAEnviar * operacion = list_remove(colaMensajes,0); //hay que borrar esa operacion
 
