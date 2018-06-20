@@ -1,0 +1,6 @@
+GET futbol:messi
+GET peppa
+SET futbol:messi TraemeLaCopa
+SET peppa pig
+STORE futbol:messi
+STURE peppa
