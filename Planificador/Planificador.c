@@ -88,6 +88,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 					//continue;
 				}
 				pthread_detach(tid); //Con esto decis que cuando el hilo termine libere sus recursos
+				
 				struct timeval timeout;
 				timeout.tv_sec=SOCKET_READ_TIMEOUT_SEC;
 				timeout.tv_usec=0;
@@ -564,8 +565,8 @@ void ordenarEsis(t_queue *cola)
 
     void *ejecutarConsola()
 	{
-	  while(1)
-		{
+	  while (keepRunning) {
+		
 			//char * readline(const char * linea);
 			char * linea = readline(": ");
 /*
@@ -817,7 +818,7 @@ void ordenarEsis(t_queue *cola)
 		{
 			//Esi estaba en ready
 			puts("esi estaba en ready");
-			eliminarEsiPorId(ready,id);
+			eliminarEsiPorId(ready,esi->id);
 			queue_push(bloqueados,new_ESI(esi->id,esi->fd,esi->estimacion,esi->responseRatio,esi->espera,clave));
 			enviarClaveCoordinador(clave,BLOQUEAR);
 		}{
@@ -832,7 +833,7 @@ void ordenarEsis(t_queue *cola)
 			puts("esi estaba en ejecucion");
 			if(algoritmo==SJF||algoritmo==SJFD)
 				estimacionEsi(esi);
-			eliminarEsiPorId(ready,id);
+			eliminarEsiPorId(ejecucion,esi->id);
 			queue_push(bloqueados,new_ESI(esi->id,esi->fd,esi->estimacion,esi->responseRatio,esi->espera,clave));
 			enviarClaveCoordinador(clave,BLOQUEAR);
 		}
@@ -843,21 +844,28 @@ void ordenarEsis(t_queue *cola)
 		
 		
 	}
-	void enviarClaveCoordinador(char clave[TAMANIO_CLAVE],tSolicitudesDeConsola *solicitud)
+	void enviarClaveCoordinador(char clave[TAMANIO_CLAVE],tSolicitudesDeConsola soli)
 	{
-	
+
+	tSolicitudPlanificador * solicitud = malloc(sizeof(tSolicitudPlanificador));
+	solicitud->solicitud=soli;
 		 if (send(sockCord, solicitud, sizeof(tSolicitudesDeConsola), 0) <= 0){
 					   puts("Error al enviar solicitud");
 					   perror("Send");
 				   }
-				   puts("Se envió el header BLOQUEAR");
-
-		if (send(sockCord, clave, sizeof(clave), 0) <= 0){
+				   else
+				   {
+				   		puts("Se envió el header BLOQUEAR");
+				   }
+		if (send(sockCord, clave,TAMANIO_CLAVE, 0) <= 0){
 					   puts("Error al enviar la clave");
 					   perror("Send");
 				   }
-				   puts("Ya le avise al coordinador la clave bloqueada");
-		
+				   else
+				   {
+				   		puts("Ya le avise al coordinador la clave bloqueada");
+				   }
+	free(solicitud);
 	}
 
 	void obtenerBloqueados(char clave[TAMANIO_CLAVE])

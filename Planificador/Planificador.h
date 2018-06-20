@@ -170,7 +170,7 @@ void ordenarEsis(t_queue *cola);
 int recibirResultado2(tResultado * resultado);
 void obtenerBloqueados(char clave[TAMANIO_CLAVE]);
 void bloquearEsi(int id,char clave[TAMANIO_CLAVE]);
-void enviarClaveCoordinador(char clave[TAMANIO_CLAVE],tSolicitudesDeConsola *solicitud);
+void enviarClaveCoordinador(char clave[TAMANIO_CLAVE],tSolicitudesDeConsola solicitud);
 t_esi * buscarEsiPorId(t_queue *lista,int id,t_esi * esi);
 void killEsi (int id);
 void sumarEspera(t_queue *cola);
