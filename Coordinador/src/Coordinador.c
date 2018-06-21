@@ -1016,6 +1016,7 @@
 				resultadoCompleto->resultado = OK;
 				strcpy(resultadoCompleto->clave,operacion->clave);
 
+				/*
 				if(operacion->tipo == OPERACION_STORE){ // Si es STORE la instancia no tiene mas la clave
 					bool CompararClaves(char * claveAComprar){
 						return string_equals_ignore_case(operacion->clave,claveAComprar);
@@ -1025,6 +1026,7 @@
 					}
 					list_remove_and_destroy_by_condition(parametros->claves,(void *)CompararClaves,(void *)DestruirClaveDeInstancia);
 				}
+				*/
 
 				//Debo avisarle al ESI que me invoco el resultado
 				pthread_mutex_lock(&mutex);
@@ -1780,6 +1782,13 @@
 			//sem_post(instancia->informacion->semaforo);
 
 			//list_add(colaInstancias,instancia);
+
+
+			if(OPERACION_ACTUAL == OPERACION_STORE){
+				// Elimino la clave de la Instancia porque es un store
+				EliminarClaveDeInstancia(instancia, clave);
+			}
+
 		}
 
 		//free(instancia);
@@ -1810,6 +1819,13 @@
 			//list_remove_and_destroy_element(colaInstancias, 0,(void*)destruirInstancia);
 			puts("ESI: Voy a hacer el sem_post a la Instancia seleccionada \n");
 			sem_post(instanciaMenosUsada->semaforo);
+
+
+			if(OPERACION_ACTUAL == OPERACION_STORE){
+				// Elimino la clave de la Instancia porque es un store
+				EliminarClaveDeInstancia(instanciaMenosUsada, clave);
+			}
+
 		}
 		return 1;
 	}
@@ -1878,6 +1894,13 @@
 			//list_remove_and_destroy_element(colaInstancias, 0,(void*)destruirInstancia);
 			puts("ESI: Voy a hacer el sem_post a la Instancia seleccionada \n");
 			sem_post(instancia->semaforo);
+
+
+			if(OPERACION_ACTUAL == OPERACION_STORE){
+				// Elimino la clave de la Instancia porque es un store
+				EliminarClaveDeInstancia(instancia, clave);
+			}
+
 		}
 		return 1;
 	}
@@ -2023,6 +2046,18 @@
 			printf("Planificador: El nombre de la Instancia que tendria el planificador es %s \n",instancia->nombreProceso);
 
 			return instancia->nombreProceso;
+    	}
+
+    	int EliminarClaveDeInstancia(parametrosConexion * instancia, char * clave){
+    		printf("Instancia: Voy a eliminar la clave %s de mi lista \n", clave);
+
+        	bool EsLaClaveDeLaInstancia(char * claveAComparar){
+        		return string_equals_ignore_case(clave, claveAComparar);
+        	}
+
+    		list_remove_and_destroy_by_condition(instancia->claves,(void *)EsLaClaveDeLaInstancia, (void*) borrarClave);
+
+    		return EXIT_SUCCESS;
     	}
 
 

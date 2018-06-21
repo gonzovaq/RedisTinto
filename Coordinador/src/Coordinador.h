@@ -293,5 +293,6 @@ static void borrarClave(char * clave);
 
 int MandarInstanciasACompactar();
 int MandarInstanciaACompactar(parametrosConexion * parametros);
+int EliminarClaveDeInstancia(parametrosConexion * instancia, char * clave);
 
 
