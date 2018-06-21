@@ -1002,7 +1002,7 @@
 					sem_post(&semaforoInstancia);
 					//sem_destroy(parametros->semaforo);
 					free(buffer);
-					return 1;
+					return OK;
 				}
 
 				puts("Instancia: recibi el resultado de la instancia");
@@ -1027,6 +1027,11 @@
 					list_remove_and_destroy_by_condition(parametros->claves,(void *)CompararClaves,(void *)DestruirClaveDeInstancia);
 				}
 				*/
+				void ImprimirTodasMisClaves(char * clave){
+					printf("Instancia: Una de mis claves es %s \n",clave);
+				}
+				puts("Instancia: Voy a revisar mi lista de claves");
+				list_iterate(parametros->claves, (void *)ImprimirTodasMisClaves);
 
 				//Debo avisarle al ESI que me invoco el resultado
 				pthread_mutex_lock(&mutex);
@@ -1791,6 +1796,12 @@
 
 		}
 
+		void ImprimirTodasMisClavesTrasDistribuir(char * clave){
+			printf("Instancia: Una de mis claves es %s \n",clave);
+		}
+		puts("Instancia: Voy a revisar mi lista de claves");
+		list_iterate(instancia->claves, (void *)ImprimirTodasMisClavesTrasDistribuir);
+
 		//free(instancia);
 		return 1;
 	}
@@ -2052,7 +2063,15 @@
     		printf("Instancia: Voy a eliminar la clave %s de mi lista \n", clave);
 
         	bool EsLaClaveDeLaInstancia(char * claveAComparar){
-        		return string_equals_ignore_case(clave, claveAComparar);
+        		if ((string_equals_ignore_case(clave, claveAComparar) == true)){
+            		printf("Instancia: La clave %s de la lista coincidio con %s \n", claveAComparar, clave);
+        			return true;
+        		}
+        		else
+        		{
+            		printf("Instancia: La clave %s de la lista NO coincidio con %s \n", claveAComparar, clave);
+        			return false;
+        		}
         	}
 
     		list_remove_and_destroy_by_condition(instancia->claves,(void *)EsLaClaveDeLaInstancia, (void*) borrarClave);
