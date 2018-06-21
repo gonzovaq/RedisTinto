@@ -74,6 +74,7 @@ typedef struct {
       float responseRatio;
       int espera;
 	  char clave[TAMANIO_CLAVE];
+	  int exe;
 }t_esi;
 
 typedef enum{
@@ -102,6 +103,19 @@ static t_esi * new_ESI(int id,int fd,int esti,float tasa,int espera,char clave[T
 	new->responseRatio=tasa;
 	new->espera=espera;
 	strcpy(new->clave,clave);	
+	new->exe=0;
+	return new;
+}
+static t_esi * new_ESI_hrrn(int id,int fd,int esti,float tasa,int espera,char clave[TAMANIO_CLAVE],int f){
+	t_esi *new = malloc(sizeof(t_esi));
+	new->id = id;
+	new->fd = fd;
+	new->cont = 0;
+	new->estimacion=esti;
+	new->responseRatio=tasa;
+	new->espera=espera;
+	strcpy(new->clave,clave);	
+	new->exe=f;
 	return new;
 }
 

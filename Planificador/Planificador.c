@@ -168,15 +168,15 @@ void intHandler(int dummy) { // para atajar ctrl c
 										//EstimarHRRN(ready);
 										//puts("Salio de ESTIMAR HHRRN");
 										queue_push(ready,new_ESI(esi->id,esi->fd,esi->estimacion,esi->responseRatio,esi->espera,esi->clave));
-
-													t_esi* esi1 = malloc(sizeof(t_esi));//Esi de ejecucion
-													if(queue_is_empty(ejecucion)==0){
-													esi1=queue_pop(ejecucion);
-													queue_push(ready,new_ESI(esi1->id,esi1->fd,esi1->estimacion,esi1->responseRatio,esi1->espera,esi1->clave));
-													//ordenarEsis(ready);
-													}
-													free(esi1);
-													free(esi);
+										t_esi* esi1 = malloc(sizeof(t_esi));//Esi de ejecucion
+										if(queue_is_empty(ejecucion)==0)
+										{
+											esi1=queue_pop(ejecucion);
+											queue_push(ready,new_ESI_hrrn(esi1->id,esi1->fd,esi1->estimacion,esi1->responseRatio,esi1->espera,esi1->clave,1));
+											//ordenarEsis(ready);
+										}
+										free(esi1);
+										free(esi);
 
 										ordenarEsis(ready);
 
@@ -201,7 +201,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 										}
 										if(notificacion->tipoNotificacion==STATUS)
 										{
-											printf("TODO: IMPLEMENTAR RCV DE LA INSTANCIA");
+											printf("TODO: IMPLEMENTAR RCV DE LA INSTANCIA \n");
 											//char instancia[TAMANIO_NOMBREPROCESO];
 											char * valor = malloc(tamanioValor+1);
 											tStatusParaPlanificador * status = malloc(sizeof(tStatusParaPlanificador));
@@ -246,8 +246,38 @@ void intHandler(int dummy) { // para atajar ctrl c
 											if(desbloqueado!=NULL)
 											{
 												puts("desbloqueado no es nulo");
-												queue_push(ready,new_ESI(desbloqueado->id,desbloqueado->fd,desbloqueado->estimacion,desbloqueado->responseRatio,desbloqueado->espera,desbloqueado->clave));
+												queue_push(ready,new_ESI_hrrn(desbloqueado->id,desbloqueado->fd,desbloqueado->estimacion,desbloqueado->responseRatio,desbloqueado->espera,desbloqueado->clave,1));
 												eliminarEsiPorId(bloqueados,desbloqueado->id);
+
+												if(algoritmo==SJF || algoritmo==SJFD)
+												{
+													ordenarEsis(ready);
+													if(algoritmo==SJFD)
+													{
+														if(queue_is_empty(ejecucion)==0){
+															t_esi* esi1 = malloc(sizeof(t_esi));
+															esi1=queue_pop(ejecucion);
+															queue_push(ready,new_ESI(esi1->id,esi1->fd,esi1->estimacion,esi1->responseRatio,esi1->espera,esi1->clave));
+															ordenarEsis(ready);
+															free(esi1);
+														}
+													}
+													
+												}
+												if(algoritmo==HRRN)
+												{
+													//EstimarHRRN(ready);
+													ordenarEsis(ready);
+													if(queue_is_empty(ejecucion)==0)
+													{
+														t_esi* esi1 = malloc(sizeof(t_esi));
+														esi1=queue_pop(ejecucion);//(int id,int fd,int esti,char clave[TAMANIO_CLAVE])
+														queue_push(ready,new_ESI(esi1->id,esi1->fd,esi1->estimacion,esi1->responseRatio,esi1->espera,esi1->clave));
+														ordenarEsis(ready);
+														free(esi1);
+													}
+
+												}
 											}
 											else
 											{
@@ -255,35 +285,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 											}
 											free(desbloqueado);
 											
-											if(algoritmo==SJF || algoritmo==SJFD)
-											{
-												ordenarEsis(ready);
-												if(algoritmo==SJFD)
-												{
-													if(queue_is_empty(ejecucion)==0){
-														t_esi* esi1 = malloc(sizeof(t_esi));
-														esi1=queue_pop(ejecucion);
-														queue_push(ready,new_ESI(esi1->id,esi1->fd,esi1->estimacion,esi1->responseRatio,esi1->espera,esi1->clave));
-														ordenarEsis(ready);
-														free(esi1);
-													}
-												}
-												
-											}
-											if(algoritmo==HRRN)
-											{
-												//EstimarHRRN(ready);
-												ordenarEsis(ready);
-												if(queue_is_empty(ejecucion)==0)
-												{
-													t_esi* esi1 = malloc(sizeof(t_esi));
-													esi1=queue_pop(ejecucion);//(int id,int fd,int esti,char clave[TAMANIO_CLAVE])
-													queue_push(ready,new_ESI(esi1->id,esi1->fd,esi1->estimacion,esi1->responseRatio,esi1->espera,esi1->clave));
-													ordenarEsis(ready);
-													free(esi1);
-												}
-
-											}
+											
 											
 										}
 									
@@ -399,7 +401,13 @@ void intHandler(int dummy) { // para atajar ctrl c
 								puts("Le voy a decir que ejecute al ESI");
 								esi = queue_peek(ejecucion);
 								printf("Id del esi a ejecutar: %d \n",esi->id);
-								EnviarConfirmacion(esi);
+								int re=EnviarConfirmacion(esi);
+								if(re==-1)
+								{
+									puts("Se desconecto el esi pero entramos a un caso especial");
+									//fallo el send por lo tanto desconectamos el esi.
+									//queue_pop(ejecucion);
+								}
 								printf("ejecuta el esi:%d \n",esi->id);
 								enviarConfirmacion=0;
 								recibi=1;
@@ -421,7 +429,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 									ordenarEsis(ready);
 								esi = queue_pop(ready);
 								re=0;
-								enviarConfirmacion=1;
+								enviarConfirmacion=1;	
 								printf("Id del esi a buscar:%d \n",esi->id);
 								printf("esi de id %d cambiado de cola con espera de: %d \n",esi->id,esi->espera);
 								estimacionHRRN(esi);
@@ -456,7 +464,24 @@ void ordenarEsis(t_queue *cola)
 		{
 			bool HrrnComp(t_esi *esi1,t_esi *esi2)
 			{
-				return esi2->responseRatio <= esi1->responseRatio;
+				printf("Comparando el rr %f del esi %d con el rr %f del esi %d \n",esi1->responseRatio,esi1->id,esi2->responseRatio,esi2->id);
+				if(esi1->responseRatio==esi2->responseRatio)
+				{
+					puts("DEBUG: RR IGUAL");
+					if(esi2->exe==1)
+					{
+						printf("Esi de id %d estaba en ejec antes \n",esi1->id);
+						return false;
+					}
+					else
+
+						return true;
+				}
+				else
+				{
+					return esi1->responseRatio>esi2->responseRatio;
+				}
+				//return esi1->responseRatio>=esi2->responseRatio;
 			}
 			list_sort(cola->elements,(void *)HrrnComp);
 
@@ -492,8 +517,8 @@ void ordenarEsis(t_queue *cola)
 	    if (send(esi->fd, confirmacion , sizeof(confirmacion), 0) <= 0){
 		   printf("Error al enviar ejecucion al ESI (%d) a direccion (%d) \n ",esi->id, esi->fd);
 		   perror("Send");
-
-		   exit(1);
+		   return -1;
+		   //exit(1);
 	    }
 	   puts("Se envió confirmacion");
 	   return EXIT_SUCCESS;
@@ -709,7 +734,7 @@ void ordenarEsis(t_queue *cola)
 			   perror("Send");
 		   }
 		   printf("Se envió header de STATUS  %d \n",solicitud->solicitud);
-		   	puts("Envio la clave desbloqueada");
+		   
 
 		   if (send(sockCord, clave, TAMANIO_CLAVE, 0) == -1){
 			   puts("Error al enviar una clave");
@@ -1107,7 +1132,7 @@ int recibirResultadoDelEsi(int sockfd, tResultado * resultado){
 			
 			esi->espera=(esi->espera)+1;
 			printf("Esi de id: %d con espera actual de: %d \n",esi->id,esi->espera);
-			//return esi;
+			return esi;
 		}
 		puts("Voy a mapear ready");
 		if(queue_is_empty(cola)==0){

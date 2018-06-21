@@ -1534,7 +1534,9 @@
     		printf("ESI: La instancia %d no posee la clave \n",parametros->pid);
     		return false;
     	}
+		puts("DEBUG: Voy a retornar la instancia buscada en la lista");
     	return list_find(colaInstancias,(void*) lePerteneceLaClave);
+		
     }
 
     parametrosConexion* BuscarInstanciaMenosUsada(){
@@ -1729,14 +1731,16 @@
 			}
 		}
 		else{
+			puts("DEBUG: Voy a buscar la instnacia");
 			instancia = BuscarInstanciaQuePoseeLaClave(clave);
-			printf("ESI: La Instancia %s tiene el flag conectada en %d \n",instancia->nombreProceso,instancia->conectada);
+			puts("DEBUG: Encontre la instancia");
+			//printf("ESI: La Instancia %s tiene el flag conectada en %d \n",instancia->nombreProceso,instancia->conectada);
 
 			if ((instancia == NULL) || (instancia->conectada != 1)){ //Hay que ver si devuelve NULL, esto es en caso de que se desconecte la instancia
 				puts("ESI: Se desconecto la instancia");
 				return ERROR;
 			}
-
+			puts("DEBUG: la instancia no es nula");
 			printf("ESI: Semaforo de list_get en direccion: %p\n", (void*)&(instancia->semaforo));
 			//list_remove_and_destroy_element(colaInstancias, 0,(void*)destruirInstancia);
 			puts("ESI: Voy a hacer el sem_post a la Instancia seleccionada \n");
