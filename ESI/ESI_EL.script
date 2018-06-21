@@ -1,0 +1,13 @@
+GET futbol:messi
+SET futbol:messi TraemeLaCopa
+STORE futbol:messi
+GET peppa
+SET peppa pig
+STORE peppa
+GET futbol:ansaldi
+SET futbol:ansaldi TraeVodka
+STORE futbol:ansaldi
+GET sapo
+SET sapo pepe
+STORE sapo
+

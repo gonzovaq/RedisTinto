@@ -1,11 +1,79 @@
-GET jugador
-SET jugador letra10
-GET ganzo
-SET ganzo letra7
-GET nadie
-SET nadie letra14
-GET zeta ultimaLetra 
-STORE jugador
-STORE ganzo
-STORE nadie
-STORE zeta
+GET a
+GET b
+GET c
+GET d
+GET e
+GET f
+GET g
+GET h
+GET i
+GET j
+GET k
+GET l
+GET m
+GET n
+GET o
+GET p
+GET q
+GET r
+GET s
+GET t
+GET u
+GET v
+GET w
+GET x
+GET y
+GET Z
+SET a 1
+SET b 2
+SET c 3
+SET d 4
+SET e 5
+SET f 6
+SET g 7
+SET h 8
+SET i 9
+SET j 10
+SET k 11
+SET l 12
+SET m 13
+SET n 14
+SET o 15
+SET p 16
+SET q 17
+SET r 18
+SET s 19
+SET t 20
+SET u 21
+SET v 22
+SET w 23
+SET x 24
+SET y 25
+SET z 26
+STORE a
+STORE b
+STORE c
+STORE d
+STORE e
+STORE f
+STORE g
+STORE h
+STORE i
+STORE j
+STORE k
+STORE l
+STORE m
+STORE n
+STORE o
+STORE p
+STORE q
+STORE r
+STORE s
+STORE t
+STORE u
+STORE v
+STORE w
+STORE x
+STORE y
+STORE z
+
