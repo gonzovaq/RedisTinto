@@ -491,10 +491,16 @@
 			clave[TAMANIO_CLAVE-1] = '\0';
 			printf("Planificador: Agrego la clave %s a la cola de bloqueadas \n", clave);
 
+			/*
+			tBloqueo *bloqueo = malloc(sizeof(tBloqueo));
+			strcpy(bloqueo->clave,clave);
+			bloqueo->pid = parametros->pid;
+			*/
+
 			char* claveCopia = malloc(strlen(clave)+1);
 			strcpy(claveCopia,clave);
 			pthread_mutex_lock(&mutex);
-			list_add(clavesTomadas, (char *)claveCopia);
+			list_add(clavesTomadas, claveCopia);
 			pthread_mutex_unlock(&mutex);
 		}
 		free(clave);
@@ -542,6 +548,11 @@
 
 				}
 				else{
+					/*
+					tBloqueo *bloqueo = malloc(sizeof(tBloqueo));
+					strcpy(bloqueo->clave,clave);
+					bloqueo->pid = parametros->pid;
+					*/
 					char* claveCopia = malloc(strlen(clave)+1);
 					strcpy(claveCopia,clave);
 					printf("Planificador: voy a agregar a las bloqueadas a la clave %s \n",claveCopia);
@@ -1107,9 +1118,10 @@
 		strcpy(CLAVE,clave);
 
 		puts("ESI: Verifico en los ESIS si alguno tiene la clave");
-		if (((!list_is_empty(listaBloqueos)) && EncontrarEnLista(listaBloqueos, &clave))){
+		if (((!list_is_empty(listaBloqueos)) && EncontrarEnESIDistinto(listaBloqueos, &clave, parametros))){
 			puts("ESI: La clave esta bloqueada por un ESI");
 
+			return BLOQUEO;
 			/* No es necesario avisarle el bloqueo porque se lo esta avisando el ESI
 			notificacion->tipoNotificacion=BLOQUEO;
 			strcpy(notificacion->clave,clave);
@@ -1118,7 +1130,7 @@
 			sem_post(planificador->semaforo);
 			puts("ESI: Ya le avise al planificador que se bloqueo la clave");
 			*/
-			return BLOQUEO;
+
 		} // ACA HAY QUE AVISARLE AL PLANIFICDOR DEL BLOQUEO PARA QUE FRENE AL ESI
 
 		puts("ESI: Verifico en las claves bloqueadas por el planificador");
@@ -1127,13 +1139,20 @@
 			return BLOQUEO;
 		}
 
-		//list_add(clavesTomadas,&clave);
-		char * claveCopia1 = malloc(strlen(clave)+1);
+		/*
+		tBloqueo *bloqueo2 = malloc(sizeof(tBloqueo));
+		strcpy(bloqueo2->clave,clave);
+		bloqueo2->pid = parametros->pid;
+		list_add(clavesTomadas,(void *)bloqueo2);
+		*/
+
+
+		//char * claveCopia1 = malloc(strlen(clave)+1);
 		char * claveCopia2 = malloc(strlen(clave)+1);
-		strcpy(claveCopia1,clave);
+		//strcpy(claveCopia1,clave);
 		strcpy(claveCopia2,clave);
 		pthread_mutex_lock(&mutex);
-		list_add(clavesTomadas,claveCopia1);
+		//list_add(clavesTomadas,claveCopia1);
 		list_add(parametros->claves,claveCopia2);
 		pthread_mutex_unlock(&mutex);
 
@@ -1456,7 +1475,7 @@
        log_destroy(logger);
        // list_clean_and_destroy_elements(colaInstancias,(void *)destruirInstancia); // TIRA DOUBLE FREE CORRUPTION
        puts("Destruyo operacion a enviar");
-       list_clean_and_destroy_elements(colaMensajes,(void *)destruirOperacionAEnviar);
+       //list_clean_and_destroy_elements(colaMensajes,(void *)destruirOperacionAEnviar);
        puts("Destruyo resultado");
        list_clean_and_destroy_elements(colaResultados,(void *)destruirResultado);
        // list_clean_and_destroy_elements(colaESIS,(void *)destruirInstancia);// TIRA DOUBLE FREE CORRUPTION (hay que adaptar a ESIS)
@@ -1482,14 +1501,27 @@
       return EXIT_SUCCESS;
      }
 
-    bool EncontrarEnLista(t_list * lista, char * claveABuscar){
+    bool EncontrarEnESIDistinto(t_list * lista, char * claveABuscar, parametrosConexion * parametros){
 		bool yaExisteLaClave(tBloqueo *bloqueo) {
 			printf("ESI: Claves Tomadas -- Comparando la clave %s con %s \n",claveABuscar, bloqueo->clave);
-			if (string_equals_ignore_case(bloqueo->clave,claveABuscar) == true){
+			if ((string_equals_ignore_case(bloqueo->clave,claveABuscar) == true) && (bloqueo->pid != parametros->pid)){
 				puts("ESI: Las claves son iguales");
 				return true;
 			}
-			puts("ESI: Las claves son distintas");
+			puts("ESI: Las claves son distintas o el ESI ya tiene la clave");
+			return false;
+		}
+		return list_any_satisfy(lista,(void*) yaExisteLaClave);
+    }
+
+    bool EncontrarEnLista(t_list * lista, char * claveABuscar){
+		bool yaExisteLaClave(char *clave) {
+			printf("ESI: Claves Tomadas -- Comparando la clave %s con %s \n",claveABuscar, clave);
+			if ((string_equals_ignore_case(clave,claveABuscar) == true)){
+				puts("ESI: Las claves son iguales");
+				return true;
+			}
+			puts("ESI: Las claves son distintas o el ESI ya tiene la clave");
 			return false;
 		}
 		return list_any_satisfy(lista,(void*) yaExisteLaClave);
@@ -1702,7 +1734,7 @@
 				while(conectada){
 
 				bool NoEstaConectada(parametrosConexion * parametros){
-					printf("ESI: La instancia %s con pid %d tiene el flag conectada en %d",parametros->nombreProceso,parametros->pid,parametros->conectada);
+					printf("ESI: La instancia %s con pid %d tiene el flag conectada en %d \n",parametros->nombreProceso,parametros->pid,parametros->conectada);
 					return parametros->conectada != 1;
 				}
 

@@ -283,6 +283,7 @@ int BuscarClaveEnInstanciaYEnviar(char * clave);
 bool EstaConectada(parametrosConexion * instancia);
 bool EncontrarClaveEnClavesBloqueadas(t_list * lista, char * claveABuscar);
 bool laClaveTuvoUnGETPrevio(char * clave,parametrosConexion * parametros);
+bool EncontrarEnESIDistinto(t_list * lista, char * claveABuscar, parametrosConexion * parametros);
 
 static void destruirResultado(tResultado * resultado);
 static void destruirOperacionAEnviar(OperacionAEnviar * operacion);
