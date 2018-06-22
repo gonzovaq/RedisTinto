@@ -1,0 +1,12 @@
+GET pruebaLSU1
+SET pruebaLSU1 123456789123456
+GET pruebaLSU2
+SET pruebaLSU2 1234
+GET pruebaLSU3
+SET pruebaLSU3 5678
+GET pruebaLSU4
+SET pruebaLSU4 910
+STORE pruebaLSU1
+STORE pruebaLSU2
+STORE pruebaLSU3
+STORE pruebaLSU4
