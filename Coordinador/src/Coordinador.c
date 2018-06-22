@@ -124,7 +124,8 @@
 
     	            int entradasUsadas = 0;
 
-    				parametrosConexion parametros;//parametrosConexion parametros = {new_fd,malloc(sizeof(sem_t)),nombreProceso,ENTRADAS,entradasUsadas};
+    				parametrosConexion parametros;
+    				//parametrosConexion parametros = {new_fd,malloc(sizeof(sem_t)),nombreProceso,ENTRADAS,entradasUsadas};
     				parametros.new_fd = new_fd;
     				strcpy(parametros.nombreProceso,nombreProceso);
     				parametros.cantidadEntradasMaximas = ENTRADAS;
@@ -133,7 +134,8 @@
     				parametros.pid = 0;
 
     				printf("Socket %d \n",new_fd);
-    	            int stat = pthread_create(&tid, NULL, (void*)gestionarConexion, (void*)&parametros);//(void*)&parametros -> parametros contendria todos los parametros que usa conexion
+    	            int stat = pthread_create(&tid, NULL, (void*)gestionarConexion, (void*)&parametros);
+    	            //(void*)&parametros -> parametros contendria todos los parametros que usa conexion
     				if (stat != 0){
     					puts("error al generar el hilo");
     					perror("thread");
@@ -223,7 +225,8 @@
     		free(semaforoPlanif);
     		break;
     	case INSTANCIA:
-    		printf("Instancia: Se conecto el proceso %d con nombre %s \n", parametros->pid ,headerRecibido->nombreProceso);
+    		printf("Instancia: Se conecto el proceso %d con nombre %s \n", parametros->pid ,
+    				headerRecibido->nombreProceso);
     		printf("Instancia: Socket de la instancia: %d\n", parametros->new_fd);
 
     		sem_t * semaforoCompactacion= malloc(sizeof(sem_t));
@@ -270,7 +273,8 @@
 
     int BuscarSiLaInstanciaSeEstaReincorporando(parametrosConexion * parametros){
     	bool EsLaInstanciaDesconectada(parametrosConexion * parametrosAComparar){
-    		printf("Instancia: Comparo instancia %s, con %s \n",parametros->nombreProceso,parametrosAComparar->nombreProceso);
+    		printf("Instancia: Comparo instancia %s, con %s \n",
+    				parametros->nombreProceso,parametrosAComparar->nombreProceso);
     		if(string_equals_ignore_case(parametros->nombreProceso,parametrosAComparar->nombreProceso) == true){
 
     						puts("Instancia: La Instancia se esta reincorporando");
@@ -465,7 +469,8 @@
         	puts("Planificador: Espero a que me avisen!");
         	sem_wait(planificador->semaforo); // Me van a avisar si se produce algun bloqueo
         	puts("Planificador: Hay algo para avisarle al planificador");
-        	printf("Planificador: Te voy a enviar la notificacion: %d a la clave: %s\n",notificacion->tipoNotificacion,notificacion->clave);
+        	printf("Planificador: Te voy a enviar la notificacion: %d a la clave: %s\n",
+        			notificacion->tipoNotificacion,notificacion->clave);
         	//tNotificacionPlanificador* resultado = list_remove(colaMensajesParaPlanificador, 0);
         	if (send(parametros->new_fd,notificacion,sizeof(tNotificacionPlanificador),0) <= 0){
         		puts("Planificador: Fallo al enviar mensaje al planificador");
@@ -515,7 +520,8 @@
     		return -1;
     	}
 
-    	printf("Planificador: Tengo %d claves inicialmente bloqueadas \n",clavesBloqueadas->cantidadClavesBloqueadas);
+    	printf("Planificador: Tengo %d claves inicialmente bloqueadas \n",
+    			clavesBloqueadas->cantidadClavesBloqueadas);
 
     	for(int i = 0; i <clavesBloqueadas->cantidadClavesBloqueadas; i++){
     		AgregarClaveBloqueada(parametros);
@@ -572,9 +578,11 @@
 				}
 				else{
 					printf("Planificador: voy a remover de las bloqueadas a la clave %s \n",clave);
-					printf("Planificador: Size de la lista clavesTomadas antes de remover: %d\n", list_size(clavesTomadas));
+					printf("Planificador: Size de la lista clavesTomadas antes de remover: %d\n",
+							list_size(clavesTomadas));
 					RemoverClaveDeClavesTomadas(clave);//Aca habia un &clave, pruebo sacandoselo
-					printf("Planificador: Size de la lista clavesTomadas despues de remover: %d\n", list_size(clavesTomadas));
+					printf("Planificador: Size de la lista clavesTomadas despues de remover: %d\n",
+							list_size(clavesTomadas));
 				break;
 				}
 			case KILL:
@@ -672,7 +680,8 @@
 
 			tOperacionInstanciaStruct * operacionInstancia = malloc(sizeof(tOperacionInstanciaStruct));
 			operacionInstancia->operacion= SOLICITAR_VALOR;
-			if ((send(instancia->new_fd, operacionInstancia, sizeof(tOperacionInstanciaStruct), 0)) // Le informamos que quiero hacer!
+			if ((send(instancia->new_fd, operacionInstancia, sizeof(tOperacionInstanciaStruct), 0))
+					// Le informamos que quiero hacer!
 							<= 0) {
 						puts("Instancia: Fallo al enviar el tipo de operacion");
 						perror("send");
@@ -858,7 +867,8 @@
 			return false;
 		}
 		pthread_mutex_lock(&mutex);
-		list_remove_and_destroy_by_condition(parametros->claves,(void*)compararClaveParaDesbloquear,(void*)borrarClave);
+		list_remove_and_destroy_by_condition(parametros->claves,(void*)compararClaveParaDesbloquear,
+				(void*)borrarClave);
 		pthread_mutex_unlock(&mutex);
 
 
@@ -909,17 +919,29 @@
 			puts("Instancia: Hago un sem_wait");
 
 			printf("Semaforo en direccion: %p\n", (void*)&(parametros->semaforo));
-			sem_wait(parametros->semaforo); // Caundo me avisen que hay una operacion para enviar, la voy a levantar de la cola
+
+			int valorSemaforo;
+			sem_getvalue(parametros->semaforo,&valorSemaforo);
+			printf("ESI: El valor del semaforo ahora es %d \n",valorSemaforo);
+
+			sem_wait(parametros->semaforo);
+			// Caundo me avisen que hay una operacion para enviar, la voy a levantar de la cola
+
 			printf("Instancia: Me hicieron un sem_post y tengo de id %d \n",parametros->pid);
+
 			sem_wait(&semaforoInstancia);
+
 			DeboRecibir = 1;
+
 			printf("Instancia: Accedi a la seccion de operacion con id %d \n",parametros->pid);
+
 			OperacionAEnviar * operacion = list_remove(colaMensajes,0); //hay que borrar esa operacion
 
 
 			tOperacionInstanciaStruct * operacionInstancia = malloc(sizeof(tOperacionInstanciaStruct));
 			operacionInstancia->operacion = OPERAR;
-			if ((send(parametros->new_fd, operacionInstancia, sizeof(tOperacionInstanciaStruct), 0)) // Le informamos que quiero hacer!
+			if ((send(parametros->new_fd, operacionInstancia, sizeof(tOperacionInstanciaStruct), 0))
+					// Le informamos que quiero hacer!
 							<= 0) {
 						puts("Instancia: Fallo al enviar el tipo de operacion");
 						perror("send");
@@ -971,7 +993,8 @@
 				printf("Instancia: el tamanioValor es %d \n",tamanioValor);
 				tTipoOperacion tipo = operacion->tipo;
 				puts("Instancia: hago malloc de OperacionTHeader");
-				OperaciontHeader * header = malloc(sizeof(OperaciontHeader));  // Creo el header que le voy a enviar a la instancia para que identifique la operacion
+				OperaciontHeader * header = malloc(sizeof(OperaciontHeader));
+				// Creo el header que le voy a enviar a la instancia para que identifique la operacion
 				header->tipo = tipo;
 				header->tamanioValor = tamanioValor;
 
@@ -1005,7 +1028,8 @@
 					return OK;
 				}
 
-				printf("Instancia: recibi el resultado de la instancia y tiene %d entradas usadas\n",buffer->entradasUsadas);
+				printf("Instancia: recibi el resultado de la instancia y tiene %d entradas usadas\n",
+						buffer->entradasUsadas);
 
 				parametros->entradasUsadas = buffer->entradasUsadas;
 
@@ -1024,7 +1048,8 @@
 					void DestruirClaveDeInstancia(char * clave){
 						free(clave);
 					}
-					list_remove_and_destroy_by_condition(parametros->claves,(void *)CompararClaves,(void *)DestruirClaveDeInstancia);
+					list_remove_and_destroy_by_condition(parametros->claves,
+					(void *)CompararClaves,(void *)DestruirClaveDeInstancia);
 				}
 				*/
 				void ImprimirTodasMisClaves(char * clave){
@@ -1040,7 +1065,8 @@
 
 			}
 			else{
-				OperaciontHeader * headerGET = malloc(sizeof(OperaciontHeader));  // Creo el header que le voy a enviar a la instancia para que identifique la operacion
+				OperaciontHeader * headerGET = malloc(sizeof(OperaciontHeader));
+				// Creo el header que le voy a enviar a la instancia para que identifique la operacion
 				headerGET->tipo = operacion->tipo;
 				headerGET->tamanioValor = 0;
 
@@ -1812,29 +1838,50 @@
 		parametrosConexion* instanciaMenosUsada;
 
 		if(OPERACION_ACTUAL == OPERACION_GET){
-			instanciaMenosUsada = BuscarInstanciaMenosUsada(); // Va a buscar la instancia que menos entradas tenga, desempata con fifo
+			//instanciaMenosUsada = BuscarInstanciaMenosUsada(); // Va a buscar la instancia que menos entradas tenga, desempata con fifo
 
-			if(instanciaMenosUsada->conectada != 1){
+	    	int tamanioLista = list_size(colaInstancias);
+
+	    	parametrosConexion* instancia = list_get(colaInstancias,0);
+	    	for (int i = 0; i< tamanioLista; i++){
+	    		parametrosConexion* instanciaAComparar = malloc(sizeof(parametrosConexion));
+	    		instanciaAComparar = list_get(colaInstancias,i);
+	        	if (instancia->conectada == 0){
+	        		printf("ESI: La Instancia %s con pid %d se encuentra desconectada \n",
+	        				instancia->nombreProceso,instancia->pid);
+	        		instancia = instanciaAComparar;
+	        	}
+	        	if (instancia->entradasUsadas > instanciaAComparar->entradasUsadas &&
+	        			instanciaAComparar->conectada == 1)
+	        		instancia = instanciaAComparar;
+	    		free(instanciaAComparar);
+	    	}
+
+			if(instancia->conectada != 1){
 				puts("ESI: Ups, No hay instancias conectadas");
 				return 2;
 			}
 
-			printf("ESI: Agrego la clave %s a la instancia %d \n",clave,instanciaMenosUsada->pid);
+			printf("ESI: Agrego la clave %s a la instancia %d \n",clave,instancia->pid);
 			char * claveCopia = malloc(TAMANIO_CLAVE);
 			strcpy(claveCopia,clave);
-			printf("ESI: Agrego la copia clave %s a la instancia %d con semaforo en direccion %p\n",claveCopia,instanciaMenosUsada->pid,(void*)&(instanciaMenosUsada->semaforo));
-			sem_post(instanciaMenosUsada->semaforo);
+			printf("ESI: Agrego la copia clave %s a la instancia %s con pid %d con semaforo en direccion %p\n",
+					claveCopia,instancia->nombreProceso, instancia->pid,(void*)&(instancia->semaforo));
+			sem_post(instancia->semaforo);
 			int valorSemaforo;
-			sem_getvalue(instanciaMenosUsada->semaforo,&valorSemaforo);
+			sem_getvalue(instancia->semaforo,&valorSemaforo);
 			printf("ESI: El valor del semaforo ahora es %d \n",valorSemaforo);
-			list_add(instanciaMenosUsada->claves,claveCopia);
+			list_add(instancia->claves,claveCopia);
+
+	    	MandarAlFinalDeLaLista(colaInstancias, instancia);
 
 			return OK;
 		}
 		else{
 			instanciaMenosUsada = BuscarInstanciaQuePoseeLaClave(clave);
 
-			if (instanciaMenosUsada == NULL || instanciaMenosUsada->conectada != 1){ //Hay que ver si devuelve NULL, esto es en caso de que se desconecte la instancia
+			if (instanciaMenosUsada == NULL || instanciaMenosUsada->conectada != 1){
+				//Hay que ver si devuelve NULL, esto es en caso de que se desconecte la instancia
 				puts("ESI: Se desconecto la instancia");
 				return ERROR;
 			}
@@ -1864,7 +1911,8 @@
 			int cantidadInstancias = list_size(listaFiltrada);
 			char primerCaracter = clave[0];
 			int x = 0;
-			while ((clave[x] < 97 && clave[x] > 122) && (clave[x] < 65 && clave[x] > 90)){ // Busco el primer caracter en minuscula/mayuscula
+			while ((clave[x] < 97 && clave[x] > 122) && (clave[x] < 65 && clave[x] > 90)){
+				// Busco el primer caracter en minuscula/mayuscula
 				primerCaracter = clave[x];
 				x++;
 			}
@@ -1881,18 +1929,22 @@
 			}
 
 			for (int i = 0; i < cantidadInstancias; i++){
-				if (i!= cantidadInstancias - 1 && restoRango == 0){    // Si no es la ultima instancia debo redondear hacia arriba
+				if (i!= cantidadInstancias - 1 && restoRango == 0){
+					// Si no es la ultima instancia debo redondear hacia arriba
 						if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + rango)){
 							instancia = list_get(listaFiltrada, i);
 							//sem_post(instancia->semaforo);
 						}
 					}
-					else if (i!= cantidadInstancias - 1 && restoRango != 0){ // si es la ultima instancia debo recalcular y ver cuantas entradas puedo aceptar
-						if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + rango + 1)){
+					else if (i!= cantidadInstancias - 1 && restoRango != 0){
+						// si es la ultima instancia debo recalcular y ver cuantas entradas puedo aceptar
+						if(posicionLetraEnASCII >= (i * rango) &&
+								posicionLetraEnASCII <= ((i * rango) + rango + 1)){
 							instancia = list_get(listaFiltrada, i);
 							//sem_post(instancia->semaforo);
 						}else{
-							if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + entradasUltimaInstancia)){
+							if(posicionLetraEnASCII >= (i * rango) &&
+									posicionLetraEnASCII <= ((i * rango) + entradasUltimaInstancia)){
 								instancia = list_get(listaFiltrada, i);
 								//sem_post(instancia->semaforo);
 						}
@@ -1909,7 +1961,8 @@
 		else {
 			instancia = BuscarInstanciaQuePoseeLaClave(clave);
 
-			if (instancia == NULL || instancia->conectada != 1){ //Hay que ver si devuelve NULL, esto es en caso de que se desconecte la instancia
+			if (instancia == NULL || instancia->conectada != 1){
+				//Hay que ver si devuelve NULL, esto es en caso de que se desconecte la instancia
 				puts("ESI: Se desconecto la instancia");
 				return ERROR;
 			}
@@ -1984,7 +2037,8 @@
 
 
     char * SimulacionSeleccionarPorEquitativeLoad(char* clave) {
-    		// mientras la cola este vacia no puedo continuarpthread_mutex_lock(&mutex); // Para que nadie mas me pise lo que estoy trabajando en la cola
+    		// mientras la cola este vacia no puedo continuarpthread_mutex_lock(&mutex);
+    	// Para que nadie mas me pise lo que estoy trabajando en la cola
     		parametrosConexion * instancia;
 
     		int cantidadInstancias = list_size(colaInstancias);
@@ -2000,7 +2054,8 @@
 			if(instancia == NULL)
 				return NULL;
 
-			printf("Planificador: El nombre de la Instancia que tendria el planificador es %s \n",instancia->nombreProceso);
+			printf("Planificador: El nombre de la Instancia que tendria el planificador es %s \n",
+					instancia->nombreProceso);
 
 			return instancia->nombreProceso;
 
@@ -2009,12 +2064,14 @@
     	char * SimulacionSeleccionarPorLeastSpaceUsed(char * clave){
     		parametrosConexion* instanciaMenosUsada;
 
-			instanciaMenosUsada = BuscarInstanciaMenosUsada(clave); // Va a buscar la instancia que menos entradas tenga, desempata con fifo
+			instanciaMenosUsada = BuscarInstanciaMenosUsada(clave);
+			// Va a buscar la instancia que menos entradas tenga, desempata con fifo
 
 			if (instanciaMenosUsada == NULL)
 				return NULL;
 
-			printf("Planificador: El nombre de la Instancia que tendria el planificador es %s \n",instanciaMenosUsada->nombreProceso);
+			printf("Planificador: El nombre de la Instancia que tendria el planificador es %s \n",
+					instanciaMenosUsada->nombreProceso);
 
 			return instanciaMenosUsada->nombreProceso;
     	}
@@ -2028,7 +2085,8 @@
 			int cantidadInstancias = list_size(listaFiltrada);
 			char primerCaracter = clave[0];
 			int x = 0;
-			while ((clave[x] < 97 && clave[x] > 122) && (clave[x] < 65 && clave[x] > 90)){ // Busco el primer caracter en minuscula/mayuscula
+			while ((clave[x] < 97 && clave[x] > 122) && (clave[x] < 65 && clave[x] > 90)){
+				// Busco el primer caracter en minuscula/mayuscula
 				primerCaracter = clave[x];
 				x++;
 			}
@@ -2045,18 +2103,22 @@
 			}
 
 			for (int i = 0; i < cantidadInstancias; i++){
-				if (i!= cantidadInstancias - 1 && restoRango == 0){    // Si no es la ultima instancia debo redondear hacia arriba
+				if (i!= cantidadInstancias - 1 && restoRango == 0){
+					// Si no es la ultima instancia debo redondear hacia arriba
 						if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + rango)){
 							instancia = list_get(listaFiltrada, i);
 							//sem_post(instancia->semaforo);
 						}
 					}
-					else if (i!= cantidadInstancias - 1 && restoRango != 0){ // si es la ultima instancia debo recalcular y ver cuantas entradas puedo aceptar
-						if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + rango + 1)){
+					else if (i!= cantidadInstancias - 1 && restoRango != 0){
+						// si es la ultima instancia debo recalcular y ver cuantas entradas puedo aceptar
+						if(posicionLetraEnASCII >= (i * rango) &&
+								posicionLetraEnASCII <= ((i * rango) + rango + 1)){
 							instancia = list_get(listaFiltrada, i);
 							//sem_post(instancia->semaforo);
 						}else{
-							if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + entradasUltimaInstancia)){
+							if(posicionLetraEnASCII >= (i * rango) &&
+									posicionLetraEnASCII <= ((i * rango) + entradasUltimaInstancia)){
 								instancia = list_get(listaFiltrada, i);
 								//sem_post(instancia->semaforo);
 						}
@@ -2067,7 +2129,8 @@
 			if(instancia == NULL)
 				return NULL;
 
-			printf("Planificador: El nombre de la Instancia que tendria el planificador es %s \n",instancia->nombreProceso);
+			printf("Planificador: El nombre de la Instancia que tendria el planificador es %s \n",
+					instancia->nombreProceso);
 
 			return instancia->nombreProceso;
     	}
@@ -2087,7 +2150,8 @@
         		}
         	}
 
-    		list_remove_and_destroy_by_condition(instancia->claves,(void *)EsLaClaveDeLaInstancia, (void*) borrarClave);
+    		list_remove_and_destroy_by_condition(instancia->claves,
+    				(void *)EsLaClaveDeLaInstancia, (void*) borrarClave);
 
     		return EXIT_SUCCESS;
     	}
