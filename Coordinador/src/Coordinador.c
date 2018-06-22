@@ -1844,7 +1844,7 @@
 
 	    	parametrosConexion* instancia = list_get(colaInstancias,0);
 	    	for (int i = 0; i< tamanioLista; i++){
-	    		parametrosConexion* instanciaAComparar = malloc(sizeof(parametrosConexion));
+	    		parametrosConexion* instanciaAComparar;
 	    		instanciaAComparar = list_get(colaInstancias,i);
 	        	if (instancia->conectada == 0){
 	        		printf("ESI: La Instancia %s con pid %d se encuentra desconectada \n",
@@ -1854,7 +1854,7 @@
 	        	if (instancia->entradasUsadas > instanciaAComparar->entradasUsadas &&
 	        			instanciaAComparar->conectada == 1)
 	        		instancia = instanciaAComparar;
-	    		free(instanciaAComparar);
+
 	    	}
 
 			if(instancia->conectada != 1){
