@@ -1005,7 +1005,7 @@
 					return OK;
 				}
 
-				puts("Instancia: recibi el resultado de la instancia");
+				printf("Instancia: recibi el resultado de la instancia y tiene %d entradas usadas\n",buffer->entradasUsadas);
 
 				parametros->entradasUsadas = buffer->entradasUsadas;
 
@@ -1364,7 +1364,7 @@
 
 		puts("ESI: Voy a seleccionar la Instancia");
 		int seleccionInstancia = SeleccionarInstancia(&CLAVE);
-		puts("ESI: Se selecciono la Instancia");
+		printf("ESI: Se selecciono la Instancia y el resultado fue %d \n", seleccionInstancia);
 
 		if(seleccionInstancia == ERROR){
 			tResultado* resultadoError = malloc(sizeof(tResultado));
@@ -1584,15 +1584,17 @@
     	parametrosConexion* instancia = list_get(colaInstancias,0);
     	for (int i = 0; i< tamanioLista; i++){
     		parametrosConexion* instanciaAComparar = malloc(sizeof(parametrosConexion));
-        	instancia = list_get(colaInstancias,i);
-        	if (instancia->conectada == 0)
+    		instanciaAComparar = list_get(colaInstancias,i);
+        	if (instancia->conectada == 0){
+        		printf("ESI: La Instancia %s con pid %d se encuentra desconectada \n", instancia->nombreProceso,instancia->pid);
         		instancia = instanciaAComparar;
+        	}
         	if (instancia->entradasUsadas > instanciaAComparar->entradasUsadas && instanciaAComparar->conectada == 1)
         		instancia = instanciaAComparar;
     		free(instanciaAComparar);
     	}
 
-    	MandarAlFinalDeLaLista(colaInstancias, &instancia);
+    	MandarAlFinalDeLaLista(colaInstancias, instancia);
     	return instancia;
     }
 
@@ -1810,13 +1812,24 @@
 		parametrosConexion* instanciaMenosUsada;
 
 		if(OPERACION_ACTUAL == OPERACION_GET){
-			instanciaMenosUsada = BuscarInstanciaMenosUsada(clave); // Va a buscar la instancia que menos entradas tenga, desempata con fifo
+			instanciaMenosUsada = BuscarInstanciaMenosUsada(); // Va a buscar la instancia que menos entradas tenga, desempata con fifo
+
+			if(instanciaMenosUsada->conectada != 1){
+				puts("ESI: Ups, No hay instancias conectadas");
+				return 2;
+			}
+
 			printf("ESI: Agrego la clave %s a la instancia %d \n",clave,instanciaMenosUsada->pid);
 			char * claveCopia = malloc(TAMANIO_CLAVE);
 			strcpy(claveCopia,clave);
-			printf("ESI: Agrego la copia clave %s a la instancia %d \n",claveCopia,instanciaMenosUsada->pid);
+			printf("ESI: Agrego la copia clave %s a la instancia %d con semaforo en direccion %p\n",claveCopia,instanciaMenosUsada->pid,(void*)&(instanciaMenosUsada->semaforo));
 			sem_post(instanciaMenosUsada->semaforo);
+			int valorSemaforo;
+			sem_getvalue(instanciaMenosUsada->semaforo,&valorSemaforo);
+			printf("ESI: El valor del semaforo ahora es %d \n",valorSemaforo);
 			list_add(instanciaMenosUsada->claves,claveCopia);
+
+			return OK;
 		}
 		else{
 			instanciaMenosUsada = BuscarInstanciaQuePoseeLaClave(clave);
