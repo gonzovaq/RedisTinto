@@ -372,7 +372,8 @@
 				puts("ESI: El analizar operacion anduvo");
 
 				free(header);
-				sleep(RETARDO/100);
+				if (RETARDO != 0)
+					sleep(RETARDO/100);
 
 				//Debo avisar a una Instancia cuando recibo una operacion (QUE NO SEA UN GET)
 				//Agregamos el mensaje a una cola en memoria
@@ -1912,6 +1913,7 @@
 			listaFiltrada = list_filter(colaInstancias,(void*)EstaConectada);
 
 			int cantidadInstancias = list_size(listaFiltrada);
+			printf("ESI: Tengo %d instancias para distribuir con KE \n",cantidadInstancias);
 			char primerCaracter = clave[0];
 			int x = 0;
 			while ((clave[x] < 97 && clave[x] > 122) && (clave[x] < 65 && clave[x] > 90)){
@@ -1927,33 +1929,64 @@
 			int rango = KEYS_POSIBLES/cantidadInstancias;
 			int restoRango = KEYS_POSIBLES%cantidadInstancias;
 			int entradasUltimaInstancia;
+
+			printf("ESI: El rango es %d  con un resto de %d \n",rango,restoRango);
+
 			if (restoRango !=0){
 				entradasUltimaInstancia = KEYS_POSIBLES - ((cantidadInstancias-1) * (rango + 1));
+			}else
+			{
+				entradasUltimaInstancia = KEYS_POSIBLES- ((cantidadInstancias-1) * (rango));
 			}
+			printf("ESI: La ultima instancia va a tener %d entradas\n",entradasUltimaInstancia);
 
 			for (int i = 0; i < cantidadInstancias; i++){
-				if (i!= cantidadInstancias - 1 && restoRango == 0){
-					// Si no es la ultima instancia debo redondear hacia arriba
-						if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + rango)){
-							instancia = list_get(listaFiltrada, i);
-							//sem_post(instancia->semaforo);
-						}
-					}
-					else if (i!= cantidadInstancias - 1 && restoRango != 0){
-						// si es la ultima instancia debo recalcular y ver cuantas entradas puedo aceptar
-						if(posicionLetraEnASCII >= (i * rango) &&
-								posicionLetraEnASCII <= ((i * rango) + rango + 1)){
-							instancia = list_get(listaFiltrada, i);
-							//sem_post(instancia->semaforo);
-						}else{
-							if(posicionLetraEnASCII >= (i * rango) &&
-									posicionLetraEnASCII <= ((i * rango) + entradasUltimaInstancia)){
+				if (restoRango == 0){
+					if (i!= cantidadInstancias - 1){
+						// Si no es la ultima instancia debo redondear hacia arriba
+							if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + rango)){
 								instancia = list_get(listaFiltrada, i);
-								//sem_post(instancia->semaforo);
+								printf("ESI: Seleccione la instancia %s con pid %d para la clave %s \n"
+										,instancia->nombreProceso,instancia->pid,clave);
+								sem_post(instancia->semaforo);
+							}
+					}
+							else{
+								if(posicionLetraEnASCII >= (i * rango) &&
+										posicionLetraEnASCII <= ((i * rango) + entradasUltimaInstancia)){
+									instancia = list_get(listaFiltrada, i);
+									printf("ESI: Seleccione la instancia %s con pid %d para la clave %s \n"
+											,instancia->nombreProceso,instancia->pid,clave);
+									sem_post(instancia->semaforo);
+								}
+							}
+
+				}
+				else{
+						if (i!= cantidadInstancias - 1){ // si la division de letras no es exacta
+							puts("ESI: Voy a seleccionar la ultima instancia para distribuir con KE");
+
+							if(posicionLetraEnASCII >= (i * rango) &&
+									posicionLetraEnASCII <= ((i * rango) + rango + 1)){
+								instancia = list_get(listaFiltrada, i);
+								printf("ESI: Seleccione la instancia %s con pid %d para la clave %s \n"
+										,instancia->nombreProceso,instancia->pid,clave);
+								sem_post(instancia->semaforo);
+							}else{
+								puts("ESI: Entre en el caso de que sea la ultimna instancia con resto distinto de 0");
+								if(posicionLetraEnASCII >= (i * rango) &&
+										posicionLetraEnASCII <= ((i * rango) + entradasUltimaInstancia)){
+									instancia = list_get(listaFiltrada, i);
+									printf("ESI: Seleccione la instancia %s con pid %d para la clave %s \n"
+											,instancia->nombreProceso,instancia->pid,clave);
+									sem_post(instancia->semaforo);
+								}
+							}
 						}
 					}
 				}
-			}
+
+
 
 			printf("ESI: Agrego la clave %s a la instancia %d \n",clave,instancia->pid);
 			char * claveCopia = malloc(TAMANIO_CLAVE);
