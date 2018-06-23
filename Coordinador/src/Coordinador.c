@@ -978,11 +978,12 @@
 
 			if (operacion->tipo != OPERACION_GET){
 
-				printf("Instancia: clave operacion en direccion: %p\n", (void*)&(operacion->clave));
 				puts("Instancia: levante un mensaje de la cola de mensajes");
+				printf("Instancia: clave operacion en direccion: %p\n", (void*)&(operacion->clave));
 				printf("Instancia: la clave es %s \n",operacion->clave);
 				printf("Instancia: el valor es %s \n",operacion->valor);
 				printf("Instancia: el tipo de operacion es %d \n",operacion->tipo);
+
 				int tamanioValor;
 
 				if (operacion->valor == NULL){
@@ -1066,10 +1067,15 @@
 
 			}
 			else{
+				puts("Instancia: Manejo un GET");
+				printf("Instancia: la clave es %s \n",operacion->clave);
+
 				OperaciontHeader * headerGET = malloc(sizeof(OperaciontHeader));
 				// Creo el header que le voy a enviar a la instancia para que identifique la operacion
 				headerGET->tipo = operacion->tipo;
 				headerGET->tamanioValor = 0;
+
+				puts("Instancia: Envio el header del GET");
 
 				int sendHeader;
 				if ((sendHeader = send(parametros->new_fd, headerGET, sizeof(OperaciontHeader), 0))
@@ -1083,7 +1089,9 @@
 				}
 			}
 
+			puts("Instancia: Aviso al ESI que puede seguir operando");
 			sem_post(ESIActual->semaforo); // SE HACE AFUERA PORQUE EL GET TAMBIEN DEBE TENER SU POST
+			puts("Instancia: Salgo de la region critica");
 			sem_post(&semaforoInstancia);
 		}
 	close(parametros->new_fd);
@@ -1941,58 +1949,85 @@
 			printf("ESI: La ultima instancia va a tener %d entradas\n",entradasUltimaInstancia);
 
 			for (int i = 0; i < cantidadInstancias; i++){
+				// -------------- CASO RESTO 0 -------------
 				if (restoRango == 0){
+
+					// -------------- TODAS LAS INSTANCIAS MENOS LA ULTIMA ----------------
 					if (i!= cantidadInstancias - 1){
-						// Si no es la ultima instancia debo redondear hacia arriba
-							if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + rango)){
+						printf("ESI: analizo si va en la instancia %d \n", i);
+
+							if(posicionLetraEnASCII >= (i * rango) &&
+									posicionLetraEnASCII <= ((i * rango) + rango)){
 								instancia = list_get(listaFiltrada, i);
 								printf("ESI: Seleccione la instancia %s con pid %d para la clave %s \n"
 										,instancia->nombreProceso,instancia->pid,clave);
-								sem_post(instancia->semaforo);
+								//sem_post(instancia->semaforo);
 							}
 					}
+					// -------------- HASTA ACA ---------------------
+
+					// -------------- ULTIMA INSTANCIA ----------------
 							else{
+								puts("ESI: Analizo si va en la ultima instancia");
 								if(posicionLetraEnASCII >= (i * rango) &&
 										posicionLetraEnASCII <= ((i * rango) + entradasUltimaInstancia)){
 									instancia = list_get(listaFiltrada, i);
 									printf("ESI: Seleccione la instancia %s con pid %d para la clave %s \n"
 											,instancia->nombreProceso,instancia->pid,clave);
-									sem_post(instancia->semaforo);
+									//sem_post(instancia->semaforo);
 								}
 							}
+					// -------------- HASTA ACA ---------------------
 
 				}
+				// -------------- CASO RESTO 1 -------------
 				else{
-						if (i!= cantidadInstancias - 1){ // si la division de letras no es exacta
-							puts("ESI: Voy a seleccionar la ultima instancia para distribuir con KE");
+
+					// -------------- TODAS LAS INSTANCIAS MENOS LA ULTIMA ----------------
+						if (i!= cantidadInstancias - 1){
+
+							printf("ESI: Analizo si va la instancia %d para distribuir con KE \n", i);
 
 							if(posicionLetraEnASCII >= (i * rango) &&
 									posicionLetraEnASCII <= ((i * rango) + rango + 1)){
 								instancia = list_get(listaFiltrada, i);
 								printf("ESI: Seleccione la instancia %s con pid %d para la clave %s \n"
 										,instancia->nombreProceso,instancia->pid,clave);
-								sem_post(instancia->semaforo);
-							}else{
+								//sem_post(instancia->semaforo);
+								}
+							}
+						// -------------- HASTA ACA ---------------------
+
+						// -------------- ULTIMA INSTANCIA ----------------
+						else{
 								puts("ESI: Entre en el caso de que sea la ultimna instancia con resto distinto de 0");
 								if(posicionLetraEnASCII >= (i * rango) &&
 										posicionLetraEnASCII <= ((i * rango) + entradasUltimaInstancia)){
 									instancia = list_get(listaFiltrada, i);
 									printf("ESI: Seleccione la instancia %s con pid %d para la clave %s \n"
 											,instancia->nombreProceso,instancia->pid,clave);
-									sem_post(instancia->semaforo);
+									//sem_post(instancia->semaforo);
 								}
-							}
 						}
+						// -------------- HASTA ACA ---------------------
+
 					}
+				// -------------- SE TERMINA CASO RESTO DISTINTO 0  -------------
 				}
 
+			puts("ESI: Termine de seleccionar la Instancia");
 
 
 			printf("ESI: Agrego la clave %s a la instancia %d \n",clave,instancia->pid);
+
 			char * claveCopia = malloc(TAMANIO_CLAVE);
 			strcpy(claveCopia,clave);
+
 			printf("ESI: Agrego la copia clave %s a la instancia %d \n",claveCopia,instancia->pid);
+
 			list_add(instancia->claves,claveCopia);
+
+			sem_post(instancia->semaforo);
 		}
 		else {
 			instancia = BuscarInstanciaQuePoseeLaClave(clave);
