@@ -1180,14 +1180,22 @@
 		*/
 
 
-		//char * claveCopia1 = malloc(strlen(clave)+1);
-		char * claveCopia2 = malloc(strlen(clave)+1);
-		//strcpy(claveCopia1,clave);
-		strcpy(claveCopia2,clave);
-		pthread_mutex_lock(&mutex);
-		//list_add(clavesTomadas,claveCopia1);
-		list_add(parametros->claves,claveCopia2);
-		pthread_mutex_unlock(&mutex);
+		if(!TieneLaClave(parametros,&clave)){
+			//char * claveCopia1 = malloc(strlen(clave)+1);
+			char * claveCopia2 = malloc(strlen(clave)+1);
+			//strcpy(claveCopia1,clave);
+			strcpy(claveCopia2,clave);
+			pthread_mutex_lock(&mutex);
+			//list_add(clavesTomadas,claveCopia1);
+			list_add(parametros->claves,claveCopia2);
+			pthread_mutex_unlock(&mutex);
+
+			tBloqueo *bloqueo = malloc(sizeof(tBloqueo));
+			strcpy(bloqueo->clave,clave);
+			bloqueo->pid = parametros->pid;
+
+			list_add(listaBloqueos,(void *)bloqueo);
+		}
 
 		operacion->tipo = OPERACION_GET;
 		strcpy(operacion->clave,clave);
@@ -1199,11 +1207,6 @@
 		GetALoguear[4+strlen(clave)]='\0';
 		puts(GetALoguear);
 
-		tBloqueo *bloqueo = malloc(sizeof(tBloqueo));
-		strcpy(bloqueo->clave,clave);
-		bloqueo->pid = parametros->pid;
-
-		list_add(listaBloqueos,(void *)bloqueo);
 		// No le aviso al planificador que este ESI logro tomar x clave, se lo va a avisar el ESI, aunque guardo esta informacion en una lista
 
 
@@ -2154,6 +2157,21 @@
     				(void *)EsLaClaveDeLaInstancia, (void*) borrarClave);
 
     		return EXIT_SUCCESS;
+    	}
+
+    	bool TieneLaClave(parametrosConexion * esi, char * clave){
+    		bool EsLaMismaClave(char * claveAComparar){
+        		if ((string_equals_ignore_case(clave, claveAComparar) == true)){
+            		printf("Instancia: La clave %s de la lista coincidio con %s \n", claveAComparar, clave);
+        			return true;
+        		}
+        		else
+        		{
+            		printf("Instancia: La clave %s de la lista NO coincidio con %s \n", claveAComparar, clave);
+        			return false;
+        		}
+        	}
+    		return list_any_satisfy(esi->claves,(void *)EsLaMismaClave);
     	}
 
 
