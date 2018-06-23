@@ -141,7 +141,8 @@ typedef struct{
     	struct sockaddr_in their_addr; // información de la dirección de destino
 
 	//Otras
-		int cantidadEntradas = 0;
+    	char **arrayEntradas;
+    	int cantidadEntradas = 0;
 	    int tamanioValor = 0;
 	    int posicionPunteroCirc = 0;
 	    t_list *tablaEntradas;
@@ -166,7 +167,7 @@ void mostrarArray(char **arrayEntradas, int cantidadEntradas);
 OperaciontHeader *recibirHeader(int socketCoordinador);
 int recibirConfiguracion(int sockeCoordinador);
 
-void agregarEntrada(operacionRecibida *unaOperacion, char ** arrayEntradas, int cantidadEntradas, int tamanioValor, t_list *tablaEntradas, int tamanioValorRecibido);
+void agregarEntrada(operacionRecibida *unaOperacion, int tamanioValorRecibido);
 void procesarMensaje(tMensaje *unMensaje, t_list *tablaEntradas);
 void mostrarLista(t_list *miTabla);
 void procesarInstruccion(tMensaje *unMensaje, char **arrayEntradas, int cantidadEntradas, int tamanioValor, t_list *tablaEntradas, int socketCoordinador);

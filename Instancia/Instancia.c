@@ -15,20 +15,13 @@
         verificarParametrosAlEjecutar(argc, argv);
         LeerArchivoDeConfiguracion(argv);
 
+
         he = gethostbyname(IP);
         socketCoordinador = conectarmeYPresentarme(PORTCO);
 
 
-        char **arrayEntradas = malloc(cantidadEntradas * sizeof(char*));
-
-    	for (int i= 0; i < cantidadEntradas; i++){
-    		arrayEntradas[i] = calloc(tamanioValor, sizeof(char));
-    	}
-
     	colaParaLFU = queue_create();
 
-//    	char *punteroCIRC = malloc(sizeof(char*));
-//     	punteroCIRC = arrayEntradas[posicionPunteroCirc];
 
     	//DUMP
     	pthread_t tid;
@@ -40,11 +33,10 @@
 		}
 		pthread_detach(tid); //Con esto decis que cuando el hilo termine libere sus recursos
 
-	//	semaforo = malloc(sizeof(sem_t));
 
-		//sem_wait(semaforo);
 
         while(1){
+        	mostrarArray(arrayEntradas, cantidadEntradas);
         	puts("Informo que estoy viva");
         	EnviarAvisoDeQueEstoyViva(socketCoordinador);
         	puts("Recibo operacion");
@@ -95,7 +87,7 @@
 							tamanioValorRecibido = headerRecibido->tamanioValor;
 							memcpy(operacion->clave, bufferClave, strlen(bufferClave) + 1);
 							operacion->valor = bufferValor;
-							agregarEntrada(operacion, arrayEntradas, cantidadEntradas, tamanioValor, tablaEntradas, tamanioValorRecibido);
+							agregarEntrada(operacion, tamanioValorRecibido);
 
 							enviarEntradasUsadas(socketCoordinador, tablaEntradas, bufferClave);
 							free(headerRecibido);
@@ -112,23 +104,6 @@
 							}
 
 
-			//        	if (headerRecibido->tipo == OPERACION_GET){
-			//        		printf("Buffer claveeeee %s\n",bufferClave);
-			//        		if(validarClaveExistente(bufferClave, tablaEntradas) == true)
-			//        		{
-			//        			puts("ENCONTROOOOOOOOOOOOOOOOOOOOOOOOO");
-			//        		}
-			//        		longitudMaximaValorBuscado = calcularLongitudMaxValorBuscado(bufferClave,tablaEntradas); //Cantidad de entradas para ese valor (despues multiplico por TamanioValor)
-			//        		printf("Longitud maxima valor buscado: %d\n", longitudMaximaValorBuscado);
-			//        		valorGet = obtenerValor(longitudMaximaValorBuscado, tablaEntradas, bufferClave,arrayEntradas, tamanioValor);
-			//        		printf("A ver que pija sdale: %s\n", valorGet);
-			//        		puts("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-			//        		enviarValorGet(socketCoordinador, valorGet);
-			//        		free(valorGet);
-			//        		free(headerRecibido);
-			//        		//free(operacion);
-			//        		free(bufferClave);
-			//        	}
 						if (headerRecibido->tipo == OPERACION_STORE){
 							//pthread_mutex_lock(&mutex);
 							puts("ENTRO A UN STORE");
@@ -301,20 +276,31 @@
 
     	printf("La cantidad de entradas que manejo es %d y tienen un tamanio de %d \n", cantidadEntradas,tamanioValor);
 
+    	 arrayEntradas = malloc(cantidadEntradas * sizeof(char*)); //Declaro e inicializo el storage para los valores (n entradas con m tamaño)
+
+    	    	for (int i= 0; i < cantidadEntradas; i++){
+    	    		arrayEntradas[i] = calloc(tamanioValor, sizeof(char));
+    	    	}
+
         char * line = NULL;
         size_t len = 0;
         FILE * archivo;
 
     	for(int i = 0; i < clavesPrevias; i++){
-    		char clave[TAMANIO_CLAVE];
-        	if((recv(sockeCoordinador, clave, TAMANIO_CLAVE, 0)) <= 0){
+    		char bufferClave[TAMANIO_CLAVE];
+    		operacionRecibida *operacion = malloc(sizeof(operacionRecibida));
+        	if((recv(sockeCoordinador, bufferClave, TAMANIO_CLAVE, 0)) <= 0){
         		perror("Fallo al recibir la configuracion");
         	}
-        	printf("Recibi la clave %s \n",clave);
+        	printf("Lo que recibí del coordinador: %s\n", bufferClave);
+        	puts("Antes de strcpy");
+        	strcpy(operacion->clave, bufferClave);
+        	puts("Despues de strcpy");
+        	printf("Recibi la clave %s \n",operacion->clave);
 
-    		char nombreArchivo[strlen(PuntoMontaje)+strlen(clave)+5];
+    		char nombreArchivo[strlen(PuntoMontaje)+strlen(operacion->clave)+5];
     		strcpy(nombreArchivo,PuntoMontaje);
-    		strcat(nombreArchivo,clave);
+    		strcat(nombreArchivo,operacion->clave);
     		strcat(nombreArchivo,".txt\0");
     		printf("El archivo a abrir esta en %s \n",nombreArchivo);
     		archivo = leerArchivo(&nombreArchivo);
@@ -322,10 +308,18 @@
         	if(getline(&line, &len, archivo) == -1){
         		puts("No habia nada dentro del archivo");
         	}else{
-        		printf("El valor de la clave %s es %s \n",clave,line);
-        		list_add(claves,clave);
+        		puts("Pruebo el operacion->valor");
+
+        		operacion->valor = line;
+        		int tamanio = strlen(operacion->valor);
+        		printf("El valor de la clave %s es %s \n",operacion->clave,operacion->valor);
+        		printf("Tamanio del valor: %d\n", tamanio);
+        		agregarEntrada(operacion, tamanio);
+        		cantidadClavesEnTabla++;
+        		//list_add(claves,operacion->clave);
         	} // TODO: Ale te dejo aca para que veas que hacer con esto!
     	}
+
 
     	return EXIT_SUCCESS;
     }
@@ -478,19 +472,20 @@
     }
 
 
-    void agregarEntrada(operacionRecibida *unaOperacion, char ** arrayEntradas, int cantidadEntradas, int tamanioValor, t_list *tablaEntradas, int tamanioValorRecibido){
+    void agregarEntrada(operacionRecibida *unaOperacion, int tamanioValorRecibido){
 
     	int contadorEntradasGuardadas = 0;
 
     	char *valorRecibido = malloc(tamanioValorRecibido);
     	memcpy(valorRecibido, unaOperacion->valor, tamanioValorRecibido);
 
-
     	char *claveRecibida = calloc(41, 1);
     	strcpy(claveRecibida, unaOperacion->clave); // Copio toda la clave
 
-    	if(tamanioValorRecibido > tamanioValor){ //Si el valor que recibi en el mensaje es mayor al valor establecido para cada entada
+    	   	if(tamanioValorRecibido > tamanioValor){ //Si el valor que recibi en el mensaje es mayor al valor establecido para cada entada
+    		puts("D");
     		int entradasNecesarias = calcularEntradasNecesarias(tamanioValorRecibido, tamanioValor); //Calculo la cantidad de entradas que necesita el valor para guardarse
+    		puts("E");
     		printf("Entradas necesarias para guardar valor: %d\n", entradasNecesarias);
 			int offset;
 
@@ -857,24 +852,16 @@
 
        void guardarTodasMisClaves(t_list *tablaEntradas, char **arrayEntradas){
     	   t_list *duplicada = malloc(sizeof(t_list));
-    	   puts("declare tabla duplicada");
     	   duplicada = list_duplicate(tablaEntradas);
-    	   puts("Cree tabla duplicada");
     	   char *bufferClave;
-    	   puts("Declare buffer clave");
     	   tEntrada *bufferEntrada;
-    	   puts("Declare buffer entrada");
     	   int index = 0;
 
     	   for (int i = 0; i < cantidadClavesEnTabla;i++){
         	   bufferEntrada = list_get(duplicada, index);
-        	   puts("Hice el get de la lista");
         	   bufferClave = bufferEntrada->clave;
-        	   puts("Apunte con buffer clave a buffer entrada");
         	   int longitud = calcularLongitudMaxValorBuscado(bufferClave, duplicada);
-        	   puts("Calcule longitud");
         	   char *valorGet = obtenerValor(longitud, duplicada, bufferClave, arrayEntradas, tamanioValor);
-        	   puts("Por entrar a guardar un archivo");
         	   guardarUnArchivo(bufferClave, valorGet);
     		   index += longitud;
     	   }
