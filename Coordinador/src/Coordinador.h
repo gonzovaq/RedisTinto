@@ -296,4 +296,6 @@ int MandarInstanciaACompactar(parametrosConexion * parametros);
 int EliminarClaveDeInstancia(parametrosConexion * instancia, char * clave);
 bool TieneLaClave(parametrosConexion * esi, char * clave);
 
+int EliminarClaveDeBloqueos(char * claveABorrar);
+
 

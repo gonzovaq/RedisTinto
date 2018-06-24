@@ -202,6 +202,20 @@
             parametros->claves = list_create();
     		list_add(colaESIS,(void*)parametros);
     		conexionESI(parametros);
+
+    		LiberarLasClavesDelESI(parametros);
+
+    		/*
+    		bool MeEstoyDesconectando(parametrosConexion * unEsi){
+    			if (unEsi->pid == parametros->pid)
+    				return true;
+    			else return false;
+    		}
+
+    		list_remove_and_destroy_by_condition(colaESIS, (void *)MeEstoyDesconectando, (void *)destruirInstancia);
+    		// uso destruir instancia para no repetir metodo
+    		*/
+
     		break;
     	case PLANIFICADOR:
     		printf("Planificador: Se conecto el proceso %d \n", headerRecibido->idProceso);
@@ -418,9 +432,13 @@
 
     int LiberarLasClavesDelESI(parametrosConexion * parametros){
 
-    	for(int i = 0; i< list_size(parametros->claves); i++){
+    	int claves = list_size(parametros->claves);
 
-    		EliminarClaveDeClavesTomadas(list_remove(parametros->claves,i));
+    	printf("ESI: El ESI tiene %d claves para eliminar \n", claves);
+
+    	for(int i = 0; i< claves; i++){
+
+    		EliminarClaveDeBloqueos(list_get(parametros->claves,i));
     	}
 
     	void LiberarClave(char * clave){
@@ -428,21 +446,53 @@
     		free(clave);
     	}
 
+    	puts("ESI: Ahora paso a liberar mis claves");
     	list_clean_and_destroy_elements(parametros->claves,(void*)LiberarClave);
+    	puts("ESI: Libere mis claves");
+
+    	return EXIT_SUCCESS;
+    }
+
+    int EliminarClaveDeBloqueos(char * claveABorrar){
+    	bool EsLaMismaClave(tBloqueo * bloqueo){
+    		printf("ESI: Analizo si la clave %s es igual a %s \n", claveABorrar, bloqueo->clave);
+    		if (string_equals_ignore_case(claveABorrar, bloqueo->clave) == true)
+    			return true;
+    		else
+    			return false;
+    	}
+    	/*
+    	void BorrarC(char * clave){
+    		RemoverClaveDeLaListaBloqueos(clave);
+    		printf("ESI: Voy a borrar la clave %s de las clavesTomadas",clave);
+    		free(clave);
+    	}
+    	*/
+
+    	puts("ESI: Borro las claves que tenia en clavesTomadas");
+    	list_remove_and_destroy_by_condition(listaBloqueos,(void*)EsLaMismaClave,(void*)destruirBloqueo);
+    	puts("ESI: Borre las claves que tenia de clavesTomadas");
 
     	return EXIT_SUCCESS;
     }
 
     int EliminarClaveDeClavesTomadas(char * claveABorrar){
     	bool EsLaMismaClave(char * claveAComparar){
-    		return string_equals_ignore_case(claveABorrar, claveAComparar);
+    		printf("ESI: Analizo si la clave %s es igual a %s \n", claveABorrar, claveAComparar);
+    		if (string_equals_ignore_case(claveABorrar, claveAComparar) == true)
+    			return true;
+    		else
+    			return false;
     	}
     	void BorrarClave(char * clave){
     		RemoverClaveDeLaListaBloqueos(clave);
     		printf("ESI: Voy a borrar la clave %s de las clavesTomadas",clave);
     		free(clave);
     	}
+
+    	puts("ESI: Borro las claves que tenia en clavesTomadas");
     	list_remove_and_destroy_by_condition(clavesTomadas,(void*)EsLaMismaClave,(void*)BorrarClave);
+    	puts("ESI: Borre las claves que tenia de clavesTomadas");
 
     	return EXIT_SUCCESS;
     }
