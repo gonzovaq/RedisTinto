@@ -150,7 +150,6 @@ typedef struct{
 	    tAlgoritmoReemplazo algoritmoReemplazo;
 	    int cantidadClavesEnTabla = 0;
 	    sem_t *semaforo;
-	    t_queue *colaParaLFU;
 
 
 // Prototipos de las funciones
@@ -191,7 +190,7 @@ int Dump(char **arrayEntradas);
 void guardarUnArchivo(char *unaClave, char *valorArchivo);
 void guardarTodasMisClaves(t_list *tablaEntradas, char **arrayEntradas);
 int enviarEntradasUsadas(int socketCoordinador,t_list *tablaEntradas, char *bufferClave);
-void eliminarEntradasStorageLFU(char **arrayEntradas, int cantidadEntradasABorrar);
+void eliminarEntradasStorageLRU(char **arrayEntradas, int cantidadEntradasABorrar);
 void eliminarEntradasStorageBSU(char **arrayEntradas, t_list *entradasABorrar);
 t_list *obtenerTablaParaBSU(t_list *tablaEntradas, int cantidadEntradasPendientes);
 

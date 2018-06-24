@@ -1,0 +1,24 @@
+GET futbol:messi
+SET futbol:messi TraemeLaCopa
+STORE futbol:messi
+GET futbol:pavon
+SET futbol:pavon PoneloParaSalirCampeon
+STORE futbol:pavon
+GET futbol:messi
+SET futbol:messi Crack
+STORE futbol:messi
+GET futbol:mascherano
+SET futbol:mascherano AndateMuerto
+STORE futbol:mascherano
+GET futbol:pavon
+SET futbol:pavon MasCrack
+STORE futbol:pavon
+GET futbol:sampaoli
+SET futbol:sampaoli LaConchaDeTuHermana
+STORE futbol:sampaoli 
+GET futbol:caballero
+SET futbol:caballero PoneloAAarmani
+STORE futbol:caballero
+GET futbol:maradona 
+SET futbol:maradona DiegooDiegooOleOleOleOleDiegoDiego
+STORE futbol:maradona

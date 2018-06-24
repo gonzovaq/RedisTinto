@@ -20,9 +20,6 @@
         socketCoordinador = conectarmeYPresentarme(PORTCO);
 
 
-    	colaParaLFU = queue_create();
-
-
     	//DUMP
     	pthread_t tid;
     	int stat = pthread_create(&tid, NULL, (void*)Dump, (void*)arrayEntradas);
@@ -94,7 +91,6 @@
 							//free(operacion);
 							free(bufferClave);
 							free(bufferValor);
-							mostrarArray(arrayEntradas, cantidadEntradas);
 							puts("HICE UN SET");
 							printf("Cantidad de elementos en mi tabla de entradas: %d\n", list_size(tablaEntradas));
 							printf("LO QUE ME MUSTRA EL PUNTERO CIRCULAR %s\n", arrayEntradas[posicionPunteroCirc]);
@@ -288,14 +284,12 @@
 
     	for(int i = 0; i < clavesPrevias; i++){
     		char bufferClave[TAMANIO_CLAVE];
-    		operacionRecibida *operacion = malloc(sizeof(operacionRecibida));
+    		operacionRecibida *operacion;
         	if((recv(sockeCoordinador, bufferClave, TAMANIO_CLAVE, 0)) <= 0){
         		perror("Fallo al recibir la configuracion");
         	}
         	printf("Lo que recibí del coordinador: %s\n", bufferClave);
-        	puts("Antes de strcpy");
         	strcpy(operacion->clave, bufferClave);
-        	puts("Despues de strcpy");
         	printf("Recibi la clave %s \n",operacion->clave);
 
     		char nombreArchivo[strlen(PuntoMontaje)+strlen(operacion->clave)+5];
@@ -500,7 +494,6 @@
 						if (i == entradasNecesarias - 1){ //Si falta guardar el último pedazo del valor
 							memcpy(arrayEntradas[j], valorRecibido + offset, bytesRestantes); //Copio los bytes que quedan guardar
 							agregarNodoAtabla(tablaEntradas, j, bytesRestantes, claveRecibida);//Agrego un nodo por cada pedazo de valor guardado
-							agregarNodoACola(colaParaLFU, j, bytesRestantes, claveRecibida);
 							break; //Al hacer el break en el último pedazo de valor, deja de buscar entradas para guardar
 						}
 						else{ //Si no es el ultimo pedazo del valor, guardo y luego busco otra entrada para el proximo pedazo
@@ -520,7 +513,8 @@
 									i = contadorEntradasGuardadas - 1; //Guardo a partir del ultimo pedazo gguardado en alguna entrada vacia
 									break;
 								case 2:
-									eliminarEntradasStorageLFU(arrayEntradas, cantidadEntradasPendientes);
+									eliminarEntradasStorageLRU(arrayEntradas, cantidadEntradasPendientes);
+									i--;
 									break;
 								case 3:
 									tablaAuxiliar = obtenerTablaParaBSU(tablaEntradas, cantidadEntradasPendientes);//Obtengo una tabla con la cantidad de nodos igual a las entradas necesarias que faltan borrar para el nuevo valor
@@ -553,7 +547,7 @@
     					i = -1; //Vuelvo a recorrer todas las entradas para guardar el valor
     					break;
     				case 2:
-    					eliminarEntradasStorageLFU(arrayEntradas, 1);
+    					eliminarEntradasStorageLRU(arrayEntradas, 1);
     					break;
     				case 3:
     					tablaAuxiliar = obtenerTablaParaBSU(tablaEntradas, 1);//Obtengo una tabla con la cantidad de nodos igual a las entradas necesarias que faltan borrar para el nuevo valor
@@ -602,18 +596,6 @@
     	return;
      }
 
-    void agregarNodoACola(t_queue *colaParaLFU, int nroEntradaStorage, int tamanioAlmacenado,char *nombreClave){
-    	tEntrada *buffer = malloc(sizeof(tEntrada)); //Creo el buffer que se agregará a la cola
-    	buffer->numeroEntrada = nroEntradaStorage;
-    	buffer->tamanioAlmacenado = tamanioAlmacenado;
-    	strcpy(buffer->clave, nombreClave);
-
-    	queue_push(colaParaLFU, (tEntrada *) buffer);
-
-    	return;
-
-    }
-
     void mostrarArray(char **arrayEntradas, int cantidadEntradas){
     	for (int i = 0; i < cantidadEntradas; i++){
     		if(*(arrayEntradas[i]) != NULL){
@@ -641,9 +623,7 @@
 
     	for(int i = 0; i < tablaDuplicada->elements_count; i++){
     		bufferEntrada = list_get(tablaDuplicada, i);
-    		puts("********DESPUES DEL GET***********");
     		int index = bufferEntrada->numeroEntrada;
-    		puts("********DESPUES DEL INDEX***********");
     		//memcpy((valor + i * tamanioValor), arrayEntradas[index], tamanioValor);
     		memcpy((valor + tamanioTotalValor), arrayEntradas[index], bufferEntrada->tamanioAlmacenado);
 
@@ -763,13 +743,18 @@
     	   return;
        }
 
-       void eliminarEntradasStorageLFU(char **arrayEntradas, int cantidadEntradasABorrar){
+       void eliminarEntradasStorageLRU(char **arrayEntradas, int cantidadEntradasABorrar){
     	   tEntrada *buffer;
+    	   char claveGuardada[TAMANIO_CLAVE];
 
     	   for (int i = 0; i < cantidadEntradasABorrar; i++){
-    		   buffer = queue_peek(colaParaLFU);
+    		   buffer = list_get(tablaEntradas, 0);
+    		   strcpy(claveGuardada, buffer->clave);
     		   memset(arrayEntradas[buffer->numeroEntrada], '\0', buffer->tamanioAlmacenado);
-    		   queue_pop(colaParaLFU);
+    		   eliminarNodoPorIndex(tablaEntradas, buffer->numeroEntrada);
+    		   if(validarClaveExistente(claveGuardada, tablaEntradas) == false){
+    			   cantidadClavesEnTabla--;
+    		   }
     	   }
 
     	   return;
