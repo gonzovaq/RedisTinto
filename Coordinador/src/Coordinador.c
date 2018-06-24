@@ -202,6 +202,20 @@
             parametros->claves = list_create();
     		list_add(colaESIS,(void*)parametros);
     		conexionESI(parametros);
+
+    		LiberarLasClavesDelESI(parametros);
+
+    		/*
+    		bool MeEstoyDesconectando(parametrosConexion * unEsi){
+    			if (unEsi->pid == parametros->pid)
+    				return true;
+    			else return false;
+    		}
+
+    		list_remove_and_destroy_by_condition(colaESIS, (void *)MeEstoyDesconectando, (void *)destruirInstancia);
+    		// uso destruir instancia para no repetir metodo
+    		*/
+
     		break;
     	case PLANIFICADOR:
     		printf("Planificador: Se conecto el proceso %d \n", headerRecibido->idProceso);
@@ -418,9 +432,14 @@
 
     int LiberarLasClavesDelESI(parametrosConexion * parametros){
 
-    	for(int i = 0; i< list_size(parametros->claves); i++){
+    	int claves = list_size(parametros->claves);
 
-    		EliminarClaveDeClavesTomadas(list_remove(parametros->claves,i));
+    	printf("ESI: El ESI tiene %d claves para eliminar \n", claves);
+
+    	for(int i = 0; i< claves; i++){
+
+    		EliminarClaveDeBloqueos(list_get(parametros->claves,i));
+
     	}
 
     	void LiberarClave(char * clave){
@@ -428,21 +447,62 @@
     		free(clave);
     	}
 
+    	puts("ESI: Ahora paso a liberar mis claves");
     	list_clean_and_destroy_elements(parametros->claves,(void*)LiberarClave);
+    	puts("ESI: Libere mis claves");
+
+    	return EXIT_SUCCESS;
+    }
+
+    int EliminarClaveDeBloqueos(char * claveABorrar){
+    	bool EsLaMismaClave(tBloqueo * bloqueo){
+    		printf("ESI: Analizo si la clave %s es igual a %s \n", claveABorrar, bloqueo->clave);
+    		if (string_equals_ignore_case(claveABorrar, bloqueo->clave) == true)
+    			return true;
+    		else
+    			return false;
+    	}
+    	/*
+    	void BorrarC(char * clave){
+    		RemoverClaveDeLaListaBloqueos(clave);
+    		printf("ESI: Voy a borrar la clave %s de las clavesTomadas",clave);
+    		free(clave);
+    	}
+    	*/
+
+		notificacion->tipoNotificacion=DESBLOQUEO;
+		strcpy(notificacion->clave,claveABorrar);
+		notificacion->pid = 0;
+
+		printf("ESI: le voy a avisar al planificador que se desbloqueo la clave: %s por no haberla liberado antes de desconectarse \n",
+				claveABorrar);
+		sem_post(planificador->semaforo);
+		puts("ESI: Ya le avise al planificador del desbloqueo");
+
+    	puts("ESI: Borro las claves que tenia en clavesTomadas");
+    	list_remove_and_destroy_by_condition(listaBloqueos,(void*)EsLaMismaClave,(void*)destruirBloqueo);
+    	puts("ESI: Borre las claves que tenia de clavesTomadas");
 
     	return EXIT_SUCCESS;
     }
 
     int EliminarClaveDeClavesTomadas(char * claveABorrar){
     	bool EsLaMismaClave(char * claveAComparar){
-    		return string_equals_ignore_case(claveABorrar, claveAComparar);
+    		printf("ESI: Analizo si la clave %s es igual a %s \n", claveABorrar, claveAComparar);
+    		if (string_equals_ignore_case(claveABorrar, claveAComparar) == true)
+    			return true;
+    		else
+    			return false;
     	}
     	void BorrarClave(char * clave){
     		RemoverClaveDeLaListaBloqueos(clave);
     		printf("ESI: Voy a borrar la clave %s de las clavesTomadas",clave);
     		free(clave);
     	}
+
+    	puts("ESI: Borro las claves que tenia en clavesTomadas");
     	list_remove_and_destroy_by_condition(clavesTomadas,(void*)EsLaMismaClave,(void*)BorrarClave);
+    	puts("ESI: Borre las claves que tenia de clavesTomadas");
 
     	return EXIT_SUCCESS;
     }
@@ -978,11 +1038,12 @@
 
 			if (operacion->tipo != OPERACION_GET){
 
-				printf("Instancia: clave operacion en direccion: %p\n", (void*)&(operacion->clave));
 				puts("Instancia: levante un mensaje de la cola de mensajes");
+				printf("Instancia: clave operacion en direccion: %p\n", (void*)&(operacion->clave));
 				printf("Instancia: la clave es %s \n",operacion->clave);
 				printf("Instancia: el valor es %s \n",operacion->valor);
 				printf("Instancia: el tipo de operacion es %d \n",operacion->tipo);
+
 				int tamanioValor;
 
 				if (operacion->valor == NULL){
@@ -1066,10 +1127,15 @@
 
 			}
 			else{
+				puts("Instancia: Manejo un GET");
+				printf("Instancia: la clave es %s \n",operacion->clave);
+
 				OperaciontHeader * headerGET = malloc(sizeof(OperaciontHeader));
 				// Creo el header que le voy a enviar a la instancia para que identifique la operacion
 				headerGET->tipo = operacion->tipo;
 				headerGET->tamanioValor = 0;
+
+				puts("Instancia: Envio el header del GET");
 
 				int sendHeader;
 				if ((sendHeader = send(parametros->new_fd, headerGET, sizeof(OperaciontHeader), 0))
@@ -1083,7 +1149,9 @@
 				}
 			}
 
+			puts("Instancia: Aviso al ESI que puede seguir operando");
 			sem_post(ESIActual->semaforo); // SE HACE AFUERA PORQUE EL GET TAMBIEN DEBE TENER SU POST
+			puts("Instancia: Salgo de la region critica");
 			sem_post(&semaforoInstancia);
 		}
 	close(parametros->new_fd);
@@ -1941,58 +2009,85 @@
 			printf("ESI: La ultima instancia va a tener %d entradas\n",entradasUltimaInstancia);
 
 			for (int i = 0; i < cantidadInstancias; i++){
+				// -------------- CASO RESTO 0 -------------
 				if (restoRango == 0){
+
+					// -------------- TODAS LAS INSTANCIAS MENOS LA ULTIMA ----------------
 					if (i!= cantidadInstancias - 1){
-						// Si no es la ultima instancia debo redondear hacia arriba
-							if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + rango)){
+						printf("ESI: analizo si va en la instancia %d \n", i);
+
+							if(posicionLetraEnASCII >= (i * rango) &&
+									posicionLetraEnASCII <= ((i * rango) + rango)){
 								instancia = list_get(listaFiltrada, i);
 								printf("ESI: Seleccione la instancia %s con pid %d para la clave %s \n"
 										,instancia->nombreProceso,instancia->pid,clave);
-								sem_post(instancia->semaforo);
+								//sem_post(instancia->semaforo);
 							}
 					}
+					// -------------- HASTA ACA ---------------------
+
+					// -------------- ULTIMA INSTANCIA ----------------
 							else{
+								puts("ESI: Analizo si va en la ultima instancia");
 								if(posicionLetraEnASCII >= (i * rango) &&
 										posicionLetraEnASCII <= ((i * rango) + entradasUltimaInstancia)){
 									instancia = list_get(listaFiltrada, i);
 									printf("ESI: Seleccione la instancia %s con pid %d para la clave %s \n"
 											,instancia->nombreProceso,instancia->pid,clave);
-									sem_post(instancia->semaforo);
+									//sem_post(instancia->semaforo);
 								}
 							}
+					// -------------- HASTA ACA ---------------------
 
 				}
+				// -------------- CASO RESTO 1 -------------
 				else{
-						if (i!= cantidadInstancias - 1){ // si la division de letras no es exacta
-							puts("ESI: Voy a seleccionar la ultima instancia para distribuir con KE");
+
+					// -------------- TODAS LAS INSTANCIAS MENOS LA ULTIMA ----------------
+						if (i!= cantidadInstancias - 1){
+
+							printf("ESI: Analizo si va la instancia %d para distribuir con KE \n", i);
 
 							if(posicionLetraEnASCII >= (i * rango) &&
 									posicionLetraEnASCII <= ((i * rango) + rango + 1)){
 								instancia = list_get(listaFiltrada, i);
 								printf("ESI: Seleccione la instancia %s con pid %d para la clave %s \n"
 										,instancia->nombreProceso,instancia->pid,clave);
-								sem_post(instancia->semaforo);
-							}else{
+								//sem_post(instancia->semaforo);
+								}
+							}
+						// -------------- HASTA ACA ---------------------
+
+						// -------------- ULTIMA INSTANCIA ----------------
+						else{
 								puts("ESI: Entre en el caso de que sea la ultimna instancia con resto distinto de 0");
 								if(posicionLetraEnASCII >= (i * rango) &&
 										posicionLetraEnASCII <= ((i * rango) + entradasUltimaInstancia)){
 									instancia = list_get(listaFiltrada, i);
 									printf("ESI: Seleccione la instancia %s con pid %d para la clave %s \n"
 											,instancia->nombreProceso,instancia->pid,clave);
-									sem_post(instancia->semaforo);
+									//sem_post(instancia->semaforo);
 								}
-							}
 						}
+						// -------------- HASTA ACA ---------------------
+
 					}
+				// -------------- SE TERMINA CASO RESTO DISTINTO 0  -------------
 				}
 
+			puts("ESI: Termine de seleccionar la Instancia");
 
 
 			printf("ESI: Agrego la clave %s a la instancia %d \n",clave,instancia->pid);
+
 			char * claveCopia = malloc(TAMANIO_CLAVE);
 			strcpy(claveCopia,clave);
+
 			printf("ESI: Agrego la copia clave %s a la instancia %d \n",claveCopia,instancia->pid);
+
 			list_add(instancia->claves,claveCopia);
+
+			sem_post(instancia->semaforo);
 		}
 		else {
 			instancia = BuscarInstanciaQuePoseeLaClave(clave);
