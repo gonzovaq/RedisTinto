@@ -439,6 +439,7 @@
     	for(int i = 0; i< claves; i++){
 
     		EliminarClaveDeBloqueos(list_get(parametros->claves,i));
+
     	}
 
     	void LiberarClave(char * clave){
@@ -468,6 +469,15 @@
     		free(clave);
     	}
     	*/
+
+		notificacion->tipoNotificacion=DESBLOQUEO;
+		strcpy(notificacion->clave,claveABorrar);
+		notificacion->pid = 0;
+
+		printf("ESI: le voy a avisar al planificador que se desbloqueo la clave: %s por no haberla liberado antes de desconectarse \n",
+				claveABorrar);
+		sem_post(planificador->semaforo);
+		puts("ESI: Ya le avise al planificador del desbloqueo");
 
     	puts("ESI: Borro las claves que tenia en clavesTomadas");
     	list_remove_and_destroy_by_condition(listaBloqueos,(void*)EsLaMismaClave,(void*)destruirBloqueo);
