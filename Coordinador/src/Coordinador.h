@@ -300,5 +300,7 @@ bool TieneLaClave(parametrosConexion * esi, char * clave);
 
 int EliminarClaveDeBloqueos(char * claveABorrar);
 parametrosConexion* BuscarInstanciaMenosUsadaSimulacion();
+int VerificarSiLaInstanciaSigueViva(parametrosConexion * instancia);
+int STATUSParaInstanciaConectada(parametrosConexion * instancia, char * clave);
 
 

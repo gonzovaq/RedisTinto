@@ -717,6 +717,8 @@
     	return EXIT_SUCCESS;
     }
 
+
+
     int BuscarClaveEnInstanciaYEnviar(char * clave){
 
     	bool EsLaMismaClave(char * claveAComparar){
@@ -738,124 +740,13 @@
     	if (instancia != NULL){
     		printf("Planificador: La Instancia encontrada es %s \n",instancia->nombreProceso);
 
+    		// --- Este es el caso de que una Instancia tiene la clave y esta conectada
 
-    		if (DeboRecibir){
-				tEntradasUsadas *estasConecatada = malloc(sizeof(tEntradasUsadas));
-				if ((recv(instancia->new_fd, estasConecatada, sizeof(tEntradasUsadas), 0)) <= 0) {
-					puts("Instancia: Fallo al enviar el tipo de operacion");
-					instancia->conectada = 0;
+    		int resultado = STATUSParaInstanciaConectada(instancia, clave);
 
-					free(estasConecatada);
-					//sem_destroy(instancia->semaforo);
-					close(instancia->new_fd);
-					return ERROR;
-				}
-				puts("Instancia: Recibi aviso de que la instancia esta conectada");
-				free(estasConecatada);
+    		if(resultado == ERROR){
+    			return ERROR;
     		}
-
-
-			tOperacionInstanciaStruct * operacionInstancia = malloc(sizeof(tOperacionInstanciaStruct));
-			operacionInstancia->operacion= SOLICITAR_VALOR;
-			if ((send(instancia->new_fd, operacionInstancia, sizeof(tOperacionInstanciaStruct), 0))
-					// Le informamos que quiero hacer!
-							<= 0) {
-						puts("Instancia: Fallo al enviar el tipo de operacion");
-						perror("send");
-						instancia->conectada = 0;
-						close(instancia->new_fd);
-						return ERROR;
-					}
-			free(operacionInstancia);
-
-			tEntradasUsadas *estasConecatada2 = malloc(sizeof(tEntradasUsadas));
-			if ((recv(instancia->new_fd, estasConecatada2, sizeof(tEntradasUsadas), 0)) <= 0) {
-				perror("Instancia: se desconecto!!!");
-				instancia->conectada = 0;
-				close(instancia->new_fd);
-				free(estasConecatada2);
-				return ERROR;
-			}
-
-			free(estasConecatada2);
-
-			if ((send(instancia->new_fd, clave, TAMANIO_CLAVE, 0)) <= 0) {
-				puts("Planificador: Error al enviar la clave a la Instancia");
-				perror("Planificador: send");
-				instancia->conectada = 0;
-				//RemoverInstanciaDeLaLista(instancia);
-				close(instancia->new_fd);
-				return ERROR;
-			}
-
-			tEntradasUsadas * tamanioValor = malloc(sizeof(tEntradasUsadas));
-			if((recv(instancia->new_fd, tamanioValor, sizeof(tEntradasUsadas), 0)) <= 0){
-				perror("Planificador: Fallo al recibir el tamanio valor");
-				perror("Instancia: se desconecto!!!");
-				free(tamanioValor);
-				instancia->conectada = 0;
-				close(instancia->new_fd);
-				return ERROR;
-			}
-			printf("PLANIFICADOR: El tamanioValor de la clave es: %d\n", tamanioValor->entradasUsadas);
-
-			char * valor = malloc(tamanioValor->entradasUsadas + 1);
-			if((recv(instancia->new_fd, valor, tamanioValor->entradasUsadas + 1, 0)) <= 0){
-				perror("Planificador: Fallo al recibir el valor");
-				perror("Instancia: se desconecto!!!");
-				free(tamanioValor);
-				free(valor);
-				instancia->conectada = 0;
-				close(instancia->new_fd);
-				return ERROR;
-			}
-
-			printf("Planificador: La Instancia que tiene la clave %s es %s \n",clave,instancia->nombreProceso);
-
-			tNotificacionPlanificador *notificacion = malloc(sizeof(tNotificacionPlanificador));
-			notificacion->tipoNotificacion = STATUSDORRPUTO;
-
-			if ((send(planificador->new_fd,notificacion,sizeof(tNotificacionPlanificador),0) <= 0)){
-				perror("Planificador: Error al enviarle la notificacion al planificador");
-				free(notificacion);
-				free(valor);
-				free(tamanioValor);
-				return -1;
-			}
-
-			free(notificacion);
-
-			tStatusParaPlanificador * status = malloc(sizeof(tStatusParaPlanificador));
-			strcpy(status->proceso,instancia->nombreProceso);
-			status->tamanioValor = tamanioValor->entradasUsadas;
-
-			printf("PLANIFICADOR: El tamanioValor de la clave es: %d\n", status->tamanioValor);
-
-
-
-			if ((send(planificador->new_fd,status,sizeof(tStatusParaPlanificador),0) <= 0)){
-				perror("Planificador: Error al enviarle el nombre de la Instancia y tamanioValor");
-				free(status);
-				free(valor);
-				free(tamanioValor);
-				return -1;
-			}
-
-
-			printf("El valor recibido es: %s\n", valor);
-
-			if(status->tamanioValor > 0){
-				if ((send(planificador->new_fd,valor,tamanioValor->entradasUsadas + 1,0) <= 0)){
-					perror("Planificador: Error al enviarle el valor");
-					free(valor);
-					free(tamanioValor);
-					return -1;
-				}
-			}
-
-			free(status);
-			free(tamanioValor);
-			free(valor);
     	}
     	else{
 
@@ -867,6 +758,8 @@
         	}
     		instancia = list_find(colaInstancias,(void*)TieneLaClaveYNoEstaConectada);
     		if (instancia != NULL){
+
+    			// --- Este es el caso de que la Instancia que tenia la clave se Desconecto
 
     			printf("Planificador: La Instancia encontrada es %s pero no esta conectada \n",instancia->nombreProceso);
 
@@ -892,6 +785,9 @@
 				free(status);
     		}
 			else{
+
+				// --- Este es el caso de que no haya Instancias que tengan la clave
+
 				puts("Planificador: No hay ninguna Instancia que posea la clave, simulemos buscar una");
 
 				char * nombreInstancia;
@@ -943,6 +839,128 @@
 
     	return EXIT_SUCCESS;
     }
+
+    int STATUSParaInstanciaConectada(parametrosConexion * instancia, char * clave){
+
+    		if (DeboRecibir){
+    			tEntradasUsadas *estasConecatada = malloc(sizeof(tEntradasUsadas));
+    			if ((recv(instancia->new_fd, estasConecatada, sizeof(tEntradasUsadas), 0)) <= 0) {
+    				puts("Instancia: Fallo al enviar el tipo de operacion");
+    				instancia->conectada = 0;
+
+    				free(estasConecatada);
+    				//sem_destroy(instancia->semaforo);
+    				close(instancia->new_fd);
+    				return ERROR;
+    			}
+    			puts("Instancia: Recibi aviso de que la instancia esta conectada");
+    			free(estasConecatada);
+    		}
+
+    		tOperacionInstanciaStruct * operacionInstancia = malloc(sizeof(tOperacionInstanciaStruct));
+    		operacionInstancia->operacion= SOLICITAR_VALOR;
+    		if ((send(instancia->new_fd, operacionInstancia, sizeof(tOperacionInstanciaStruct), 0))
+    				// Le informamos que quiero hacer!
+    						<= 0) {
+    					puts("Instancia: Fallo al enviar el tipo de operacion");
+    					perror("send");
+    					instancia->conectada = 0;
+    					close(instancia->new_fd);
+    					return ERROR;
+    				}
+    		free(operacionInstancia);
+
+    		tEntradasUsadas *estasConecatada2 = malloc(sizeof(tEntradasUsadas));
+    		if ((recv(instancia->new_fd, estasConecatada2, sizeof(tEntradasUsadas), 0)) <= 0) {
+    			perror("Instancia: se desconecto!!!");
+    			instancia->conectada = 0;
+    			close(instancia->new_fd);
+    			free(estasConecatada2);
+    			return ERROR;
+    		}
+
+    		free(estasConecatada2);
+
+    		if ((send(instancia->new_fd, clave, TAMANIO_CLAVE, 0)) <= 0) {
+    			puts("Planificador: Error al enviar la clave a la Instancia");
+    			perror("Planificador: send");
+    			instancia->conectada = 0;
+    			//RemoverInstanciaDeLaLista(instancia);
+    			close(instancia->new_fd);
+    			return ERROR;
+    		}
+
+    		tEntradasUsadas * tamanioValor = malloc(sizeof(tEntradasUsadas));
+    		if((recv(instancia->new_fd, tamanioValor, sizeof(tEntradasUsadas), 0)) <= 0){
+    			perror("Planificador: Fallo al recibir el tamanio valor");
+    			perror("Instancia: se desconecto!!!");
+    			free(tamanioValor);
+    			instancia->conectada = 0;
+    			close(instancia->new_fd);
+    			return ERROR;
+    		}
+    		printf("PLANIFICADOR: El tamanioValor de la clave es: %d\n", tamanioValor->entradasUsadas);
+
+    		char * valor = malloc(tamanioValor->entradasUsadas + 1);
+    		if((recv(instancia->new_fd, valor, tamanioValor->entradasUsadas + 1, 0)) <= 0){
+    			perror("Planificador: Fallo al recibir el valor");
+    			perror("Instancia: se desconecto!!!");
+    			free(tamanioValor);
+    			free(valor);
+    			instancia->conectada = 0;
+    			close(instancia->new_fd);
+    			return ERROR;
+    		}
+
+    		printf("Planificador: La Instancia que tiene la clave %s es %s \n",clave,instancia->nombreProceso);
+
+    		tNotificacionPlanificador *notificacion = malloc(sizeof(tNotificacionPlanificador));
+    		notificacion->tipoNotificacion = STATUSDORRPUTO;
+
+    		if ((send(planificador->new_fd,notificacion,sizeof(tNotificacionPlanificador),0) <= 0)){
+    			perror("Planificador: Error al enviarle la notificacion al planificador");
+    			free(notificacion);
+    			free(valor);
+    			free(tamanioValor);
+    			return -1;
+    		}
+
+    		free(notificacion);
+
+    		tStatusParaPlanificador * status = malloc(sizeof(tStatusParaPlanificador));
+    		strcpy(status->proceso,instancia->nombreProceso);
+    		status->tamanioValor = tamanioValor->entradasUsadas;
+
+    		printf("PLANIFICADOR: El tamanioValor de la clave es: %d\n", status->tamanioValor);
+
+
+
+    		if ((send(planificador->new_fd,status,sizeof(tStatusParaPlanificador),0) <= 0)){
+    			perror("Planificador: Error al enviarle el nombre de la Instancia y tamanioValor");
+    			free(status);
+    			free(valor);
+    			free(tamanioValor);
+    			return -1;
+    		}
+
+
+    		printf("El valor recibido es: %s\n", valor);
+
+    		if(status->tamanioValor > 0){
+    			if ((send(planificador->new_fd,valor,tamanioValor->entradasUsadas + 1,0) <= 0)){
+    				perror("Planificador: Error al enviarle el valor");
+    				free(valor);
+    				free(tamanioValor);
+    				return -1;
+    			}
+    		}
+
+    		free(status);
+    		free(tamanioValor);
+    		free(valor);
+
+    		return OK;
+        }
 
     int EncontrarAlESIYEliminarlo(int id){
 
@@ -2247,6 +2265,51 @@
     		return false;
     }
 
+    int VerificarSiLaInstanciaSigueViva(parametrosConexion * instancia){
+    	puts("Instancia: Voy a verificar si la instancia sigue viva");
+    	if (DeboRecibir){
+				tEntradasUsadas *estasConecatada = malloc(sizeof(tEntradasUsadas));
+				if ((recv(instancia->new_fd, estasConecatada, sizeof(tEntradasUsadas), 0)) <= 0) {
+					puts("Instancia: Fallo al enviar el tipo de operacion");
+					instancia->conectada = 0;
+
+					free(estasConecatada);
+					//sem_destroy(instancia->semaforo);
+					close(instancia->new_fd);
+					return ERROR;
+				}
+				puts("Instancia: Recibi aviso de que la instancia esta conectada");
+				free(estasConecatada);
+			}
+
+
+			tOperacionInstanciaStruct * operacionInstancia = malloc(sizeof(tOperacionInstanciaStruct));
+			operacionInstancia->operacion= CUALQUIER_COSA;
+			if ((send(instancia->new_fd, operacionInstancia, sizeof(tOperacionInstanciaStruct), 0))
+					// Le informamos que quiero hacer!
+							<= 0) {
+						puts("Instancia: Fallo al enviar el tipo de operacion");
+						perror("send");
+						instancia->conectada = 0;
+						close(instancia->new_fd);
+						return ERROR;
+					}
+			free(operacionInstancia);
+
+			tEntradasUsadas *estasConecatada2 = malloc(sizeof(tEntradasUsadas));
+			if ((recv(instancia->new_fd, estasConecatada2, sizeof(tEntradasUsadas), 0)) <= 0) {
+				perror("Instancia: se desconecto!!!");
+				instancia->conectada = 0;
+				close(instancia->new_fd);
+				free(estasConecatada2);
+				return ERROR;
+			}
+
+			free(estasConecatada2);
+
+			return OK;
+    }
+
 
     char * SimulacionSeleccionarPorEquitativeLoad(char* clave) {
     		// mientras la cola este vacia no puedo continuarpthread_mutex_lock(&mutex);
@@ -2275,45 +2338,10 @@
 
 			// ------ COMPROBAMOS QUE LA INSTANCIA SIGA CONECTADA
 
-			if (DeboRecibir){
-				tEntradasUsadas *estasConecatada = malloc(sizeof(tEntradasUsadas));
-				if ((recv(instancia->new_fd, estasConecatada, sizeof(tEntradasUsadas), 0)) <= 0) {
-					puts("Instancia: Fallo al enviar el tipo de operacion");
-					instancia->conectada = 0;
+			int instanciaViva = VerificarSiLaInstanciaSigueViva(instancia);
 
-					free(estasConecatada);
-					//sem_destroy(instancia->semaforo);
-					close(instancia->new_fd);
-					return NULL;
-				}
-				puts("Instancia: Recibi aviso de que la instancia esta conectada");
-				free(estasConecatada);
-			}
-
-
-			tOperacionInstanciaStruct * operacionInstancia = malloc(sizeof(tOperacionInstanciaStruct));
-			operacionInstancia->operacion= CUALQUIER_COSA;
-			if ((send(instancia->new_fd, operacionInstancia, sizeof(tOperacionInstanciaStruct), 0))
-					// Le informamos que quiero hacer!
-							<= 0) {
-						puts("Instancia: Fallo al enviar el tipo de operacion");
-						perror("send");
-						instancia->conectada = 0;
-						close(instancia->new_fd);
-						return NULL;
-					}
-			free(operacionInstancia);
-
-			tEntradasUsadas *estasConecatada2 = malloc(sizeof(tEntradasUsadas));
-			if ((recv(instancia->new_fd, estasConecatada2, sizeof(tEntradasUsadas), 0)) <= 0) {
-				perror("Instancia: se desconecto!!!");
-				instancia->conectada = 0;
-				close(instancia->new_fd);
-				free(estasConecatada2);
+			if (instanciaViva == ERROR)
 				return NULL;
-			}
-
-			free(estasConecatada2);
 
 			return instancia->nombreProceso;
 
@@ -2334,45 +2362,10 @@
 
 			// ------ COMPROBAMOS QUE LA INSTANCIA SIGA CONECTADA
 
-			if (DeboRecibir){
-				tEntradasUsadas *estasConecatada = malloc(sizeof(tEntradasUsadas));
-				if ((recv(instancia->new_fd, estasConecatada, sizeof(tEntradasUsadas), 0)) <= 0) {
-					puts("Instancia: Fallo al enviar el tipo de operacion");
-					instancia->conectada = 0;
+			int instanciaViva = VerificarSiLaInstanciaSigueViva(instancia);
 
-					free(estasConecatada);
-					//sem_destroy(instancia->semaforo);
-					close(instancia->new_fd);
-					return NULL;
-				}
-				puts("Instancia: Recibi aviso de que la instancia esta conectada");
-				free(estasConecatada);
-			}
-
-
-			tOperacionInstanciaStruct * operacionInstancia = malloc(sizeof(tOperacionInstanciaStruct));
-			operacionInstancia->operacion= CUALQUIER_COSA;
-			if ((send(instancia->new_fd, operacionInstancia, sizeof(tOperacionInstanciaStruct), 0))
-					// Le informamos que quiero hacer!
-							<= 0) {
-						puts("Instancia: Fallo al enviar el tipo de operacion");
-						perror("send");
-						instancia->conectada = 0;
-						close(instancia->new_fd);
-						return NULL;
-					}
-			free(operacionInstancia);
-
-			tEntradasUsadas *estasConecatada2 = malloc(sizeof(tEntradasUsadas));
-			if ((recv(instancia->new_fd, estasConecatada2, sizeof(tEntradasUsadas), 0)) <= 0) {
-				perror("Instancia: se desconecto!!!");
-				instancia->conectada = 0;
-				close(instancia->new_fd);
-				free(estasConecatada2);
+			if (instanciaViva == ERROR)
 				return NULL;
-			}
-
-			free(estasConecatada2);
 
 			return instancia->nombreProceso;
     	}
@@ -2505,46 +2498,10 @@
 
 			// ------ COMPROBAMOS QUE LA INSTANCIA SIGA CONECTADA
 
-			if (DeboRecibir){
-				tEntradasUsadas *estasConecatada = malloc(sizeof(tEntradasUsadas));
-				if ((recv(instancia->new_fd, estasConecatada, sizeof(tEntradasUsadas), 0)) <= 0) {
-					puts("Instancia: Fallo al enviar el tipo de operacion");
-					instancia->conectada = 0;
+			int instanciaViva = VerificarSiLaInstanciaSigueViva(instancia);
 
-					free(estasConecatada);
-					//sem_destroy(instancia->semaforo);
-					close(instancia->new_fd);
-					return NULL;
-				}
-				puts("Instancia: Recibi aviso de que la instancia esta conectada");
-				free(estasConecatada);
-			}
-
-
-			tOperacionInstanciaStruct * operacionInstancia = malloc(sizeof(tOperacionInstanciaStruct));
-			operacionInstancia->operacion= CUALQUIER_COSA;
-			if ((send(instancia->new_fd, operacionInstancia, sizeof(tOperacionInstanciaStruct), 0))
-					// Le informamos que quiero hacer!
-							<= 0) {
-						puts("Instancia: Fallo al enviar el tipo de operacion");
-						perror("send");
-						instancia->conectada = 0;
-						close(instancia->new_fd);
-						return NULL;
-					}
-			free(operacionInstancia);
-
-			tEntradasUsadas *estasConecatada2 = malloc(sizeof(tEntradasUsadas));
-			if ((recv(instancia->new_fd, estasConecatada2, sizeof(tEntradasUsadas), 0)) <= 0) {
-				perror("Instancia: se desconecto!!!");
-				instancia->conectada = 0;
-				close(instancia->new_fd);
-				free(estasConecatada2);
+			if (instanciaViva == ERROR)
 				return NULL;
-			}
-
-			free(estasConecatada2);
-
 
 			printf("Planificador: El nombre de la Instancia que tendria el planificador es %s \n",
 					instancia->nombreProceso);
