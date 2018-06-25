@@ -780,6 +780,7 @@
 				free(estasConecatada2);
 				return OK;
 			}
+			printf("PLANIFICADOR: El tamanioValor de la clave es: %d\n", tamanioValor->entradasUsadas);
 
 			char * valor = malloc(tamanioValor->entradasUsadas + 1);
 			if((recv(instancia->new_fd, valor, tamanioValor->entradasUsadas + 1, 0)) <= 0){

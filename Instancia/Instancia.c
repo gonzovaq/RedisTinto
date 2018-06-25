@@ -250,6 +250,7 @@
     	puts("YA BUSQUÉ EL VALOR");
     	printf("El valor es: %s\n", valor);
     	tamanio->entradasUsadas = strlen(valor);
+    	printf("COORDINADOR: El tamanio de valor es: %d\n", tamanio->entradasUsadas);
 	    if (send(socketCoordinador, tamanio, sizeof(tEntradasUsadas), 0) <= 0){
 
 	    	puts("Error al enviar el el tamanio valor");
