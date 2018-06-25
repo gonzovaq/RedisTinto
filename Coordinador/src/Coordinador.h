@@ -101,7 +101,8 @@ typedef enum{
 typedef enum{
 	SOLICITAR_VALOR = 1,
 	OPERAR = 2,
-	COMPACTAR = 3
+	COMPACTAR = 3,
+	CUALQUIER_COSA = 4
 }tOperacionInstancia;
 
 
@@ -298,5 +299,6 @@ int EliminarClaveDeInstancia(parametrosConexion * instancia, char * clave);
 bool TieneLaClave(parametrosConexion * esi, char * clave);
 
 int EliminarClaveDeBloqueos(char * claveABorrar);
+parametrosConexion* BuscarInstanciaMenosUsadaSimulacion();
 
 

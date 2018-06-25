@@ -191,7 +191,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 									//notificacion=recibirNotificacionCoordinador(sockCord);
 									 int numbytes;
 									if ((numbytes=recv(i, notificacion, sizeof(tNotificacionPlanificador), 0)) <= 0) {
-										perror("Fallo el recibir Notificacion. Probablemente el Coordiandor la quedo");
+										//perror("Fallo el recibir Notificacion. Probablemente el Coordiandor la quedo");
 										//exit(1);
 									}else{
 										if(notificacion->tipoNotificacion==ERROR)

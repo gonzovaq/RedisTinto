@@ -674,7 +674,16 @@
 					printf("Planificador: recibi la clave %s y voy a mostrar la instancia \n",clave);
 
 					sem_wait(&semaforoInstancia);
-					BuscarClaveEnInstanciaYEnviar(&clave);
+					int busqueda = BuscarClaveEnInstanciaYEnviar(&clave);
+
+					if (busqueda == ERROR){ //Reintento una vez?
+						busqueda = BuscarClaveEnInstanciaYEnviar(&clave);
+					}
+
+					if (busqueda == -1){
+						free(solicitud);
+						return EXIT_SUCCESS;
+					}
 					sem_post(&semaforoInstancia);
 				}
 				break;
@@ -701,7 +710,7 @@
 				puts("Planificador: Me envio cualquier cosa");
 				break;
 			}
-
+			puts("Planificador: Termine de manejar la operacion");
 			free(solicitud);
 		}
 
@@ -711,14 +720,20 @@
     int BuscarClaveEnInstanciaYEnviar(char * clave){
 
     	bool EsLaMismaClave(char * claveAComparar){
-    		return string_equals_ignore_case(clave, claveAComparar);
+    		if ((string_equals_ignore_case(clave, claveAComparar)) == true)
+    			return true;
+    		else
+    			return false;
     	}
 
-    	bool TieneLaClave(parametrosConexion * parametros){
-    		return list_any_satisfy(parametros->claves,(void *)EsLaMismaClave);
+    	bool TieneLaClaveYEstaConectada(parametrosConexion * parametros){
+    		if (((list_any_satisfy(parametros->claves,(void *)EsLaMismaClave)) == true) && parametros->conectada == 1)
+    			return true;
+    		else
+    			return false;
     	}
-
-    	parametrosConexion * instancia = list_find(colaInstancias,(void*)TieneLaClave);
+    	parametrosConexion * instancia;
+    	instancia = list_find(colaInstancias,(void*)TieneLaClaveYEstaConectada);
 
     	if (instancia != NULL){
     		printf("Planificador: La Instancia encontrada es %s \n",instancia->nombreProceso);
@@ -735,6 +750,7 @@
 					close(instancia->new_fd);
 					return ERROR;
 				}
+				puts("Instancia: Recibi aviso de que la instancia esta conectada");
 				free(estasConecatada);
     		}
 
@@ -747,7 +763,6 @@
 						puts("Instancia: Fallo al enviar el tipo de operacion");
 						perror("send");
 						instancia->conectada = 0;
-						//RemoverInstanciaDeLaLista(instancia);
 						close(instancia->new_fd);
 						return ERROR;
 					}
@@ -757,8 +772,9 @@
 			if ((recv(instancia->new_fd, estasConecatada2, sizeof(tEntradasUsadas), 0)) <= 0) {
 				perror("Instancia: se desconecto!!!");
 				instancia->conectada = 0;
+				close(instancia->new_fd);
 				free(estasConecatada2);
-				return OK;
+				return ERROR;
 			}
 
 			free(estasConecatada2);
@@ -776,9 +792,10 @@
 			if((recv(instancia->new_fd, tamanioValor, sizeof(tEntradasUsadas), 0)) <= 0){
 				perror("Planificador: Fallo al recibir el tamanio valor");
 				perror("Instancia: se desconecto!!!");
+				free(tamanioValor);
 				instancia->conectada = 0;
-				free(estasConecatada2);
-				return OK;
+				close(instancia->new_fd);
+				return ERROR;
 			}
 			printf("PLANIFICADOR: El tamanioValor de la clave es: %d\n", tamanioValor->entradasUsadas);
 
@@ -786,9 +803,11 @@
 			if((recv(instancia->new_fd, valor, tamanioValor->entradasUsadas + 1, 0)) <= 0){
 				perror("Planificador: Fallo al recibir el valor");
 				perror("Instancia: se desconecto!!!");
+				free(tamanioValor);
+				free(valor);
 				instancia->conectada = 0;
-				free(estasConecatada2);
-				return OK;
+				close(instancia->new_fd);
+				return ERROR;
 			}
 
 			printf("Planificador: La Instancia que tiene la clave %s es %s \n",clave,instancia->nombreProceso);
@@ -800,7 +819,8 @@
 				perror("Planificador: Error al enviarle la notificacion al planificador");
 				free(notificacion);
 				free(valor);
-				return ERROR;
+				free(tamanioValor);
+				return -1;
 			}
 
 			free(notificacion);
@@ -817,68 +837,108 @@
 				perror("Planificador: Error al enviarle el nombre de la Instancia y tamanioValor");
 				free(status);
 				free(valor);
-				return ERROR;
+				free(tamanioValor);
+				return -1;
 			}
-			free(status);
+
 
 			printf("El valor recibido es: %s\n", valor);
 
-			if ((send(planificador->new_fd,valor,tamanioValor->entradasUsadas + 1,0) <= 0)){
-				perror("Planificador: Error al enviarle el valor");
-				free(valor);
-
-				return ERROR;
+			if(status->tamanioValor > 0){
+				if ((send(planificador->new_fd,valor,tamanioValor->entradasUsadas + 1,0) <= 0)){
+					perror("Planificador: Error al enviarle el valor");
+					free(valor);
+					free(tamanioValor);
+					return -1;
+				}
 			}
+
+			free(status);
 			free(tamanioValor);
 			free(valor);
     	}
     	else{
-    		puts("Planificador: No hay ninguna Instancia que posea la clave, simulemos buscar una");
 
-    		char * nombreInstancia;
-    		switch (ALGORITMO){
-    		case EL: ; // Si no se deja un statement vacio rompe
-    			nombreInstancia = SimulacionSeleccionarPorEquitativeLoad(&clave);
-    			break;
-    		case LSU:
-    			nombreInstancia = SimulacionSeleccionarPorLeastSpaceUsed(&clave);
-    			break;
-    		case KE:
-    			nombreInstancia = SimulacionSeleccionarPorKeyExplicit(&clave);
-    			break;
-    		default:
-    			puts("Planificador: Hubo un problema al seleccionar la instancia correcta");
-    			exit_gracefully(1);
-    		}
-
-			printf("Planificador: La Instancia que tendria la clave %s es %s \n",clave,nombreInstancia);
-
-			tNotificacionPlanificador * notif = malloc(sizeof(tNotificacionPlanificador));
-
-			strcpy(notif->clave,clave);
-			notif->tipoNotificacion = STATUS;
-        	if (send(planificador->new_fd,notif,sizeof(tNotificacionPlanificador),0) <= 0){
-        		puts("Planificador: Fallo al enviar mensaje al planificador");
-        		perror("send planificador");
+        	bool TieneLaClaveYNoEstaConectada(parametrosConexion * parametros){
+        		if (((list_any_satisfy(parametros->claves,(void *)EsLaMismaClave)) == true) && parametros->conectada != 1)
+        			return true;
+        		else
+        			return false;
         	}
-        	free(notif);
+    		instancia = list_find(colaInstancias,(void*)TieneLaClaveYNoEstaConectada);
+    		if (instancia != NULL){
 
-			tStatusParaPlanificador * status = malloc(sizeof(tStatusParaPlanificador));
-			if(nombreInstancia==NULL){
-				strcpy(status->proceso,"No hay instancias disponibles \0");
-			}else
-			{
-				strcpy(status->proceso,nombreInstancia);
-			}
-			status->tamanioValor = 0;
+    			printf("Planificador: La Instancia encontrada es %s pero no esta conectada \n",instancia->nombreProceso);
 
-			if ((send(planificador->new_fd,status,sizeof(tStatusParaPlanificador),0) <= 0)){
-				perror("Planificador: Error al enviarle el nombre de la Instancia y tamanioValor");
+    			tNotificacionPlanificador * notif = malloc(sizeof(tNotificacionPlanificador));
+				strcpy(notif->clave,clave);
+				notif->tipoNotificacion = STATUS;
+				if (send(planificador->new_fd,notif,sizeof(tNotificacionPlanificador),0) <= 0){
+					puts("Planificador: Fallo al enviar mensaje al planificador");
+					perror("send planificador");
+				}
+				free(notif);
+
+				tStatusParaPlanificador * status = malloc(sizeof(tStatusParaPlanificador));
+				strcpy(status->proceso,instancia->nombreProceso);
+				status->tamanioValor = 0;
+
+				if ((send(planificador->new_fd,status,sizeof(tStatusParaPlanificador),0) <= 0)){
+					perror("Planificador: Error al enviarle el nombre de la Instancia y tamanioValor");
+					free(status);
+					close(instancia->new_fd);
+					return ERROR;
+				}
 				free(status);
-				close(instancia->new_fd);
-				return ERROR;
+    		}
+			else{
+				puts("Planificador: No hay ninguna Instancia que posea la clave, simulemos buscar una");
+
+				char * nombreInstancia;
+				switch (ALGORITMO){
+				case EL: ; // Si no se deja un statement vacio rompe
+					nombreInstancia = SimulacionSeleccionarPorEquitativeLoad(&clave);
+					break;
+				case LSU:
+					nombreInstancia = SimulacionSeleccionarPorLeastSpaceUsed(&clave);
+					break;
+				case KE:
+					nombreInstancia = SimulacionSeleccionarPorKeyExplicit(&clave);
+					break;
+				default:
+					puts("Planificador: Hubo un problema al seleccionar la instancia correcta");
+					exit_gracefully(1);
+				}
+
+				printf("Planificador: La Instancia que tendria la clave %s es %s \n",clave,nombreInstancia);
+
+				tNotificacionPlanificador * notif = malloc(sizeof(tNotificacionPlanificador));
+
+				strcpy(notif->clave,clave);
+				notif->tipoNotificacion = STATUS;
+				if (send(planificador->new_fd,notif,sizeof(tNotificacionPlanificador),0) <= 0){
+					puts("Planificador: Fallo al enviar mensaje al planificador");
+					perror("send planificador");
+				}
+				free(notif);
+
+				tStatusParaPlanificador * status = malloc(sizeof(tStatusParaPlanificador));
+				if(nombreInstancia==NULL){
+					strcpy(status->proceso,"No hay instancias disponibles \0");
+				}else
+				{
+					strcpy(status->proceso,nombreInstancia);
+				}
+				status->tamanioValor = 0;
+
+				if ((send(planificador->new_fd,status,sizeof(tStatusParaPlanificador),0) <= 0)){
+					perror("Planificador: Error al enviarle el nombre de la Instancia y tamanioValor");
+					free(status);
+					close(instancia->new_fd);
+					return ERROR;
+				}
+				free(status);
 			}
-			free(status);
     	}
 
     	return EXIT_SUCCESS;
@@ -2181,7 +2241,10 @@
     }
 
     bool EstaConectada(parametrosConexion * instancia){
-    	return instancia->conectada == 1;
+    	if (instancia->conectada == 1)
+    		return true;
+    	else
+    		return false;
     }
 
 
@@ -2206,32 +2269,143 @@
 			printf("Planificador: El nombre de la Instancia que tendria el planificador es %s \n",
 					instancia->nombreProceso);
 
+			if(instancia->conectada != 1)
+				return NULL;
+
+
+			// ------ COMPROBAMOS QUE LA INSTANCIA SIGA CONECTADA
+
+			if (DeboRecibir){
+				tEntradasUsadas *estasConecatada = malloc(sizeof(tEntradasUsadas));
+				if ((recv(instancia->new_fd, estasConecatada, sizeof(tEntradasUsadas), 0)) <= 0) {
+					puts("Instancia: Fallo al enviar el tipo de operacion");
+					instancia->conectada = 0;
+
+					free(estasConecatada);
+					//sem_destroy(instancia->semaforo);
+					close(instancia->new_fd);
+					return NULL;
+				}
+				puts("Instancia: Recibi aviso de que la instancia esta conectada");
+				free(estasConecatada);
+			}
+
+
+			tOperacionInstanciaStruct * operacionInstancia = malloc(sizeof(tOperacionInstanciaStruct));
+			operacionInstancia->operacion= CUALQUIER_COSA;
+			if ((send(instancia->new_fd, operacionInstancia, sizeof(tOperacionInstanciaStruct), 0))
+					// Le informamos que quiero hacer!
+							<= 0) {
+						puts("Instancia: Fallo al enviar el tipo de operacion");
+						perror("send");
+						instancia->conectada = 0;
+						close(instancia->new_fd);
+						return NULL;
+					}
+			free(operacionInstancia);
+
+			tEntradasUsadas *estasConecatada2 = malloc(sizeof(tEntradasUsadas));
+			if ((recv(instancia->new_fd, estasConecatada2, sizeof(tEntradasUsadas), 0)) <= 0) {
+				perror("Instancia: se desconecto!!!");
+				instancia->conectada = 0;
+				close(instancia->new_fd);
+				free(estasConecatada2);
+				return NULL;
+			}
+
+			free(estasConecatada2);
+
 			return instancia->nombreProceso;
 
     	}
 
     	char * SimulacionSeleccionarPorLeastSpaceUsed(char * clave){
-    		parametrosConexion* instanciaMenosUsada;
+    		parametrosConexion* instancia;
 
-			instanciaMenosUsada = BuscarInstanciaMenosUsada(clave);
+    		instancia = BuscarInstanciaMenosUsadaSimulacion();
 			// Va a buscar la instancia que menos entradas tenga, desempata con fifo
 
-			if (instanciaMenosUsada == NULL)
+			if (instancia == NULL)
 				return NULL;
 
 			printf("Planificador: El nombre de la Instancia que tendria el planificador es %s \n",
-					instanciaMenosUsada->nombreProceso);
+					instancia->nombreProceso);
 
-			return instanciaMenosUsada->nombreProceso;
+
+			// ------ COMPROBAMOS QUE LA INSTANCIA SIGA CONECTADA
+
+			if (DeboRecibir){
+				tEntradasUsadas *estasConecatada = malloc(sizeof(tEntradasUsadas));
+				if ((recv(instancia->new_fd, estasConecatada, sizeof(tEntradasUsadas), 0)) <= 0) {
+					puts("Instancia: Fallo al enviar el tipo de operacion");
+					instancia->conectada = 0;
+
+					free(estasConecatada);
+					//sem_destroy(instancia->semaforo);
+					close(instancia->new_fd);
+					return NULL;
+				}
+				puts("Instancia: Recibi aviso de que la instancia esta conectada");
+				free(estasConecatada);
+			}
+
+
+			tOperacionInstanciaStruct * operacionInstancia = malloc(sizeof(tOperacionInstanciaStruct));
+			operacionInstancia->operacion= CUALQUIER_COSA;
+			if ((send(instancia->new_fd, operacionInstancia, sizeof(tOperacionInstanciaStruct), 0))
+					// Le informamos que quiero hacer!
+							<= 0) {
+						puts("Instancia: Fallo al enviar el tipo de operacion");
+						perror("send");
+						instancia->conectada = 0;
+						close(instancia->new_fd);
+						return NULL;
+					}
+			free(operacionInstancia);
+
+			tEntradasUsadas *estasConecatada2 = malloc(sizeof(tEntradasUsadas));
+			if ((recv(instancia->new_fd, estasConecatada2, sizeof(tEntradasUsadas), 0)) <= 0) {
+				perror("Instancia: se desconecto!!!");
+				instancia->conectada = 0;
+				close(instancia->new_fd);
+				free(estasConecatada2);
+				return NULL;
+			}
+
+			free(estasConecatada2);
+
+			return instancia->nombreProceso;
     	}
+
+        parametrosConexion* BuscarInstanciaMenosUsadaSimulacion(){
+        	int tamanioLista = list_size(colaInstancias);
+
+        	parametrosConexion* instancia = list_get(colaInstancias,0);
+        	for (int i = 0; i< tamanioLista; i++){
+        		parametrosConexion* instanciaAComparar = malloc(sizeof(parametrosConexion));
+        		instanciaAComparar = list_get(colaInstancias,i);
+            	if (instancia->conectada == 0){
+            		printf("ESI: La Instancia %s con pid %d se encuentra desconectada \n", instancia->nombreProceso,instancia->pid);
+            		instancia = instanciaAComparar;
+            	}
+            	if (instancia->entradasUsadas > instanciaAComparar->entradasUsadas && instanciaAComparar->conectada == 1)
+            		instancia = instanciaAComparar;
+        		free(instanciaAComparar);
+        	}
+        	if (instancia->conectada == 0)
+        		return NULL;
+        	//MandarAlFinalDeLaLista(colaInstancias, instancia); No hacemos esto porque es una simulacion
+        	return instancia;
+        }
 
     	char *  SimulacionSeleccionarPorKeyExplicit(char* clave){
     		parametrosConexion * instancia;
 
-			t_list * listaFiltrada;
+    		t_list * listaFiltrada;
 			listaFiltrada = list_filter(colaInstancias,(void*)EstaConectada);
 
 			int cantidadInstancias = list_size(listaFiltrada);
+			printf("ESI: Tengo %d instancias para distribuir con KE \n",cantidadInstancias);
 			char primerCaracter = clave[0];
 			int x = 0;
 			while ((clave[x] < 97 && clave[x] > 122) && (clave[x] < 65 && clave[x] > 90)){
@@ -2247,36 +2421,130 @@
 			int rango = KEYS_POSIBLES/cantidadInstancias;
 			int restoRango = KEYS_POSIBLES%cantidadInstancias;
 			int entradasUltimaInstancia;
+
+			printf("ESI: El rango es %d  con un resto de %d \n",rango,restoRango);
+
 			if (restoRango !=0){
 				entradasUltimaInstancia = KEYS_POSIBLES - ((cantidadInstancias-1) * (rango + 1));
+			}else
+			{
+				entradasUltimaInstancia = KEYS_POSIBLES- ((cantidadInstancias-1) * (rango));
 			}
+			printf("ESI: La ultima instancia va a tener %d entradas\n",entradasUltimaInstancia);
 
 			for (int i = 0; i < cantidadInstancias; i++){
-				if (i!= cantidadInstancias - 1 && restoRango == 0){
-					// Si no es la ultima instancia debo redondear hacia arriba
-						if(posicionLetraEnASCII >= (i * rango) && posicionLetraEnASCII <= ((i * rango) + rango)){
-							instancia = list_get(listaFiltrada, i);
-							//sem_post(instancia->semaforo);
-						}
-					}
-					else if (i!= cantidadInstancias - 1 && restoRango != 0){
-						// si es la ultima instancia debo recalcular y ver cuantas entradas puedo aceptar
-						if(posicionLetraEnASCII >= (i * rango) &&
-								posicionLetraEnASCII <= ((i * rango) + rango + 1)){
-							instancia = list_get(listaFiltrada, i);
-							//sem_post(instancia->semaforo);
-						}else{
+				// -------------- CASO RESTO 0 -------------
+				if (restoRango == 0){
+
+					// -------------- TODAS LAS INSTANCIAS MENOS LA ULTIMA ----------------
+					if (i!= cantidadInstancias - 1){
+						printf("ESI: analizo si va en la instancia %d \n", i);
+
 							if(posicionLetraEnASCII >= (i * rango) &&
-									posicionLetraEnASCII <= ((i * rango) + entradasUltimaInstancia)){
+									posicionLetraEnASCII <= ((i * rango) + rango)){
 								instancia = list_get(listaFiltrada, i);
+								printf("ESI: Seleccione la instancia %s con pid %d para la clave %s \n"
+										,instancia->nombreProceso,instancia->pid,clave);
 								//sem_post(instancia->semaforo);
-						}
+							}
 					}
+					// -------------- HASTA ACA ---------------------
+
+					// -------------- ULTIMA INSTANCIA ----------------
+							else{
+								puts("ESI: Analizo si va en la ultima instancia");
+								if(posicionLetraEnASCII >= (i * rango) &&
+										posicionLetraEnASCII <= ((i * rango) + entradasUltimaInstancia)){
+									instancia = list_get(listaFiltrada, i);
+									printf("ESI: Seleccione la instancia %s con pid %d para la clave %s \n"
+											,instancia->nombreProceso,instancia->pid,clave);
+									//sem_post(instancia->semaforo);
+								}
+							}
+					// -------------- HASTA ACA ---------------------
+
 				}
-			}
+				// -------------- CASO RESTO 1 -------------
+				else{
+
+					// -------------- TODAS LAS INSTANCIAS MENOS LA ULTIMA ----------------
+						if (i!= cantidadInstancias - 1){
+
+							printf("ESI: Analizo si va la instancia %d para distribuir con KE \n", i);
+
+							if(posicionLetraEnASCII >= (i * rango) &&
+									posicionLetraEnASCII <= ((i * rango) + rango + 1)){
+								instancia = list_get(listaFiltrada, i);
+								printf("ESI: Seleccione la instancia %s con pid %d para la clave %s \n"
+										,instancia->nombreProceso,instancia->pid,clave);
+								//sem_post(instancia->semaforo);
+								}
+							}
+						// -------------- HASTA ACA ---------------------
+
+						// -------------- ULTIMA INSTANCIA ----------------
+						else{
+								puts("ESI: Entre en el caso de que sea la ultimna instancia con resto distinto de 0");
+								if(posicionLetraEnASCII >= (i * rango) &&
+										posicionLetraEnASCII <= ((i * rango) + entradasUltimaInstancia)){
+									instancia = list_get(listaFiltrada, i);
+									printf("ESI: Seleccione la instancia %s con pid %d para la clave %s \n"
+											,instancia->nombreProceso,instancia->pid,clave);
+									//sem_post(instancia->semaforo);
+								}
+						}
+						// -------------- HASTA ACA ---------------------
+
+					}
+				// -------------- SE TERMINA CASO RESTO DISTINTO 0  -------------
+				}
 
 			if(instancia == NULL)
 				return NULL;
+
+
+			// ------ COMPROBAMOS QUE LA INSTANCIA SIGA CONECTADA
+
+			if (DeboRecibir){
+				tEntradasUsadas *estasConecatada = malloc(sizeof(tEntradasUsadas));
+				if ((recv(instancia->new_fd, estasConecatada, sizeof(tEntradasUsadas), 0)) <= 0) {
+					puts("Instancia: Fallo al enviar el tipo de operacion");
+					instancia->conectada = 0;
+
+					free(estasConecatada);
+					//sem_destroy(instancia->semaforo);
+					close(instancia->new_fd);
+					return NULL;
+				}
+				puts("Instancia: Recibi aviso de que la instancia esta conectada");
+				free(estasConecatada);
+			}
+
+
+			tOperacionInstanciaStruct * operacionInstancia = malloc(sizeof(tOperacionInstanciaStruct));
+			operacionInstancia->operacion= CUALQUIER_COSA;
+			if ((send(instancia->new_fd, operacionInstancia, sizeof(tOperacionInstanciaStruct), 0))
+					// Le informamos que quiero hacer!
+							<= 0) {
+						puts("Instancia: Fallo al enviar el tipo de operacion");
+						perror("send");
+						instancia->conectada = 0;
+						close(instancia->new_fd);
+						return NULL;
+					}
+			free(operacionInstancia);
+
+			tEntradasUsadas *estasConecatada2 = malloc(sizeof(tEntradasUsadas));
+			if ((recv(instancia->new_fd, estasConecatada2, sizeof(tEntradasUsadas), 0)) <= 0) {
+				perror("Instancia: se desconecto!!!");
+				instancia->conectada = 0;
+				close(instancia->new_fd);
+				free(estasConecatada2);
+				return NULL;
+			}
+
+			free(estasConecatada2);
+
 
 			printf("Planificador: El nombre de la Instancia que tendria el planificador es %s \n",
 					instancia->nombreProceso);

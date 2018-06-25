@@ -80,7 +80,8 @@ typedef enum{
 typedef enum{
 	SOLICITAR_VALOR = 1,
 	OPERAR = 2,
-	COMPACTAR = 3
+	COMPACTAR = 3,
+	CUALQUIER_COSA = 4
 }tOperacionInstancia;
 
 typedef struct{
