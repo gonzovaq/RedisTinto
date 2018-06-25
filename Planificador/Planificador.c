@@ -199,11 +199,11 @@ void intHandler(int dummy) { // para atajar ctrl c
 											printf("Vamos a matar al esi de id: %d \n",esi->id);//abortar al esi
 											kill(esi->id,SIGTERM);
 										}
-										if(notificacion->tipoNotificacion==STATUS)
+										if(notificacion->tipoNotificacion==STATUSDORRPUTO)
 										{
 											printf("TODO: IMPLEMENTAR RCV DE LA INSTANCIA \n");
 											//char instancia[TAMANIO_NOMBREPROCESO];
-											char * valor = malloc(tamanioValor+1);
+											//char * valor = malloc(tamanioValor+1);
 											tStatusParaPlanificador * status = malloc(sizeof(tStatusParaPlanificador));
 											if ( (recv(i, status,sizeof(tStatusParaPlanificador), 0)) <= 0) {
 												perror("recv");
@@ -212,6 +212,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 											}
 											else
 											{
+												char * valor = malloc(status->tamanioValor+1);
 												printf("El nombre de la instancia es: %s \n",status->proceso);
 												//printf("La instancia que utiliza la clave es: %s \n",);
 												if(status->tamanioValor==0)
@@ -220,7 +221,8 @@ void intHandler(int dummy) { // para atajar ctrl c
 												}
 												else{
 													puts("La clave posee valor");
-													if ( (recv(i, valor,tamanioValor+1, 0)) <= 0) 
+													printf("El tamanioValor de la clave es: %d\n", status->tamanioValor);
+													if ( (recv(i, valor,status->tamanioValor + 1, 0)) <= 0)
 													{
 														perror("recv");
 														puts("Error recibir el valor de la clave");
@@ -231,9 +233,10 @@ void intHandler(int dummy) { // para atajar ctrl c
 														printf("El valor de la clave es: %s \n",valor);
 													}
 												}
+												free(valor);
 											}
 											free(status);
-											free(valor);
+
 											obtenerBloqueados(notificacion->clave);
 										}
 										if(notificacion->tipoNotificacion==DESBLOQUEO)

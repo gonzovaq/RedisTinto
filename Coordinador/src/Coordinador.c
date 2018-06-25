@@ -781,8 +781,8 @@
 				return OK;
 			}
 
-			char * valor = malloc(tamanioValor+1);
-			if((recv(instancia->new_fd, valor, tamanioValor+1, 0)) <= 0){
+			char * valor = malloc(tamanioValor->entradasUsadas + 1);
+			if((recv(instancia->new_fd, valor, tamanioValor->entradasUsadas + 1, 0)) <= 0){
 				perror("Planificador: Fallo al recibir el valor");
 				perror("Instancia: se desconecto!!!");
 				instancia->conectada = 0;
@@ -792,11 +792,25 @@
 
 			printf("Planificador: La Instancia que tiene la clave %s es %s \n",clave,instancia->nombreProceso);
 
+			tNotificacionPlanificador *notificacion = malloc(sizeof(tNotificacionPlanificador));
+			notificacion->tipoNotificacion = STATUSDORRPUTO;
+
+			if ((send(planificador->new_fd,notificacion,sizeof(tNotificacionPlanificador),0) <= 0)){
+				perror("Planificador: Error al enviarle la notificacion al planificador");
+				free(notificacion);
+				free(valor);
+				return ERROR;
+			}
+
+			free(notificacion);
+
 			tStatusParaPlanificador * status = malloc(sizeof(tStatusParaPlanificador));
-			strcpy(status,instancia->nombreProceso);
+			strcpy(status->proceso,instancia->nombreProceso);
 			status->tamanioValor = tamanioValor->entradasUsadas;
 
-			free(tamanioValor);
+			printf("PLANIFICADOR: El tamanioValor de la clave es: %d\n", status->tamanioValor);
+
+
 
 			if ((send(planificador->new_fd,status,sizeof(tStatusParaPlanificador),0) <= 0)){
 				perror("Planificador: Error al enviarle el nombre de la Instancia y tamanioValor");
@@ -806,12 +820,15 @@
 			}
 			free(status);
 
-			if ((send(planificador->new_fd,valor,tamanioValor+1,0) <= 0)){
+			printf("El valor recibido es: %s\n", valor);
+
+			if ((send(planificador->new_fd,valor,tamanioValor->entradasUsadas + 1,0) <= 0)){
 				perror("Planificador: Error al enviarle el valor");
 				free(valor);
 
 				return ERROR;
 			}
+			free(tamanioValor);
 			free(valor);
     	}
     	else{

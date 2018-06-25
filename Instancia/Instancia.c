@@ -48,7 +48,7 @@
 
         	if(operacion->operacion == SOLICITAR_VALOR){
         		free(operacion);
-        		PedidoDeValores(socketCoordinador);
+        		PedidoDeValores(socketCoordinador, arrayEntradas);
         		puts("Terminamos el STATUS");
         	}
         	else{
@@ -231,7 +231,7 @@
 
     	}
 
-    int PedidoDeValores(int socketCoordinador)
+    int PedidoDeValores(int socketCoordinador, char **arrayEntradas)
     {
 		char clave[TAMANIO_CLAVE];
     	if((recv(socketCoordinador, clave, TAMANIO_CLAVE, 0)) <= 0){
@@ -241,11 +241,18 @@
     	// TODO: BUSCO VALOR!
 
     	char* valor;
-    	int tamanioValor;
+    	int tamanioValorBuscado;
     	tEntradasUsadas * tamanio = malloc(sizeof(tEntradasUsadas));
 
+    	tamanioValorBuscado = calcularLongitudMaxValorBuscado(clave, tablaEntradas);
+
+    	valor = obtenerValor(tamanioValorBuscado, tablaEntradas, clave, arrayEntradas, tamanioValor);
+    	puts("YA BUSQUÉ EL VALOR");
+    	printf("El valor es: %s\n", valor);
+    	tamanio->entradasUsadas = strlen(valor);
 	    if (send(socketCoordinador, tamanio, sizeof(tEntradasUsadas), 0) <= 0){
-		   puts("Error al enviar el el tamanio valor");
+
+	    	puts("Error al enviar el el tamanio valor");
 		   perror("Send");
 	    }
 	    free(tamanio);

@@ -125,11 +125,12 @@ static void ESI_destroy (t_esi * self){
 	free (self);
 }
 typedef enum{
+	CHAU=0,
 	OK = 1,
 	BLOQUEO = 2,
 	ERROR = 3,
 	DESBLOQUEO = 4,
-	CHAU=0
+	STATUSDORRPUTO = 5
 }tResultadoOperacion;
 
 typedef struct{

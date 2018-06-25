@@ -83,7 +83,8 @@ typedef enum{
 	OK = 1,
 	BLOQUEO = 2,
 	ERROR = 3,
-	DESBLOQUEO = 4
+	DESBLOQUEO = 4,
+	STATUSDORRPUTO = 5
 }tResultadoOperacion;
 
 typedef enum{
