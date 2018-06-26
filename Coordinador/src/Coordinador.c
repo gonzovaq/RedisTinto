@@ -910,7 +910,7 @@
     			close(instancia->new_fd);
     			return ERROR;
     		}
-    		printf("PLANIFICADOR: El tamanioValor de la clave es: %d\n", tamanioValor->entradasUsadas);
+    		printf("Planificador: El tamanioValor del valor es: %d\n", tamanioValor->entradasUsadas);
 
     		char * valor = malloc(tamanioValor->entradasUsadas + 1);
     		if((recv(instancia->new_fd, valor, tamanioValor->entradasUsadas + 1, 0)) <= 0){
@@ -923,7 +923,10 @@
     			return ERROR;
     		}
 
-    		printf("Planificador: La Instancia que tiene la clave %s es %s \n",clave,instancia->nombreProceso);
+    		valor[tamanioValor->entradasUsadas] = '\0';
+
+    		printf("Planificador: La Instancia que tiene la clave %s es %s con un valor de %s\n",
+    				clave,instancia->nombreProceso, valor);
 
     		tNotificacionPlanificador *notificacion = malloc(sizeof(tNotificacionPlanificador));
     		notificacion->tipoNotificacion = STATUSDORRPUTO;
