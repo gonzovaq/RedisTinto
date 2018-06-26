@@ -292,9 +292,11 @@
         size_t len = 0;
         FILE * archivo;
 
+        operacionRecibida *operacion = malloc(sizeof(operacionRecibida));
+
     	for(int i = 0; i < clavesPrevias; i++){
     		char bufferClave[TAMANIO_CLAVE];
-    		operacionRecibida *operacion;
+
         	if((recv(sockeCoordinador, bufferClave, TAMANIO_CLAVE, 0)) <= 0){
         		perror("Fallo al recibir la configuracion");
         	}

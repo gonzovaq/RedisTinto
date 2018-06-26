@@ -13,9 +13,14 @@
 		exit_gracefully(EXIT_SUCCESS);
 	}
 
+	void errorSIGPIPEHandler(int dummy){
+
+	}
+
     int main(int argc, char *argv[])
     {
     	signal(SIGINT, intHandler);
+    	signal(SIGPIPE, errorSIGPIPEHandler);
     	DeboRecibir = 1;
     	while (keepRunning) {
     	verificarParametrosAlEjecutar(argc, argv);
@@ -681,9 +686,11 @@
 					}
 
 					if (busqueda == -1){
+						DeboRecibir = 1;
 						free(solicitud);
 						return EXIT_SUCCESS;
 					}
+
 					sem_post(&semaforoInstancia);
 				}
 				break;
@@ -710,6 +717,7 @@
 				puts("Planificador: Me envio cualquier cosa");
 				break;
 			}
+			DeboRecibir = 1;
 			puts("Planificador: Termine de manejar la operacion");
 			free(solicitud);
 		}
@@ -841,7 +849,7 @@
     }
 
     int STATUSParaInstanciaConectada(parametrosConexion * instancia, char * clave){
-
+    	printf("Instancia: Manejo STATUS p/ Instancia conectada con DeboRecibir = %d \n",DeboRecibir);
     		if (DeboRecibir){
     			tEntradasUsadas *estasConecatada = malloc(sizeof(tEntradasUsadas));
     			if ((recv(instancia->new_fd, estasConecatada, sizeof(tEntradasUsadas), 0)) <= 0) {
@@ -855,6 +863,7 @@
     			}
     			puts("Instancia: Recibi aviso de que la instancia esta conectada");
     			free(estasConecatada);
+    			DeboRecibir = 0;
     		}
 
     		tOperacionInstanciaStruct * operacionInstancia = malloc(sizeof(tOperacionInstanciaStruct));
@@ -890,6 +899,8 @@
     			return ERROR;
     		}
 
+    		DeboRecibir = 1;
+
     		tEntradasUsadas * tamanioValor = malloc(sizeof(tEntradasUsadas));
     		if((recv(instancia->new_fd, tamanioValor, sizeof(tEntradasUsadas), 0)) <= 0){
     			perror("Planificador: Fallo al recibir el tamanio valor");
@@ -916,6 +927,8 @@
 
     		tNotificacionPlanificador *notificacion = malloc(sizeof(tNotificacionPlanificador));
     		notificacion->tipoNotificacion = STATUSDORRPUTO;
+    		notificacion->pid = 0;
+    		strcpy(notificacion->clave,clave);
 
     		if ((send(planificador->new_fd,notificacion,sizeof(tNotificacionPlanificador),0) <= 0)){
     			perror("Planificador: Error al enviarle la notificacion al planificador");
@@ -1060,18 +1073,20 @@
 
         while(keepRunning){ // Debo atajar cuando una instancia se me desconecta
 
-        	puts("Instancia: Recibo un aviso de que la Instancia sigue viva");
-			tEntradasUsadas *estasConecatada1 = malloc(sizeof(tEntradasUsadas));
-			if ((recv(parametros->new_fd, estasConecatada1, sizeof(tEntradasUsadas), 0)) <= 0) {
-				perror("Instancia: se desconecto!!!");
-				parametros->conectada = 0;
-				//sem_destroy(parametros->semaforo);
-				return OK;
-			}
-			puts("Instancia: La Instancia sigue viva");
-			DeboRecibir = 0;
+        	if (DeboRecibir){
+				puts("Instancia: Recibo un aviso de que la Instancia sigue viva");
+				tEntradasUsadas *estasConecatada1 = malloc(sizeof(tEntradasUsadas));
+				if ((recv(parametros->new_fd, estasConecatada1, sizeof(tEntradasUsadas), 0)) <= 0) {
+					perror("Instancia: se desconecto!!!");
+					parametros->conectada = 0;
+					//sem_destroy(parametros->semaforo);
+					return OK;
+				}
+				puts("Instancia: La Instancia sigue viva");
+				DeboRecibir = 0;
 
-			free(estasConecatada1);
+				free(estasConecatada1);
+        	}
 
 			puts("Instancia: Hago un sem_wait");
 
@@ -2266,7 +2281,7 @@
     }
 
     int VerificarSiLaInstanciaSigueViva(parametrosConexion * instancia){
-    	puts("Instancia: Voy a verificar si la instancia sigue viva");
+    	printf("Instancia: Voy a verificar si la instancia sigue viva con DeboRecibir = %d \n",DeboRecibir);
     	if (DeboRecibir){
 				tEntradasUsadas *estasConecatada = malloc(sizeof(tEntradasUsadas));
 				if ((recv(instancia->new_fd, estasConecatada, sizeof(tEntradasUsadas), 0)) <= 0) {
@@ -2280,7 +2295,9 @@
 				}
 				puts("Instancia: Recibi aviso de que la instancia esta conectada");
 				free(estasConecatada);
+				DeboRecibir = 0;
 			}
+
 
 
 			tOperacionInstanciaStruct * operacionInstancia = malloc(sizeof(tOperacionInstanciaStruct));
@@ -2306,6 +2323,8 @@
 			}
 
 			free(estasConecatada2);
+
+			DeboRecibir = 1;
 
 			return OK;
     }
