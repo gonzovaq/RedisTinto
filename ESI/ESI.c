@@ -254,8 +254,10 @@
                     recibirResultado(socket_coordinador, resultado);
 					enviarResultado(socket_planificador,resultado);
                     free(resultado);*/
-					free(resultado);
-                    destruir_operacion(parsed);
+
+					//TODO: REVISAR ESTO QUE SI SE DESCOMENTA NO FUNCIONA EL VOLVER A LEER
+					//free(resultado);
+                    //destruir_operacion(parsed);
                 } else {
                 	validez = OPERACION_INVALIDA;
                     fprintf(stderr, "La linea <%s> no es valida\n", line);
