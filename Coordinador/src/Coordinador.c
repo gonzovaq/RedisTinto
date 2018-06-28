@@ -1106,11 +1106,11 @@
 
 			puts("Instancia: Hago un sem_wait");
 
-			printf("Semaforo en direccion: %p\n", (void*)&(parametros->semaforo));
+			printf("Instancia: Semaforo en direccion: %p\n", (void*)&(parametros->semaforo));
 
 			int valorSemaforo;
 			sem_getvalue(parametros->semaforo,&valorSemaforo);
-			printf("ESI: El valor del semaforo ahora es %d \n",valorSemaforo);
+			printf("Instancia: El valor del semaforo ahora es %d \n",valorSemaforo);
 
 			sem_wait(parametros->semaforo);
 			// Caundo me avisen que hay una operacion para enviar, la voy a levantar de la cola
@@ -1134,8 +1134,8 @@
 						puts("Instancia: Fallo al enviar el tipo de operacion");
 						perror("send");
 						sem_post(&semaforoInstancia);
-
-						RemoverInstanciaDeLaLista(parametros);
+						parametros->conectada = 0;
+						//RemoverInstanciaDeLaLista(parametros);
 						close(parametros->new_fd);
 						return 2;
 					}
@@ -1168,8 +1168,8 @@
 				puts("Instancia: levante un mensaje de la cola de mensajes");
 				printf("Instancia: clave operacion en direccion: %p\n", (void*)&(operacion->clave));
 				printf("Instancia: la clave es %s \n",operacion->clave);
-				printf("Instancia: el valor es %s \n",operacion->valor);
 				printf("Instancia: el tipo de operacion es %d \n",operacion->tipo);
+				printf("Instancia: el valor es %s \n",operacion->valor);
 
 				int tamanioValor;
 
@@ -1197,7 +1197,7 @@
 					free(header);
 					sem_post(&semaforoInstancia);
 					//sem_destroy(parametros->semaforo);
-					RemoverInstanciaDeLaLista(parametros);
+					//RemoverInstanciaDeLaLista(parametros);
 					return OK;
 				}
 
@@ -2108,6 +2108,12 @@
 			listaFiltrada = list_filter(colaInstancias,(void*)EstaConectada);
 
 			int cantidadInstancias = list_size(listaFiltrada);
+
+			if (cantidadInstancias == 0){
+				puts("ESI: No hay Instancias conectadas");
+				return ERROR;
+			}
+
 			printf("ESI: Tengo %d instancias para distribuir con KE \n",cantidadInstancias);
 			char primerCaracter = clave[0];
 			int x = 0;
@@ -2434,6 +2440,12 @@
 			listaFiltrada = list_filter(colaInstancias,(void*)EstaConectada);
 
 			int cantidadInstancias = list_size(listaFiltrada);
+
+			if (cantidadInstancias == 0){
+				puts("ESI: No hay Instancias conectadas");
+				return ERROR;
+			}
+
 			printf("ESI: Tengo %d instancias para distribuir con KE \n",cantidadInstancias);
 			char primerCaracter = clave[0];
 			int x = 0;
@@ -2515,7 +2527,7 @@
 						else{
 								puts("ESI: Entre en el caso de que sea la ultimna instancia con resto distinto de 0");
 								if(posicionLetraEnASCII >= (i * rango) &&
-										posicionLetraEnASCII <= ((i * rango) + entradasUltimaInstancia)){
+										posicionLetraEnASCII <= ((i * (rango+1)) + entradasUltimaInstancia)){
 									instancia = list_get(listaFiltrada, i);
 									printf("ESI: Seleccione la instancia %s con pid %d para la clave %s \n"
 											,instancia->nombreProceso,instancia->pid,clave);
