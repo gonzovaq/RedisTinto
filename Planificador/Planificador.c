@@ -331,6 +331,10 @@ void intHandler(int dummy) { // para atajar ctrl c
 									printf("La operacion fue un %d \n",resultado->tipoOperacion);
 									strcpy(esi->clave,resultado->clave);
 									re=recibirResultado2(resultado);
+									if(re==-4)
+									{
+										killEsi(esi->id);
+									}
 									if(re==1)
 									{
 										if(resultado->tipoOperacion==OPERACION_GET)
@@ -743,6 +747,7 @@ void ordenarEsis(t_queue *cola)
 			if(strncmp(linea,"deadlocks",9)==0)
 			{
 				puts("Mostrar bloqueos mutuos");
+				deadlock();
 			}
 			if(strncmp(linea,"listar",6)==0)
 			{
@@ -1036,7 +1041,6 @@ int recibirResultado2(tResultado * resultado){
 	switch(resultado->tipoResultado){
     		case OK:
     			puts("La operación salio OK");
-    			
 				return 1;
     			break;
     		case BLOQUEO:
@@ -1045,6 +1049,7 @@ int recibirResultado2(tResultado * resultado){
 				break;
     		case ERROR:
 				puts("La operación tiro ERROR");
+				return -4;
 				break;
 			case CHAU:
 				puts("Cerro el esi");
@@ -1193,3 +1198,93 @@ int recibirResultadoDelEsi(int sockfd, tResultado * resultado){
 			//return esi;
 		}
 
+	
+void deadlock ()
+{
+	puts("Entre a deadlocks");
+	t_queue * colaDeadlock = queue_create();
+	t_list * aux=list_create();
+	//aux = bloqueados->elements;
+	list_add_all(aux,bloqueados->elements);
+
+	t_esi* esi=malloc(sizeof(t_esi));
+	t_esi* esiClave=malloc(sizeof(t_esi));
+	t_esi* esiP=malloc(sizeof(t_esi));
+
+	int encontrado=0;
+	int size=list_size(aux);
+	for(int i=0;i<size;i++)
+	{
+		esiP=list_get(aux,i);
+
+		queue_push(colaDeadlock,new_ESI(esiP->id,esiP->fd,esiP->estimacion,esiP->responseRatio,esiP->espera,esiP->clave,esiP->clavesTomadas));
+		esiClave = revisarBloqueado(esi->clave,aux,esiClave);
+		int x=0;
+		while(esiClave!=NULL && x<size && encontrado!=1)
+		{	
+			esi=queue_peek(colaDeadlock);
+			if(esi->id==esiClave->id)
+			{
+				//hay deadlock, porque volvimos al esi primero
+				queue_push(colaDeadlock,new_ESI(esiClave->id,esiClave->fd,esiClave->estimacion,esiClave->responseRatio,esiClave->espera,esiClave->clave,esiClave->clavesTomadas));
+
+				encontrado=1;
+			}
+			else
+			{
+				queue_push(colaDeadlock,new_ESI(esi->id,esi->fd,esi->estimacion,esi->responseRatio,esi->espera,esi->clave,esi->clavesTomadas));
+				esiClave = revisarBloqueado(esiClave->clave,aux,esiClave);//Buscamos quien tiene la clave del que concatenamos
+			}
+
+			x++;
+		}
+		x=0;
+		if(encontrado==1)
+		{
+			
+			//Mostramos el deadlock y removemos de la cola quienes esten en deadlock
+			while(queue_is_empty(colaDeadlock)==0)
+			{
+				esi=queue_pop(colaDeadlock);
+				printf("DEADLOCK: con esi de id %d ",esi->id);
+
+				int coincidir(t_esi *unEsi){
+          	    	    		return unEsi->id == esi->id;
+          	    	    	}
+							  
+          		list_remove_and_destroy_by_condition(aux,(void*) coincidir,(void*) destruirEsi);
+			}	
+		}
+		else
+		{
+			//debemos limpiar la cola deadlocks
+			queue_clean(colaDeadlock);
+		}
+	}
+	
+}
+
+t_esi * revisarBloqueado(char clave[TAMANIO_CLAVE],t_list * lista,t_esi* esi)
+{
+	int i=0;
+	int j=0;
+	char * claveAux;
+	while(i<list_size(lista))
+	{
+		esi=list_get(lista,i);
+		//recorrer claves tomadas
+		while(j<list_size(esi->clavesTomadas))
+		{
+			claveAux=list_get(esi->clavesTomadas,j);
+			if(string_equals_ignore_case(clave,claveAux)==true)
+			{
+				puts("Encontre al esi que tiene la clave");
+				return esi;
+			}
+			j++;
+		}
+		j=0;
+		i++;
+	}
+	return NULL;
+}
