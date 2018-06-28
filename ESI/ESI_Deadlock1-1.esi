@@ -1,4 +1,17 @@
 GET Maxi
-SET Maxi queso
+SET Maxi tester
 GET Dorr 
 SET Dorr SKRRRR
+GET Tincho
+SET Tincho plani
+GET Gonza 
+SET Gonza cordi
+GET atr
+GET ale 
+SET ale instancia
+STORE Maxi
+STORE Dorr
+STORE Tincho
+STORE Gonza
+STORE atr
+STORE ale
