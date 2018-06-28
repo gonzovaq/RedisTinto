@@ -345,10 +345,10 @@
     	printf("El archivo a abrir esta en %s \n",archivo);
 
     	FILE * file;
-        file = fopen(archivo, "r");
+        file = fopen(archivo, "w");
         if (file == NULL){
             perror("Error al abrir el archivo: ");
-            exit(EXIT_FAILURE);
+            //exit(EXIT_FAILURE);
         }
 
 
