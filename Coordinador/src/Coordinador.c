@@ -21,7 +21,7 @@
     {
     	signal(SIGINT, intHandler);
     	signal(SIGPIPE, errorSIGPIPEHandler);
-    	DeboRecibir = 1;
+
     	while (keepRunning) {
     	verificarParametrosAlEjecutar(argc, argv);
 
@@ -160,6 +160,7 @@
 	   parametrosConexion *parametrosNuevos=  malloc(sizeof(parametrosConexion));
 
 	   parametrosNuevos->new_fd = parametros->new_fd;
+	   parametrosNuevos->DeboRecibir = 1;
 
 	   if ((recv(parametrosNuevos->new_fd, headerRecibido, sizeof(tHeader), 0)) <= 0){
 			perror("recv");
@@ -686,7 +687,7 @@
 					}
 
 					if (busqueda == -1){
-						DeboRecibir = 1;
+
 						free(solicitud);
 						return EXIT_SUCCESS;
 					}
@@ -717,7 +718,7 @@
 				puts("Planificador: Me envio cualquier cosa");
 				break;
 			}
-			DeboRecibir = 1;
+
 			puts("Planificador: Termine de manejar la operacion");
 			free(solicitud);
 		}
@@ -849,8 +850,8 @@
     }
 
     int STATUSParaInstanciaConectada(parametrosConexion * instancia, char * clave){
-    	printf("Instancia: Manejo STATUS p/ Instancia conectada con DeboRecibir = %d \n",DeboRecibir);
-    		if (DeboRecibir){
+    	printf("Instancia: Manejo STATUS p/ Instancia conectada con DeboRecibir = %d \n",instancia->DeboRecibir);
+    		if (instancia->DeboRecibir){
     			tEntradasUsadas *estasConecatada = malloc(sizeof(tEntradasUsadas));
     			if ((recv(instancia->new_fd, estasConecatada, sizeof(tEntradasUsadas), 0)) <= 0) {
     				puts("Instancia: Fallo al enviar el tipo de operacion");
@@ -863,7 +864,7 @@
     			}
     			puts("Instancia: Recibi aviso de que la instancia esta conectada");
     			free(estasConecatada);
-    			DeboRecibir = 0;
+    			instancia->DeboRecibir = 0;
     		}
 
     		tOperacionInstanciaStruct * operacionInstancia = malloc(sizeof(tOperacionInstanciaStruct));
@@ -899,7 +900,7 @@
     			return ERROR;
     		}
 
-    		DeboRecibir = 1;
+    		instancia->DeboRecibir = 1;
 
     		tEntradasUsadas * tamanioValor = malloc(sizeof(tEntradasUsadas));
     		if((recv(instancia->new_fd, tamanioValor, sizeof(tEntradasUsadas), 0)) <= 0){
@@ -1076,7 +1077,7 @@
 
         while(keepRunning){ // Debo atajar cuando una instancia se me desconecta
 
-        	if (DeboRecibir){
+        	if (parametros->DeboRecibir){
 				puts("Instancia: Recibo un aviso de que la Instancia sigue viva");
 				tEntradasUsadas *estasConecatada1 = malloc(sizeof(tEntradasUsadas));
 				if ((recv(parametros->new_fd, estasConecatada1, sizeof(tEntradasUsadas), 0)) <= 0) {
@@ -1086,7 +1087,7 @@
 					return OK;
 				}
 				puts("Instancia: La Instancia sigue viva");
-				DeboRecibir = 0;
+				parametros->DeboRecibir = 0;
 
 				free(estasConecatada1);
         	}
@@ -1106,7 +1107,7 @@
 
 			sem_wait(&semaforoInstancia);
 
-			DeboRecibir = 1;
+			parametros->DeboRecibir = 1;
 
 			printf("Instancia: Accedi a la seccion de operacion con id %d \n",parametros->pid);
 
@@ -2284,8 +2285,8 @@
     }
 
     int VerificarSiLaInstanciaSigueViva(parametrosConexion * instancia){
-    	printf("Instancia: Voy a verificar si la instancia sigue viva con DeboRecibir = %d \n",DeboRecibir);
-    	if (DeboRecibir){
+    	printf("Instancia: Voy a verificar si la instancia sigue viva con DeboRecibir = %d \n",instancia->DeboRecibir);
+    	if (instancia->DeboRecibir){
 				tEntradasUsadas *estasConecatada = malloc(sizeof(tEntradasUsadas));
 				if ((recv(instancia->new_fd, estasConecatada, sizeof(tEntradasUsadas), 0)) <= 0) {
 					puts("Instancia: Fallo al enviar el tipo de operacion");
@@ -2298,7 +2299,7 @@
 				}
 				puts("Instancia: Recibi aviso de que la instancia esta conectada");
 				free(estasConecatada);
-				DeboRecibir = 0;
+				instancia->DeboRecibir = 0;
 			}
 
 
@@ -2327,7 +2328,7 @@
 
 			free(estasConecatada2);
 
-			DeboRecibir = 1;
+			instancia->DeboRecibir = 1;
 
 			return OK;
     }

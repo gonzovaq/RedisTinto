@@ -50,6 +50,7 @@ typedef struct{
 	int pid;
 	t_list * claves;
 	int conectada;
+	int DeboRecibir;
 }parametrosConexion;  // Aqui dejamos los descriptores y un semaforo para los hilos que lo necesiten
 
 
@@ -221,7 +222,7 @@ static volatile int keepRunning = 1;
 
 pthread_mutex_t mutex;
 sem_t semaforoInstancia;
-int DeboRecibir;
+
 
 
 // FUNCIONES
