@@ -1,0 +1,8 @@
+GET ale
+SET ale capo
+GET pepe 
+GET Maxi queso
+SET pepe jamoncito
+STORE Maxi
+STORE ale
+STORE pepe

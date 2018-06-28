@@ -1,9 +1,10 @@
 GET jugador
-SET jugador messi
-SET jugador maradona
 SET jugador diegoArmandoMaradonaBarrileteCosmicoDeQuePlanetaViniste
 GET arquero 
 SET arquero rossi
+GET dt
+SET dt skrrr
+SET dt skrrrrrrrr
 STORE arquero
 SET jugador pavon
 STORE jugador       

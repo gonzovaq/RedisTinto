@@ -1,0 +1,9 @@
+GET a
+SET a a
+GET b 
+SET b b
+STORE b
+GET b 
+SET b b
+STORE b
+STORE a

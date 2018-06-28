@@ -209,6 +209,7 @@
     		list_add(colaESIS,(void*)parametros);
     		conexionESI(parametros);
 
+    		printf("ESI: El ESI %d se desconecto asi que pasamos a liberar sus claves\n", parametros->pid);
     		LiberarLasClavesDelESI(parametros);
 
     		/*
@@ -419,13 +420,15 @@
 					perror("send");
 				}
 
-				LiberarLasClavesDelESI(parametros);
-
+				//LiberarLasClavesDelESI(parametros);
 				free(header);
 
 				break;
 			default:
 				puts("ESI Fallo al ver el resultado de la operacion");
+				close(parametros->new_fd);
+				return EXIT_SUCCESS;
+				free(header);
 				break;
 			}
 			if(operacion->tipo==OPERACION_SET)
@@ -437,6 +440,8 @@
     }
 
     int LiberarLasClavesDelESI(parametrosConexion * parametros){
+    	ESIABorrar = parametros;
+    	estoyBorrando = 5;
 
     	int claves = list_size(parametros->claves);
 
@@ -445,8 +450,10 @@
     	for(int i = 0; i< claves; i++){
 
     		EliminarClaveDeBloqueos(list_get(parametros->claves,i));
-
+    		sem_wait(parametros->semaforo);
     	}
+
+    	estoyBorrando = 0;
 
     	void LiberarClave(char * clave){
     		printf("ESI: Se va a eliminar la clave %s del ESI de id %d \n",clave,parametros->pid);
@@ -544,6 +551,11 @@
         		perror("send planificador");
         	}
         	puts("Planificador: le envie algo al planificador");
+
+        	if (estoyBorrando == 5){
+        		puts("Planificador: Me avisaron para que notifique el borrado de una clave, ahora se puede seguir");
+        		sem_post(ESIABorrar->semaforo);
+        	}
         }
 
 		close(parametros->new_fd);
@@ -665,7 +677,7 @@
 					printf("Planificador: id del esi KILLED a liberar todas sus claves %s \n",idS);
 					int id=atoi(idS);
 					printf("Planificador: En int %d \n",id);
-					EncontrarAlESIYEliminarlo(id);
+					//EncontrarAlESIYEliminarlo(id);
 				}
 				break;
 			case STATUS:
@@ -1094,11 +1106,11 @@
 
 			puts("Instancia: Hago un sem_wait");
 
-			printf("Semaforo en direccion: %p\n", (void*)&(parametros->semaforo));
+			printf("Instancia: Semaforo en direccion: %p\n", (void*)&(parametros->semaforo));
 
 			int valorSemaforo;
 			sem_getvalue(parametros->semaforo,&valorSemaforo);
-			printf("ESI: El valor del semaforo ahora es %d \n",valorSemaforo);
+			printf("Instancia: El valor del semaforo ahora es %d \n",valorSemaforo);
 
 			sem_wait(parametros->semaforo);
 			// Caundo me avisen que hay una operacion para enviar, la voy a levantar de la cola
@@ -1122,8 +1134,8 @@
 						puts("Instancia: Fallo al enviar el tipo de operacion");
 						perror("send");
 						sem_post(&semaforoInstancia);
-
-						RemoverInstanciaDeLaLista(parametros);
+						parametros->conectada = 0;
+						//RemoverInstanciaDeLaLista(parametros);
 						close(parametros->new_fd);
 						return 2;
 					}
@@ -1156,8 +1168,8 @@
 				puts("Instancia: levante un mensaje de la cola de mensajes");
 				printf("Instancia: clave operacion en direccion: %p\n", (void*)&(operacion->clave));
 				printf("Instancia: la clave es %s \n",operacion->clave);
-				printf("Instancia: el valor es %s \n",operacion->valor);
 				printf("Instancia: el tipo de operacion es %d \n",operacion->tipo);
+				printf("Instancia: el valor es %s \n",operacion->valor);
 
 				int tamanioValor;
 
@@ -1185,7 +1197,7 @@
 					free(header);
 					sem_post(&semaforoInstancia);
 					//sem_destroy(parametros->semaforo);
-					RemoverInstanciaDeLaLista(parametros);
+					//RemoverInstanciaDeLaLista(parametros);
 					return OK;
 				}
 
@@ -2096,6 +2108,12 @@
 			listaFiltrada = list_filter(colaInstancias,(void*)EstaConectada);
 
 			int cantidadInstancias = list_size(listaFiltrada);
+
+			if (cantidadInstancias == 0){
+				puts("ESI: No hay Instancias conectadas");
+				return ERROR;
+			}
+
 			printf("ESI: Tengo %d instancias para distribuir con KE \n",cantidadInstancias);
 			char primerCaracter = clave[0];
 			int x = 0;
@@ -2176,8 +2194,9 @@
 						// -------------- ULTIMA INSTANCIA ----------------
 						else{
 								puts("ESI: Entre en el caso de que sea la ultimna instancia con resto distinto de 0");
+								printf("ESI: Va de letra %d a %d \n", (i * (rango+1)),((i * rango) + entradasUltimaInstancia));
 								if(posicionLetraEnASCII >= (i * rango) &&
-										posicionLetraEnASCII <= ((i * rango) + entradasUltimaInstancia)){
+										posicionLetraEnASCII <= ((i * (rango+1)) + entradasUltimaInstancia)){
 									instancia = list_get(listaFiltrada, i);
 									printf("ESI: Seleccione la instancia %s con pid %d para la clave %s \n"
 											,instancia->nombreProceso,instancia->pid,clave);
@@ -2421,6 +2440,12 @@
 			listaFiltrada = list_filter(colaInstancias,(void*)EstaConectada);
 
 			int cantidadInstancias = list_size(listaFiltrada);
+
+			if (cantidadInstancias == 0){
+				puts("ESI: No hay Instancias conectadas");
+				return ERROR;
+			}
+
 			printf("ESI: Tengo %d instancias para distribuir con KE \n",cantidadInstancias);
 			char primerCaracter = clave[0];
 			int x = 0;
@@ -2502,7 +2527,7 @@
 						else{
 								puts("ESI: Entre en el caso de que sea la ultimna instancia con resto distinto de 0");
 								if(posicionLetraEnASCII >= (i * rango) &&
-										posicionLetraEnASCII <= ((i * rango) + entradasUltimaInstancia)){
+										posicionLetraEnASCII <= ((i * (rango+1)) + entradasUltimaInstancia)){
 									instancia = list_get(listaFiltrada, i);
 									printf("ESI: Seleccione la instancia %s con pid %d para la clave %s \n"
 											,instancia->nombreProceso,instancia->pid,clave);
