@@ -2176,8 +2176,9 @@
 						// -------------- ULTIMA INSTANCIA ----------------
 						else{
 								puts("ESI: Entre en el caso de que sea la ultimna instancia con resto distinto de 0");
+								printf("ESI: Va de letra %d a %d \n", (i * (rango+1)),((i * rango) + entradasUltimaInstancia));
 								if(posicionLetraEnASCII >= (i * rango) &&
-										posicionLetraEnASCII <= ((i * rango) + entradasUltimaInstancia)){
+										posicionLetraEnASCII <= ((i * (rango+1)) + entradasUltimaInstancia)){
 									instancia = list_get(listaFiltrada, i);
 									printf("ESI: Seleccione la instancia %s con pid %d para la clave %s \n"
 											,instancia->nombreProceso,instancia->pid,clave);
