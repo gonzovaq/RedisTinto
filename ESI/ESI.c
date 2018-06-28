@@ -206,6 +206,7 @@
             while (!recibirOrdenDeEjecucion(socket_planificador));
                 t_esi_operacion parsed = parse(line);
 
+				tResultado * resultado = malloc(sizeof(tResultado));
                 if(parsed.valido){
                     switch(parsed.keyword){
                         case GET:
@@ -214,6 +215,10 @@
 							puts("Manejo operacion GET");
 							manejarOperacionGET(socket_coordinador, parsed.argumentos.GET.clave, &operacion, &header);
 							puts("Se finalizo el manejo de la operacion GET");
+
+							recibirResultado(socket_coordinador, resultado);
+							resultado->tipoOperacion=OPERACION_GET;
+							enviarResultado(socket_planificador,resultado);
                         	break;
                         case SET:
                         	validez=OPERACION_VALIDA;
@@ -221,6 +226,10 @@
                         	puts("Manejo operacion SET");
 							manejarOperacionSET(socket_coordinador, parsed.argumentos.SET.clave, parsed.argumentos.SET.valor, &operacion, &header);
 							puts("Se finalizo el manejo de la operacion SET");
+
+							recibirResultado(socket_coordinador, resultado);
+							resultado->tipoOperacion=OPERACION_SET;
+							enviarResultado(socket_planificador,resultado);
                         	break;
                         case STORE:
                         	validez=OPERACION_VALIDA;
@@ -228,6 +237,10 @@
                         	puts("Manejo operacion STORE");
 							manejarOperacionSTORE(socket_coordinador, parsed.argumentos.STORE.clave, &operacion, &header);
 							puts("Se finalizo el manejo de la operacion STORE");
+
+							recibirResultado(socket_coordinador, resultado);
+							resultado->tipoOperacion=OPERACION_STORE;
+							enviarResultado(socket_planificador,resultado);
                         	break;
                         default:
                         	validez = OPERACION_INVALIDA;
@@ -235,10 +248,13 @@
                             enviarValidez(socket_coordinador, &validez);
                             exit(EXIT_FAILURE);
                     }
+
+					/*
             		tResultado * resultado = malloc(sizeof(tResultado));
                     recibirResultado(socket_coordinador, resultado);
 					enviarResultado(socket_planificador,resultado);
-                    free(resultado);
+                    free(resultado);*/
+					free(resultado);
                     destruir_operacion(parsed);
                 } else {
                 	validez = OPERACION_INVALIDA;

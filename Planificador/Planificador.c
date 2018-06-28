@@ -145,14 +145,14 @@ void intHandler(int dummy) { // para atajar ctrl c
 									int idEsi=obtenerEsi(newfd);
 									if(algoritmo==SJF || algoritmo==SJFD)
 									{
-										queue_push(ready,new_ESI(idEsi,newfd,estimacionIni,0,0,"\0"));
+										queue_push(ready,new_ESI_nuevo(idEsi,newfd,estimacionIni,0,0,"\0"));
 										ordenarEsis(ready);
 										if(algoritmo==SJFD)
 												{
 													t_esi* esi1 = malloc(sizeof(t_esi));
 													if(queue_is_empty(ejecucion)==0){
 													esi1=queue_pop(ejecucion);
-													queue_push(ready,new_ESI(esi1->id,esi1->fd,esi1->estimacion,esi1->responseRatio,esi1->espera,esi1->clave));
+													queue_push(ready,new_ESI(esi1->id,esi1->fd,esi1->estimacion,esi1->responseRatio,esi1->espera,esi1->clave,esi->clavesTomadas));
 													ordenarEsis(ready);
 													}
 													free(esi1);
@@ -167,12 +167,12 @@ void intHandler(int dummy) { // para atajar ctrl c
 										//	puts("entro al algoritmo");
 										//EstimarHRRN(ready);
 										//puts("Salio de ESTIMAR HHRRN");
-										queue_push(ready,new_ESI(esi->id,esi->fd,esi->estimacion,esi->responseRatio,esi->espera,esi->clave));
+										queue_push(ready,new_ESI_nuevo(esi->id,esi->fd,esi->estimacion,esi->responseRatio,esi->espera,esi->clave));
 										t_esi* esi1 = malloc(sizeof(t_esi));//Esi de ejecucion
 										if(queue_is_empty(ejecucion)==0)
 										{
 											esi1=queue_pop(ejecucion);
-											queue_push(ready,new_ESI_hrrn(esi1->id,esi1->fd,esi1->estimacion,esi1->responseRatio,esi1->espera,esi1->clave,1));
+											queue_push(ready,new_ESI_hrrn(esi1->id,esi1->fd,esi1->estimacion,esi1->responseRatio,esi1->espera,esi1->clave,1,esi1->clavesTomadas));
 											//ordenarEsis(ready);
 										}
 										free(esi1);
@@ -249,7 +249,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 											if(desbloqueado!=NULL)
 											{
 												puts("desbloqueado no es nulo");
-												queue_push(ready,new_ESI_hrrn(desbloqueado->id,desbloqueado->fd,desbloqueado->estimacion,desbloqueado->responseRatio,desbloqueado->espera,desbloqueado->clave,1));
+												queue_push(ready,new_ESI_hrrn(desbloqueado->id,desbloqueado->fd,desbloqueado->estimacion,desbloqueado->responseRatio,desbloqueado->espera,desbloqueado->clave,1,desbloqueado->clavesTomadas));
 												eliminarEsiPorId(bloqueados,desbloqueado->id);
 
 												if(algoritmo==SJF || algoritmo==SJFD)
@@ -260,7 +260,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 														if(queue_is_empty(ejecucion)==0){
 															t_esi* esi1 = malloc(sizeof(t_esi));
 															esi1=queue_pop(ejecucion);
-															queue_push(ready,new_ESI(esi1->id,esi1->fd,esi1->estimacion,esi1->responseRatio,esi1->espera,esi1->clave));
+															queue_push(ready,new_ESI(esi1->id,esi1->fd,esi1->estimacion,esi1->responseRatio,esi1->espera,esi1->clave,esi1->clavesTomadas));
 															ordenarEsis(ready);
 															free(esi1);
 														}
@@ -274,8 +274,8 @@ void intHandler(int dummy) { // para atajar ctrl c
 													if(queue_is_empty(ejecucion)==0)
 													{
 														t_esi* esi1 = malloc(sizeof(t_esi));
-														esi1=queue_pop(ejecucion);//(int id,int fd,int esti,char clave[TAMANIO_CLAVE])
-														queue_push(ready,new_ESI(esi1->id,esi1->fd,esi1->estimacion,esi1->responseRatio,esi1->espera,esi1->clave));
+														esi1=queue_pop(ejecucion);
+														queue_push(ready,new_ESI_hrrn(esi1->id,esi1->fd,esi1->estimacion,esi1->responseRatio,esi1->espera,esi1->clave,1,esi1->clavesTomadas));
 														ordenarEsis(ready);
 														free(esi1);
 													}
@@ -328,8 +328,35 @@ void intHandler(int dummy) { // para atajar ctrl c
 									puts("Recibi el resultado");
 									printf("Resultado: %d \n",resultado->tipoResultado);
 									printf("Resultado: %s \n",resultado->clave);
+									printf("La operacion fue un %d \n",resultado->tipoOperacion);
 									strcpy(esi->clave,resultado->clave);
 									re=recibirResultado2(resultado);
+									if(re==1)
+									{
+										if(resultado->tipoOperacion==OPERACION_GET)
+										{
+											puts("El esi hizo un GET");
+											int size=list_size(esi->clavesTomadas);
+											list_add(esi->clavesTomadas,resultado->clave);
+											size=list_size(esi->clavesTomadas);
+											printf("DEBUG: el size es %d \n",size);
+										}
+										if(resultado->tipoOperacion==OPERACION_STORE)
+										{
+											puts("El esi hizo un STORE");
+											int coincidir(char clave[TAMANIO_CLAVE]){
+																return (string_equals_ignore_case(clave,resultado->clave));
+															}
+																						
+										list_remove_by_condition(esi->clavesTomadas, (void*) coincidir);
+										int size=list_size(esi->clavesTomadas);
+											printf("DEBUG: el size es %d \n",size);
+										}
+										if(resultado->tipoOperacion==OPERACION_SET)
+										{
+											puts("El esi hizo un SET");
+										}
+									}
 									enviarConfirmacion=1;
 							
 							}
@@ -369,7 +396,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 									//haria algo mas	
 								}
 								printf("Esi de id:%d entro a bloqueados \n",esi->id);
-								queue_push(bloqueados,new_ESI(esi->id,esi->fd,esi->estimacion,esi->responseRatio,esi->espera,esi->clave));
+								queue_push(bloqueados,new_ESI(esi->id,esi->fd,esi->estimacion,esi->responseRatio,esi->espera,esi->clave,esi->clavesTomadas));
 								puts("Se agrego a la cola de bloqueados");
 								f_ejecutar=1;
 								enviarConfirmacion=0;
@@ -385,14 +412,26 @@ void intHandler(int dummy) { // para atajar ctrl c
 									sumarEspera(ready);
 								}
 								printf("Contador De ESI %d  estimacion %f espera %d\n",esi->cont, esi->estimacion,esi->espera);
+								
 							}
 							if(re==-5)
 							{
 								queue_pop(ejecucion);
-								queue_push(finalizados,new_ESI(esi->id,esi->fd,esi->estimacion,esi->responseRatio,esi->espera,esi->clave));
+								queue_push(finalizados,new_ESI(esi->id,esi->fd,esi->estimacion,esi->responseRatio,esi->espera,esi->clave,esi->clavesTomadas));
 								puts("____________________________FIN ESI_________________________");
 								printf("Estimacion final del ESI %d es %f\n", esi->id, esi->estimacion);
 								puts("____________________________FIN ESI_________________________");
+
+								puts("DEBUG: Vamos a ver las claves tomadas que tiene antes de irse");
+								
+								char* aux=malloc(sizeof(TAMANIO_CLAVE));
+								for(i=0;i<=list_size(esi->clavesTomadas);i++)
+								{
+									aux=list_get(esi->clavesTomadas,i);
+									printf("Clave: %s\n",aux);
+									
+								}
+
 								f_ejecutar=1;
 								puts("Dame otro esi");
 								f_ejecutar=1;
@@ -436,7 +475,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 								printf("Id del esi a buscar:%d \n",esi->id);
 								printf("esi de id %d cambiado de cola con espera de: %d \n",esi->id,esi->espera);
 								estimacionHRRN(esi);
-								queue_push(ejecucion,new_ESI(esi->id,esi->fd,esi->estimacion,esi->responseRatio,0,esi->clave));
+								queue_push(ejecucion,new_ESI(esi->id,esi->fd,esi->estimacion,esi->responseRatio,0,esi->clave,esi->clavesTomadas));
 							}
 							//puts("Ready no vacia");
 						}
@@ -777,7 +816,7 @@ void ordenarEsis(t_queue *cola)
 		if(desbloqueado!=NULL)
 		{
 			puts("desbloqueado no es nulo");
-			queue_push(ready,new_ESI(desbloqueado->id,desbloqueado->fd,desbloqueado->estimacion,desbloqueado->responseRatio,desbloqueado->espera,desbloqueado->clave));
+			queue_push(ready,new_ESI(desbloqueado->id,desbloqueado->fd,desbloqueado->estimacion,desbloqueado->responseRatio,desbloqueado->espera,desbloqueado->clave,desbloqueado->clavesTomadas));
 			eliminarEsiPorId(bloqueados,desbloqueado->id);
 		}
 		else
@@ -815,7 +854,7 @@ void ordenarEsis(t_queue *cola)
 				if(queue_is_empty(ejecucion)==0){
 					t_esi* esi1 = malloc(sizeof(t_esi));
 					esi1=queue_pop(ejecucion);
-					queue_push(ready,new_ESI(esi1->id,esi1->fd,esi1->estimacion,esi1->responseRatio,esi1->espera,esi1->clave));
+					queue_push(ready,new_ESI(esi1->id,esi1->fd,esi1->estimacion,esi1->responseRatio,esi1->espera,esi1->clave,esi1->clavesTomadas));
 					ordenarEsis(ready);
 					free(esi1);
 				}
@@ -830,7 +869,7 @@ void ordenarEsis(t_queue *cola)
 			{
 				t_esi* esi1 = malloc(sizeof(t_esi));
 				esi1=queue_pop(ejecucion);//(int id,int fd,int esti,char clave[TAMANIO_CLAVE])
-				queue_push(ready,new_ESI(esi1->id,esi1->fd,esi1->estimacion,esi1->responseRatio,esi1->espera,esi1->clave));
+				queue_push(ready,new_ESI_hrrn(esi1->id,esi1->fd,esi1->estimacion,esi1->responseRatio,esi1->espera,esi1->clave,1,esi1->clavesTomadas));
 				ordenarEsis(ready);
 				free(esi1);
 			}
@@ -847,7 +886,7 @@ void ordenarEsis(t_queue *cola)
 			//Esi estaba en ready
 			puts("esi estaba en ready");
 			eliminarEsiPorId(ready,esi->id);
-			queue_push(bloqueados,new_ESI(esi->id,esi->fd,esi->estimacion,esi->responseRatio,esi->espera,clave));
+			queue_push(bloqueados,new_ESI(esi->id,esi->fd,esi->estimacion,esi->responseRatio,esi->espera,clave,esi->clavesTomadas));
 			enviarClaveCoordinador(clave,BLOQUEAR);
 		}{
 			puts("esi no estaba en ready");
@@ -862,7 +901,7 @@ void ordenarEsis(t_queue *cola)
 			if(algoritmo==SJF||algoritmo==SJFD)
 				estimacionEsi(esi);
 			eliminarEsiPorId(ejecucion,esi->id);
-			queue_push(bloqueados,new_ESI(esi->id,esi->fd,esi->estimacion,esi->responseRatio,esi->espera,clave));
+			queue_push(bloqueados,new_ESI(esi->id,esi->fd,esi->estimacion,esi->responseRatio,esi->espera,clave,esi->clavesTomadas));
 			enviarClaveCoordinador(clave,BLOQUEAR);
 		}
 		else{
@@ -997,7 +1036,8 @@ int recibirResultado2(tResultado * resultado){
 	switch(resultado->tipoResultado){
     		case OK:
     			puts("La operación salio OK");
-    			return 1;
+    			
+				return 1;
     			break;
     		case BLOQUEO:
 				puts("La operación se BLOQUEO");
@@ -1060,6 +1100,7 @@ int recibirResultadoDelEsi(int sockfd, tResultado * resultado){
         puts("Recibi el resultado");
 		printf("Resultado: %d \n",resultado->tipoResultado);
         printf("Resultado: %s \n",resultado->clave);
+		printf("La operacion fue un %d \n",resultado->tipoOperacion);
 		return EXIT_SUCCESS;
     }
 

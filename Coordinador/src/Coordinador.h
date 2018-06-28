@@ -106,11 +106,18 @@ typedef enum{
 }tOperacionInstancia;
 
 
+typedef struct{
+	tResultadoOperacion resultado;
+	char clave[TAMANIO_CLAVE];
+	tTipoOperacion tipoOperacion;
+}__attribute__((packed)) tResultado;
 
+/*
 typedef struct{
 	tResultadoOperacion resultado;
 	char clave[TAMANIO_CLAVE];
 }__attribute__((packed)) tResultado;
+*/
 
 typedef struct{
 	tResultadoOperacion resultado;

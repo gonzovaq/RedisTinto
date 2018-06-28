@@ -76,10 +76,10 @@ typedef enum{
 	OPERACION_INVALIDA= -1
 }tValidezOperacion;
 
-
 typedef struct{
 	tResultadoOperacion tipoResultado;
 	char clave[TAMANIO_CLAVE];
+	tTipoOperacion tipoOperacion;
 }__attribute__((packed)) tResultado;
 
 

@@ -75,6 +75,7 @@ typedef struct {
       int espera;
 	  char clave[TAMANIO_CLAVE];
 	  int exe;
+	  t_list * clavesTomadas;
 }t_esi;
 
 typedef enum{
@@ -94,7 +95,7 @@ typedef struct{
 	char proceso[TAMANIO_NOMBREPROCESO];
 }tStatusParaPlanificador;
 
-static t_esi * new_ESI(int id,int fd,int esti,float tasa,int espera,char clave[TAMANIO_CLAVE]){
+static t_esi * new_ESI_nuevo(int id,int fd,int esti,float tasa,int espera,char clave[TAMANIO_CLAVE]){
 	t_esi *new = malloc(sizeof(t_esi));
 	new->id = id;
 	new->fd = fd;
@@ -104,9 +105,25 @@ static t_esi * new_ESI(int id,int fd,int esti,float tasa,int espera,char clave[T
 	new->espera=espera;
 	strcpy(new->clave,clave);	
 	new->exe=0;
+	new->clavesTomadas=list_create();
 	return new;
 }
-static t_esi * new_ESI_hrrn(int id,int fd,int esti,float tasa,int espera,char clave[TAMANIO_CLAVE],int f){
+
+static t_esi * new_ESI(int id,int fd,int esti,float tasa,int espera,char clave[TAMANIO_CLAVE],t_list * claves){
+	t_esi *new = malloc(sizeof(t_esi));
+	new->id = id;
+	new->fd = fd;
+	new->cont = 0;
+	new->estimacion=esti;
+	new->responseRatio=tasa;
+	new->espera=espera;
+	strcpy(new->clave,clave);	
+	new->exe=0;
+	new->clavesTomadas=claves;
+	return new;
+}
+
+static t_esi * new_ESI_hrrn(int id,int fd,int esti,float tasa,int espera,char clave[TAMANIO_CLAVE],int f,t_list * claves){
 	t_esi *new = malloc(sizeof(t_esi));
 	new->id = id;
 	new->fd = fd;
@@ -116,6 +133,7 @@ static t_esi * new_ESI_hrrn(int id,int fd,int esti,float tasa,int espera,char cl
 	new->espera=espera;
 	strcpy(new->clave,clave);	
 	new->exe=f;
+	new->clavesTomadas=claves;
 	return new;
 }
 
@@ -162,10 +180,18 @@ typedef struct{
 }tHeader;
 
 
+typedef enum{
+	OPERACION_GET = 1,
+	OPERACION_SET = 2,
+	OPERACION_STORE = 3
+}tTipoOperacion;
+
 typedef struct{
 	tResultadoOperacion tipoResultado;
 	char clave[TAMANIO_CLAVE];
+	tTipoOperacion tipoOperacion;
 }__attribute__((packed)) tResultado;
+
 
 typedef struct{
 	int cantidadClavesBloqueadas;
