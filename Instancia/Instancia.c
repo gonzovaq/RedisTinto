@@ -240,7 +240,7 @@
     		perror("Fallo al recibir la clave");
     	}
 
-    	// TODO: BUSCO VALOR!
+    	printf("STATUS: Recibi la clave %s, voy a buscar su valor \n", clave);
 
     	char* valor;
     	int tamanioValorBuscado;
@@ -248,22 +248,29 @@
 
     	tamanioValorBuscado = calcularLongitudMaxValorBuscado(clave, tablaEntradas);
 
+    	// TODO PARA ALEJO
+    	// TODO PARA ALEJO
+    	// TODO PARA ALEJO
     	valor = obtenerValor(tamanioValorBuscado, tablaEntradas, clave, arrayEntradas, tamanioValor);
-    	puts("YA BUSQUÉ EL VALOR");
-    	printf("El valor es: %s\n", valor);
+    	// TODO: CHEQUEAR Y EXPLICAR QUE HACE ESTO Y QUE ES tamanioValor
+    	// TODO PARA ALEJO
+    	// TODO PARA ALEJO
+    	// TODO PARA ALEJO
+
+    	printf("STATUS: El valor es: %s\n", valor);
     	tamanio->entradasUsadas = strlen(valor);
-    	printf("COORDINADOR: El tamanio de valor es: %d\n", tamanio->entradasUsadas);
+    	printf("STATUS: El tamanio de valor es: %d\n", tamanio->entradasUsadas);
 	    if (send(socketCoordinador, tamanio, sizeof(tEntradasUsadas), 0) <= 0){
 
 	    	puts("Error al enviar el el tamanio valor");
 		   perror("Send");
 	    }
-	    free(tamanio);
 
-	    if (send(socketCoordinador, valor, tamanioValor, 0) <= 0){
+	    if (send(socketCoordinador, valor, tamanio->entradasUsadas, 0) <= 0){
 		   puts("Error al enviar el valor");
 		   perror("Send");
 	    }
+	    free(tamanio);
     }
 
     int recibirConfiguracion(int sockeCoordinador){
