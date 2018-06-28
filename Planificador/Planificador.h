@@ -216,3 +216,6 @@ t_esi * buscarEsiPorId(t_queue *lista,int id,t_esi * esi);
 void killEsi (int id);
 void sumarEspera(t_queue *cola);
 void estimacionHRRN(t_esi* esi);
+
+void deadlock ();
+t_esi * revisarBloqueado(char clave[TAMANIO_CLAVE],t_list * lista,t_esi* esi);
