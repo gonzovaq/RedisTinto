@@ -209,6 +209,7 @@
     		list_add(colaESIS,(void*)parametros);
     		conexionESI(parametros);
 
+    		printf("ESI: El ESI %d se desconecto asi que pasamos a liberar sus claves\n", parametros->pid);
     		LiberarLasClavesDelESI(parametros);
 
     		/*
@@ -419,13 +420,15 @@
 					perror("send");
 				}
 
-				LiberarLasClavesDelESI(parametros);
-
+				//LiberarLasClavesDelESI(parametros);
 				free(header);
 
 				break;
 			default:
 				puts("ESI Fallo al ver el resultado de la operacion");
+				close(parametros->new_fd);
+				return EXIT_SUCCESS;
+				free(header);
 				break;
 			}
 			if(operacion->tipo==OPERACION_SET)
@@ -437,6 +440,8 @@
     }
 
     int LiberarLasClavesDelESI(parametrosConexion * parametros){
+    	ESIABorrar = parametros;
+    	estoyBorrando = 5;
 
     	int claves = list_size(parametros->claves);
 
@@ -445,8 +450,10 @@
     	for(int i = 0; i< claves; i++){
 
     		EliminarClaveDeBloqueos(list_get(parametros->claves,i));
-
+    		sem_wait(parametros->semaforo);
     	}
+
+    	estoyBorrando = 0;
 
     	void LiberarClave(char * clave){
     		printf("ESI: Se va a eliminar la clave %s del ESI de id %d \n",clave,parametros->pid);
@@ -544,6 +551,11 @@
         		perror("send planificador");
         	}
         	puts("Planificador: le envie algo al planificador");
+
+        	if (estoyBorrando == 5){
+        		puts("Planificador: Me avisaron para que notifique el borrado de una clave, ahora se puede seguir");
+        		sem_post(ESIABorrar->semaforo);
+        	}
         }
 
 		close(parametros->new_fd);
@@ -665,7 +677,7 @@
 					printf("Planificador: id del esi KILLED a liberar todas sus claves %s \n",idS);
 					int id=atoi(idS);
 					printf("Planificador: En int %d \n",id);
-					EncontrarAlESIYEliminarlo(id);
+					//EncontrarAlESIYEliminarlo(id);
 				}
 				break;
 			case STATUS:

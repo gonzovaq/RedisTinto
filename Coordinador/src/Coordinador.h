@@ -85,7 +85,8 @@ typedef enum{
 	BLOQUEO = 2,
 	ERROR = 3,
 	DESBLOQUEO = 4,
-	STATUSDORRPUTO = 5
+	STATUSDORRPUTO = 5,
+	BORRANDO = 6
 }tResultadoOperacion;
 
 typedef enum{
@@ -215,6 +216,7 @@ char CLAVE[TAMANIO_CLAVE];
 tTipoOperacion OPERACION_ACTUAL;
 
 parametrosConexion * ESIActual;
+parametrosConexion * ESIABorrar;
 parametrosConexion * planificador;
 t_list* colaInstancias;
 t_list* colaESIS;
@@ -229,6 +231,7 @@ static volatile int keepRunning = 1;
 
 pthread_mutex_t mutex;
 sem_t semaforoInstancia;
+int estoyBorrando;
 
 
 
