@@ -109,6 +109,11 @@ static t_esi * new_ESI_nuevo(int id,int fd,int esti,float tasa,int espera,char c
 	return new;
 }
 
+static char* newClave(char clave[TAMANIO_CLAVE])
+{
+	char * new = malloc(sizeof(TAMANIO_CLAVE));
+	return strcpy(new,clave);
+}
 static t_esi * new_ESI(int id,int fd,int esti,float tasa,int espera,char clave[TAMANIO_CLAVE],t_list * claves){
 	t_esi *new = malloc(sizeof(t_esi));
 	new->id = id;

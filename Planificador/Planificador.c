@@ -341,7 +341,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 										{
 											puts("El esi hizo un GET");
 											int size=list_size(esi->clavesTomadas);
-											list_add(esi->clavesTomadas,resultado->clave);
+											list_add(esi->clavesTomadas,newClave(resultado->clave));
 											size=list_size(esi->clavesTomadas);
 											printf("DEBUG: el size es %d \n",size);
 										}
@@ -402,6 +402,27 @@ void intHandler(int dummy) { // para atajar ctrl c
 								printf("Esi de id:%d entro a bloqueados \n",esi->id);
 								queue_push(bloqueados,new_ESI(esi->id,esi->fd,esi->estimacion,esi->responseRatio,esi->espera,esi->clave,esi->clavesTomadas));
 								puts("Se agrego a la cola de bloqueados");
+
+								//DEBUG
+									int i=0;
+									int j=0;
+									char * claveAux;
+									printf("La clave a buscar es: %s \n",clave);
+									while(i<list_size(bloqueados->elements))
+									{
+										esi=list_get(bloqueados->elements,i);
+										//recorrer claves tomadas
+										while(j<list_size(esi->clavesTomadas))
+										{
+											claveAux=list_get(esi->clavesTomadas,j);
+											printf("El esi %d tiene la claveTomada %s \n",esi->id,claveAux);
+											j++;
+										}
+										j=0;
+										i++;
+									}
+								//FIN DEBUG
+
 								f_ejecutar=1;
 								enviarConfirmacion=0;
 								if(queue_is_empty(ready))
@@ -571,6 +592,7 @@ void ordenarEsis(t_queue *cola)
     }
 
 	void destruirEsi(t_esi *unEsi){
+		puts("Destruyendo el esi ");
     	   //free(unaEntrada->clave);
     	   //free(unEsi);
     	  return;
@@ -1208,31 +1230,52 @@ void deadlock ()
 	list_add_all(aux,bloqueados->elements);
 
 	t_esi* esi=malloc(sizeof(t_esi));
+
+	int f=0;
+	while(f<list_size(bloqueados->elements))
+	{
+		esi=list_get(bloqueados->elements,f);
+		//printf("DEBUG: En bloqueados hay un esi de id: %d \n",esi->id);
+		f++;
+	}
+	
+
 	t_esi* esiClave=malloc(sizeof(t_esi));
 	t_esi* esiP=malloc(sizeof(t_esi));
 
 	int encontrado=0;
 	int size=list_size(aux);
+	printf("El tamanio de la lista es de: %d \n",size);
 	for(int i=0;i<size;i++)
 	{
+		
 		esiP=list_get(aux,i);
-
+		printf("El esi que agarre es %d \n",esiP->id);
 		queue_push(colaDeadlock,new_ESI(esiP->id,esiP->fd,esiP->estimacion,esiP->responseRatio,esiP->espera,esiP->clave,esiP->clavesTomadas));
+		printf("DEBUG: acabo de meter en cola el esi con id %d \n",esiP->id);
+				
+		puts("voy a revisar bloqueados");
 		esiClave = revisarBloqueado(esi->clave,aux,esiClave);
+		printf("Primer revisarBloqueado nos da el esi %d \n",esiClave->id);
 		int x=0;
+		//TODO Me esta devolviendo el mismo esi que mando.
+		//esi=queue_peek(colaDeadlock);
 		while(esiClave!=NULL && x<size && encontrado!=1)
 		{	
-			esi=queue_peek(colaDeadlock);
-			if(esi->id==esiClave->id)
+			
+			if(esiP->id==esiClave->id)
 			{
 				//hay deadlock, porque volvimos al esi primero
 				queue_push(colaDeadlock,new_ESI(esiClave->id,esiClave->fd,esiClave->estimacion,esiClave->responseRatio,esiClave->espera,esiClave->clave,esiClave->clavesTomadas));
-
+				
+				puts("Hay deadlock");
+				printf("DEBUG: acabo de meter en cola el esi con id %d \n",esiClave->id);
 				encontrado=1;
 			}
 			else
 			{
-				queue_push(colaDeadlock,new_ESI(esi->id,esi->fd,esi->estimacion,esi->responseRatio,esi->espera,esi->clave,esi->clavesTomadas));
+				puts("Entre al else (no deadlock)");
+				queue_push(colaDeadlock,new_ESI(esiClave->id,esiClave->fd,esiClave->estimacion,esiClave->responseRatio,esiClave->espera,esiClave->clave,esiClave->clavesTomadas));
 				esiClave = revisarBloqueado(esiClave->clave,aux,esiClave);//Buscamos quien tiene la clave del que concatenamos
 			}
 
@@ -1246,13 +1289,14 @@ void deadlock ()
 			while(queue_is_empty(colaDeadlock)==0)
 			{
 				esi=queue_pop(colaDeadlock);
-				printf("DEADLOCK: con esi de id %d ",esi->id);
+				printf("DEADLOCK: con esi de id %d \n",esi->id);
 
 				int coincidir(t_esi *unEsi){
           	    	    		return unEsi->id == esi->id;
           	    	    	}
 							  
-          		list_remove_and_destroy_by_condition(aux,(void*) coincidir,(void*) destruirEsi);
+          		list_remove_by_condition(aux,(void*) coincidir);
+				 // puts("Ya destrui");
 			}	
 		}
 		else
@@ -1269,6 +1313,7 @@ t_esi * revisarBloqueado(char clave[TAMANIO_CLAVE],t_list * lista,t_esi* esi)
 	int i=0;
 	int j=0;
 	char * claveAux;
+	printf("La clave a buscar es: %s \n",clave);
 	while(i<list_size(lista))
 	{
 		esi=list_get(lista,i);
@@ -1276,15 +1321,35 @@ t_esi * revisarBloqueado(char clave[TAMANIO_CLAVE],t_list * lista,t_esi* esi)
 		while(j<list_size(esi->clavesTomadas))
 		{
 			claveAux=list_get(esi->clavesTomadas,j);
-			if(string_equals_ignore_case(clave,claveAux)==true)
+			printf("El esi %d tiene la claveTomada %s \n",esi->id,claveAux);
+			j++;
+		}
+		j=0;
+		i++;
+	}
+	j=0;i=0;
+	while(i<list_size(lista))
+	{
+		esi=list_get(lista,i);
+		//recorrer claves tomadas
+		
+		while(j<list_size(esi->clavesTomadas))
+		{
+			claveAux=list_get(esi->clavesTomadas,j);
+			printf("El esi %d tiene la claveTomada %s \n",esi->id,claveAux);
+			if(string_equals_ignore_case(clave,claveAux)==true && esi->clave!=clave)
 			{
 				puts("Encontre al esi que tiene la clave");
 				return esi;
+			}
+			else{
+				puts("No lo encontre (todavia)");
 			}
 			j++;
 		}
 		j=0;
 		i++;
 	}
+	printf("DEBUG: El esi que tiene la clave %s es el esi de id %d",clave,esi->id);
 	return NULL;
 }
