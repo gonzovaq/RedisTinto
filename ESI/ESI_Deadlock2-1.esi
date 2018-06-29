@@ -1,0 +1,11 @@
+GET b 
+SET b b
+GET pe
+GET a
+SET a a
+GET c
+SET c c
+STORE a
+STORE b
+STORE c
+STORE pe
