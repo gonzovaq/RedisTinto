@@ -83,7 +83,7 @@ typedef enum{
 	BLOQUEAR = 2,
 	DESBLOQUEAR = 3,
 	KILL = 4,
-	STATUS= 5
+	STATUS = 5
 }tSolicitudesDeConsola;
 
 typedef struct{
@@ -114,6 +114,7 @@ static char* newClave(char clave[TAMANIO_CLAVE])
 	char * new = malloc(sizeof(TAMANIO_CLAVE));
 	return strcpy(new,clave);
 }
+
 static t_esi * new_ESI(int id,int fd,int esti,float tasa,int espera,char clave[TAMANIO_CLAVE],t_list * claves){
 	t_esi *new = malloc(sizeof(t_esi));
 	new->id = id;
@@ -153,7 +154,7 @@ typedef enum{
 	BLOQUEO = 2,
 	ERROR = 3,
 	DESBLOQUEO = 4,
-	STATUSDORRPUTO = 5
+	STATUS_RECV = 5
 }tResultadoOperacion;
 
 typedef struct{
@@ -221,6 +222,6 @@ t_esi * buscarEsiPorId(t_queue *lista,int id,t_esi * esi);
 void killEsi (int id);
 void sumarEspera(t_queue *cola);
 void estimacionHRRN(t_esi* esi);
-
+bool tieneLaClaveTomada (char clave[TAMANIO_CLAVE],t_esi * esi);
 void deadlock ();
 t_esi * revisarBloqueado(char clave[TAMANIO_CLAVE],t_list * lista,t_esi* esi);
