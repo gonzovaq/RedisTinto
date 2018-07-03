@@ -344,7 +344,10 @@ void intHandler(int dummy) { // para atajar ctrl c
 											if(!tieneLaClaveTomada(resultado->clave,esi))
 											{
 												puts("Agregue la clave");
+
+
 												list_add(esi->clavesTomadas,newClave(resultado->clave));
+											//	puts("DEBUG paso el newClave");///////
 											}
 											else{
 												puts("Ya tenia la clave");
@@ -532,6 +535,8 @@ bool tieneLaClaveTomada (char clave[TAMANIO_CLAVE],t_esi * esi)
 		}
 		i++;
 	}
+	puts("Debug Error malloc Pruebo free en claveaux");
+	free (claveAux);
 	return b;
 
 }

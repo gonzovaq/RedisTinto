@@ -111,7 +111,10 @@ static t_esi * new_ESI_nuevo(int id,int fd,int esti,float tasa,int espera,char c
 
 static char* newClave(char clave[TAMANIO_CLAVE])
 {
-	char * new = malloc(sizeof(TAMANIO_CLAVE));
+	/*printf("DEBUG la clave en .h  es %s\n",clave);
+	printf("DEBUG con un tamaño de %d\n",strlen(clave));
+	printf("DEBUG pero el size of da %d\n",sizeof(clave));// +1 */
+	char * new = malloc(strlen(clave)+1);
 	return strcpy(new,clave);
 }
 
