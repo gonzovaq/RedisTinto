@@ -1258,6 +1258,7 @@ void deadlock ()
 	t_esi* esi;//=malloc(sizeof(t_esi));
 
 	int f=0;
+	
 	while(f<list_size(bloqueados->elements))
 	{
 		esi=list_get(bloqueados->elements,f);
@@ -1272,16 +1273,23 @@ void deadlock ()
 	int encontrado=0;
 	int size=list_size(aux);
 	printf("El tamanio de la lista es de: %d \n",size);
-	for(int i=0;i<size;i++)
+	int i=0;
+	while(i<size)//for(int i=0;i<size;i++)
 	{
 		puts("voy a agarrar un esi");
-		if(list_size(aux)==0)
+		if(list_size(aux)==0||list_size(aux)==1)
 		{
 			puts("voy a breakear");
 			break;
 		}	
 		esiP=list_get(aux,i);
-
+		
+		if(esiP==NULL)
+		{
+			puts("breakeo porque es nulo");
+			break;
+		}
+		
 		printf("El esi que agarre es %d \n",esiP->id);
 		queue_push(colaDeadlock,new_ESI(esiP->id,esiP->fd,esiP->estimacion,esiP->responseRatio,esiP->espera,esiP->clave,esiP->clavesTomadas));
 		printf("DEBUG: acabo de meter en cola el esi con id %d \n",esiP->id);
@@ -1328,15 +1336,27 @@ void deadlock ()
           		list_remove_and_destroy_by_condition(aux,(void*) coincidir,(void *)destruirEsi);
 				 // puts("Ya destrui");
 			}	
-			i=0;
+			i=-1;
+			size = list_size(aux);
+			/*printf("Sizie de vuelta %d, el pointer esta en %d \n",size,i);
+				esiP=list_get(aux,i+1);
+				
+				if(esiP==NULL)
+				{
+					puts("nulo el get");
+					
+				}else{
+					puts("no nulo el esip");
+				}*/
+			queue_clean(colaDeadlock);
 		}else
 		{
 			puts("he entrado al limpiar colas");
 			//debemos limpiar la cola deadlocks
 			queue_clean(colaDeadlock);
 		}	
-		
-	}
+		i++;
+	}//fin de while principal
 	//free(esi);
 	//free(esiP);	
 }
