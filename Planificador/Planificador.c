@@ -1288,7 +1288,8 @@ void deadlock ()
 				
 		puts("voy a revisar bloqueados");
 		esiClave = revisarBloqueado(esiP->clave,aux,esiClave);
-		printf("Primer revisarBloqueado nos da el esi %d \n",esiClave->id);
+		puts("Voy a printear x2");
+		//printf("Primer revisarBloqueado nos da el esi %d \n",esiClave->id);
 		int x=0;
 		//esi=queue_peek(colaDeadlock);
 		while(esiClave!=NULL && x<size && encontrado!=1)
@@ -1362,13 +1363,20 @@ t_esi * revisarBloqueado(char clave[TAMANIO_CLAVE],t_list * lista,t_esi* esi)
 	}
 	j=0;i=0;
 	*/
-	while(i<list_size(lista))
+	int sizel = list_size(lista);
+	while(i<sizel)
 	{
+		puts("Voy a obtener esi");
 		esi=list_get(lista,i);
 		//recorrer claves tomadas
-		
-		while(j<list_size(esi->clavesTomadas))
+		printf("DEBUG: esi que agarre es %d \n",esi->id);
+
+		puts("DEBUG: busco size de clave");
+		int sizec=list_size(esi->clavesTomadas);
+		puts("DEBUG: salgo size de clave");
+		while(j<sizec)
 		{
+			puts("DEBUG: Voy a obtener clave");
 			claveAux=list_get(esi->clavesTomadas,j);
 			printf("El esi %d tiene la claveTomada %s \n",esi->id,claveAux);
 			if(string_equals_ignore_case(clave,claveAux)==true && esi->clave!=clave)
@@ -1379,11 +1387,13 @@ t_esi * revisarBloqueado(char clave[TAMANIO_CLAVE],t_list * lista,t_esi* esi)
 			else{
 				puts("No lo encontre (todavia)");
 			}
+			printf("DEBUG:  J esta en %d \n",j);
 			j++;
 		}
 		j=0;
 		i++;
 	}
-	printf("DEBUG: El esi que tiene la clave %s es el esi de id %d",clave,esi->id);
+	puts("Voy a printear");
+	//printf("DEBUG: El esi que tiene la clave %s es el esi de id %d",clave,esi->id);
 	return NULL;
 }

@@ -1,6 +1,7 @@
 GET b 
 SET b b
 GET pe
+STORE pe
 GET a
 SET a a
 GET c
