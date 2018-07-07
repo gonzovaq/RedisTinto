@@ -336,31 +336,35 @@
 
     int MandarInstanciaACompactar(parametrosConexion * parametros){
     	while(1){
-    		puts("Instancia: Espero que me pidan que compacte");
+    		printf("COMPACTACION: Espero que me pidan que compacte, soy la instancia %d con nombre: %s",
+					parametros->pid,parametros->nombreProceso);
 			sem_wait(parametros->semaforoCompactacion);
-			puts("Instancia: ELer voy a avisar que compacte");
+			printf("COMPACTACION: Le voy a avisar que compacte a la instancia %d con nombre: %s",
+					parametros->pid,parametros->nombreProceso);
 
+			printf("COMPACTACION: Manejo Compactacion p/ Instancia conectada con DeboRecibir = %d \n",parametros->DeboRecibir);
 			if (parametros->DeboRecibir){
-							puts("Instancia: Recibo un aviso de que la Instancia sigue viva");
-							tEntradasUsadas *estasConecatada1 = malloc(sizeof(tEntradasUsadas));
-							if ((recv(parametros->new_fd, estasConecatada1, sizeof(tEntradasUsadas), 0)) <= 0) {
-								perror("Instancia: se desconecto!!!");
-								parametros->conectada = 0;
-								//sem_destroy(parametros->semaforo);
-								return OK;
-							}
-							puts("Instancia: La Instancia sigue viva");
-							parametros->DeboRecibir = 0;
+				tEntradasUsadas *estasConecatada = malloc(sizeof(tEntradasUsadas));
+				if ((recv(parametros->new_fd, estasConecatada, sizeof(tEntradasUsadas), 0)) <= 0) {
+					puts("COMPACTACION: Fallo al enviar el tipo de operacion");
+					parametros->conectada = 0;
 
-							free(estasConecatada1);
-			        	}
+					free(estasConecatada);
+					//sem_destroy(instancia->semaforo);
+					close(parametros->new_fd);
+					return ERROR;
+				}
+				puts("COMPACTACION: Recibi aviso de que la instancia esta conectada");
+				free(estasConecatada);
+				parametros->DeboRecibir = 0;
+			}
 
 			tOperacionInstanciaStruct * operacionInstancia = malloc(sizeof(tOperacionInstanciaStruct));
 			operacionInstancia->operacion = COMPACTAR;
 			if ((send(parametros->new_fd, operacionInstancia, sizeof(tOperacionInstanciaStruct), 0))
 					// Le informamos que quiero hacer!
 							<= 0) {
-						puts("Instancia: Fallo al enviar el tipo de operacion");
+						puts("COMPACTACION: Fallo al enviar el tipo de operacion");
 						perror("send");
 						parametros->conectada = 0;
 						//RemoverInstanciaDeLaLista(parametros);
@@ -371,15 +375,16 @@
 
 			tEntradasUsadas *estasConecatada2 = malloc(sizeof(tEntradasUsadas));
 			if ((recv(parametros->new_fd, estasConecatada2, sizeof(tEntradasUsadas), 0)) <= 0) {
-				perror("Instancia: se desconecto!!!");
+				perror("COMPACTACION: se desconecto!!!");
 				parametros->conectada = 0;
 				free(estasConecatada2);
 				return OK;
 			}
 
 			free(estasConecatada2);
-
     	}
+
+    	parametros->DeboRecibir = 1;
 
     	return OK;
     }
@@ -394,7 +399,11 @@
 
 		list_iterate(listaFiltrada,(void *)MandarInstanciaACompactarSemPost);
 
+		puts("COMPACTACION: Ya envie a compactar a todas las Instancias");
+
 		list_iterate(listaFiltrada,(void *)RecibirFinalizacionDeCompactacion);
+
+		puts("COMPACTACION: Ya compactaron todas las Instancias");
 
 		sem_post(instancia->semaforo);
 

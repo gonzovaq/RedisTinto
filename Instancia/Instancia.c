@@ -34,7 +34,7 @@
 
         while(1){
         	mostrarArray(arrayEntradas, cantidadEntradas);
-        	puts("Informo que estoy viva");
+        	puts("Informo que estoy viva 1");
         	EnviarAvisoDeQueEstoyViva(socketCoordinador);
         	puts("Recibo operacion");
         	tOperacionInstanciaStruct * operacion = malloc(sizeof(tOperacionInstanciaStruct));
@@ -43,134 +43,143 @@
         	    		perror("recv");
         	    		exit(1);
         	    	}
-        	puts("Informo que estoy viva");
+        	puts("Informo que estoy viva 2");
         	EnviarAvisoDeQueEstoyViva(socketCoordinador);
 
-        	if(operacion->operacion == SOLICITAR_VALOR){
-        		free(operacion);
-        		PedidoDeValores(socketCoordinador, arrayEntradas);
-        		puts("Terminamos el STATUS");
+        	puts("Verifico que tipo de operacion me pidieron");
+
+        	if(operacion->operacion == CUALQUIER_COSA){
+        		puts("Me pidieron cualquier cosa");
         	}
         	else{
-        		if(operacion->operacion == COMPACTAR){
-        			// Aca hay que compactar
-        			compactar();
-        			tEntradasUsadas *tuVieja = malloc(sizeof(tEntradasUsadas));
-        			tuVieja->entradasUsadas = 999;
-
-        			if (send(socketCoordinador, tuVieja, sizeof(tEntradasUsadas), 0) <= 0){
-        				puts("Error al enviar solicitud de compactqacion");
-        				perror("Send");
-        				free(tuVieja);
-        				exit(1);
-        			}
-        			free(tuVieja);
-        		}
-        		else{
+				if(operacion->operacion == SOLICITAR_VALOR){
+					puts("Me pidieron un valor para STATUS");
 					free(operacion);
-					OperaciontHeader *headerRecibido = malloc(sizeof(OperaciontHeader)); // El malloc esta en recibir header
-					puts("Intento recibir header del Coordinador");
-					headerRecibido = recibirHeader(socketCoordinador);
-					puts("Recibi el header!");
-					if (headerRecibido->tipo != OPERACION_GET){
-						tamanioValorRecibido = headerRecibido->tamanioValor;
-						char *bufferClave;
-						char *bufferValor;
-						char *valorGet;
-						operacionRecibida *operacion = malloc(sizeof(operacionRecibida));
+					PedidoDeValores(socketCoordinador, arrayEntradas);
+					puts("Terminamos el STATUS");
+				}
+				else{
+					if(operacion->operacion == COMPACTAR){
+						puts("Me pidieron que COMPACTE");
+						// Aca hay que compactar
+						compactar();
+						tEntradasUsadas *tuVieja = malloc(sizeof(tEntradasUsadas));
+						tuVieja->entradasUsadas = 999;
 
-
-						bufferClave = recibirMensaje(socketCoordinador, TAMANIO_CLAVE);
-
-
-						if (headerRecibido->tipo == OPERACION_SET){
-							//pthread_mutex_lock(&mutex);
-							puts("ENTRO A UN SET");
-							cantidadClavesEnTabla++;
-							if(validarClaveExistente(bufferClave, tablaEntradas) == true){
-								eliminarNodosyValores(bufferClave, tablaEntradas, arrayEntradas);
-								cantidadClavesEnTabla--;
-									}
-							bufferValor = recibirMensaje(socketCoordinador, tamanioValorRecibido);
+						if (send(socketCoordinador, tuVieja, sizeof(tEntradasUsadas), 0) <= 0){
+							puts("Error al enviar solicitud de compactqacion");
+							perror("Send");
+							free(tuVieja);
+							exit(1);
+						}
+						free(tuVieja);
+					}
+					else{
+						free(operacion);
+						OperaciontHeader *headerRecibido = malloc(sizeof(OperaciontHeader)); // El malloc esta en recibir header
+						puts("Intento recibir header del Coordinador");
+						headerRecibido = recibirHeader(socketCoordinador);
+						puts("Recibi el header!");
+						if (headerRecibido->tipo != OPERACION_GET){
 							tamanioValorRecibido = headerRecibido->tamanioValor;
-							memcpy(operacion->clave, bufferClave, strlen(bufferClave) + 1);
-							operacion->valor = bufferValor;
-							puts("Antes de validar espacio disponible");
-							if(validarEspacioDisponible(tamanioValorRecibido) == true){
-								puts("Confirme espacio disponibgle");
-								agregarEntrada(operacion, tamanioValorRecibido);
-							}
-							else{
-									puts("Veo si hay fragmentacion");
-								if(validarEspacioReal(tamanioValorRecibido) == true){
-									puts("Hay fragmentacion externa, por lo tanto compacto");
-									tEntradasUsadas *tuVieja = malloc(sizeof(tEntradasUsadas));
-									tuVieja->entradasUsadas = 500;
+							char *bufferClave;
+							char *bufferValor;
+							char *valorGet;
+							operacionRecibida *operacion = malloc(sizeof(operacionRecibida));
 
-									if (send(socketCoordinador, tuVieja, sizeof(tEntradasUsadas), 0) <= 0){
-										 	 puts("Error al enviar solicitud de compactqacion");
-										 	 perror("Send");
-										 	 free(tuVieja);
-										 	 exit(1);
-									 }
-									free(tuVieja);
+
+							bufferClave = recibirMensaje(socketCoordinador, TAMANIO_CLAVE);
+
+
+							if (headerRecibido->tipo == OPERACION_SET){
+								//pthread_mutex_lock(&mutex);
+								puts("ENTRO A UN SET");
+								cantidadClavesEnTabla++;
+								if(validarClaveExistente(bufferClave, tablaEntradas) == true){
+									eliminarNodosyValores(bufferClave, tablaEntradas, arrayEntradas);
 									cantidadClavesEnTabla--;
+										}
+								bufferValor = recibirMensaje(socketCoordinador, tamanioValorRecibido);
+								tamanioValorRecibido = headerRecibido->tamanioValor;
+								memcpy(operacion->clave, bufferClave, strlen(bufferClave) + 1);
+								operacion->valor = bufferValor;
+								puts("Antes de validar espacio disponible");
+								if(validarEspacioDisponible(tamanioValorRecibido) == true){
+									puts("Confirme espacio disponibgle");
+									agregarEntrada(operacion, tamanioValorRecibido);
 								}
 								else{
-									puts("No hay fragmentacion, Hay que aplicar algoritmo de reemplazo");
-									int entradasNecesarias = calcularEntradasNecesarias(tamanioValorRecibido, tamanioValor);
-									int entradasABorrar = entradasNecesarias - calcularEntradasVacias();//Calcula cuantas entradas hacen falta borrar
-									//aplicarAlgoritmoReemplazo(entradasABorrar);
+										puts("Veo si hay fragmentacion");
+									if(validarEspacioReal(tamanioValorRecibido) == true){
+										puts("Hay fragmentacion externa, por lo tanto compacto");
+										tEntradasUsadas *tuVieja = malloc(sizeof(tEntradasUsadas));
+										tuVieja->entradasUsadas = 500;
 
-									//Borra las entradas
-									if(validarEspacioDisponible(tamanioValorRecibido) == true){
-										agregarEntrada(operacion, tamanioValorRecibido);
+										if (send(socketCoordinador, tuVieja, sizeof(tEntradasUsadas), 0) <= 0){
+												 puts("Error al enviar solicitud de compactqacion");
+												 perror("Send");
+												 free(tuVieja);
+												 exit(1);
+										 }
+										free(tuVieja);
+										cantidadClavesEnTabla--;
 									}
 									else{
-										//compacta
-										agregarEntrada(operacion, tamanioValorRecibido);
+										puts("No hay fragmentacion, Hay que aplicar algoritmo de reemplazo");
+										int entradasNecesarias = calcularEntradasNecesarias(tamanioValorRecibido, tamanioValor);
+										int entradasABorrar = entradasNecesarias - calcularEntradasVacias();//Calcula cuantas entradas hacen falta borrar
+										//aplicarAlgoritmoReemplazo(entradasABorrar);
+
+										//Borra las entradas
+										if(validarEspacioDisponible(tamanioValorRecibido) == true){
+											agregarEntrada(operacion, tamanioValorRecibido);
+										}
+										else{
+											//compacta
+											agregarEntrada(operacion, tamanioValorRecibido);
+										}
 									}
 								}
+
+
+								enviarEntradasUsadas(socketCoordinador, tablaEntradas, bufferClave);
+								free(headerRecibido);
+								//free(operacion);
+								free(bufferClave);
+								free(bufferValor);
+								puts("HICE UN SET");
+								printf("Cantidad de elementos en mi tabla de entradas: %d\n", list_size(tablaEntradas));
+								printf("LO QUE ME MUSTRA EL PUNTERO CIRCULAR %s\n", arrayEntradas[posicionPunteroCirc]);
+	//							printf("POSICION PUNTERO CIRCULAR: %d\n", posicionPunteroCirc);
+	//							if (identificarFragmentacion() == true){
+	//								puts("HAY FRAGMENTACION EXTERNA");
+	//							}
+								//sem_post(semaforo);
+								//pthread_mutex_unlock(&mutex);
+								}
+
+
+							if (headerRecibido->tipo == OPERACION_STORE){
+								//pthread_mutex_lock(&mutex);
+								puts("ENTRO A UN STORE");
+								longitudMaximaValorBuscado = entradasUsadasPorClave(bufferClave, tablaEntradas);
+								valorGet = obtenerValor(longitudMaximaValorBuscado, tablaEntradas, bufferClave, arrayEntradas, tamanioValor);
+								guardarUnArchivo(bufferClave, valorGet);
+								puts("Guarde un archivo");
+								enviarEntradasUsadas(socketCoordinador, tablaEntradas, bufferClave);
+
+
+								free(valorGet);
+								free(headerRecibido);
+								free(bufferClave);
+								puts("TERMINE UN STORE");
+								//sem_post(semaforo);
+								//pthread_mutex_unlock(&mutex);
 							}
-
-
-							enviarEntradasUsadas(socketCoordinador, tablaEntradas, bufferClave);
-							free(headerRecibido);
-							//free(operacion);
-							free(bufferClave);
-							free(bufferValor);
-							puts("HICE UN SET");
-							printf("Cantidad de elementos en mi tabla de entradas: %d\n", list_size(tablaEntradas));
-							printf("LO QUE ME MUSTRA EL PUNTERO CIRCULAR %s\n", arrayEntradas[posicionPunteroCirc]);
-//							printf("POSICION PUNTERO CIRCULAR: %d\n", posicionPunteroCirc);
-//							if (identificarFragmentacion() == true){
-//								puts("HAY FRAGMENTACION EXTERNA");
-//							}
-							//sem_post(semaforo);
-							//pthread_mutex_unlock(&mutex);
-							}
-
-
-						if (headerRecibido->tipo == OPERACION_STORE){
-							//pthread_mutex_lock(&mutex);
-							puts("ENTRO A UN STORE");
-							longitudMaximaValorBuscado = entradasUsadasPorClave(bufferClave, tablaEntradas);
-							valorGet = obtenerValor(longitudMaximaValorBuscado, tablaEntradas, bufferClave, arrayEntradas, tamanioValor);
-							guardarUnArchivo(bufferClave, valorGet);
-							puts("Guarde un archivo");
-							enviarEntradasUsadas(socketCoordinador, tablaEntradas, bufferClave);
-
-
-							free(valorGet);
-							free(headerRecibido);
-							free(bufferClave);
-							puts("TERMINE UN STORE");
-							//sem_post(semaforo);
-							//pthread_mutex_unlock(&mutex);
 						}
+						puts("Terminamos esta operacion");
 					}
-					puts("Terminamos esta operacion");
-        		}
+				}
         	}
         }
         close(socketCoordinador);
