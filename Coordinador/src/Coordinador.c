@@ -339,18 +339,78 @@
     		puts("Instancia: Espero que me pidan que compacte");
 			sem_wait(parametros->semaforoCompactacion);
 			puts("Instancia: ELer voy a avisar que compacte");
-			//TODO: ACA ENVIAMOS ALGO PARA QUE COMPACTE LA INSTANCIA
+
+			if (parametros->DeboRecibir){
+							puts("Instancia: Recibo un aviso de que la Instancia sigue viva");
+							tEntradasUsadas *estasConecatada1 = malloc(sizeof(tEntradasUsadas));
+							if ((recv(parametros->new_fd, estasConecatada1, sizeof(tEntradasUsadas), 0)) <= 0) {
+								perror("Instancia: se desconecto!!!");
+								parametros->conectada = 0;
+								//sem_destroy(parametros->semaforo);
+								return OK;
+							}
+							puts("Instancia: La Instancia sigue viva");
+							parametros->DeboRecibir = 0;
+
+							free(estasConecatada1);
+			        	}
+
+			tOperacionInstanciaStruct * operacionInstancia = malloc(sizeof(tOperacionInstanciaStruct));
+			operacionInstancia->operacion = COMPACTAR;
+			if ((send(parametros->new_fd, operacionInstancia, sizeof(tOperacionInstanciaStruct), 0))
+					// Le informamos que quiero hacer!
+							<= 0) {
+						puts("Instancia: Fallo al enviar el tipo de operacion");
+						perror("send");
+						parametros->conectada = 0;
+						//RemoverInstanciaDeLaLista(parametros);
+						close(parametros->new_fd);
+						return 2;
+					}
+			free(operacionInstancia);
+
+			tEntradasUsadas *estasConecatada2 = malloc(sizeof(tEntradasUsadas));
+			if ((recv(parametros->new_fd, estasConecatada2, sizeof(tEntradasUsadas), 0)) <= 0) {
+				perror("Instancia: se desconecto!!!");
+				parametros->conectada = 0;
+				free(estasConecatada2);
+				return OK;
+			}
+
+			free(estasConecatada2);
+
     	}
 
     	return OK;
     }
 
-    int MandarInstanciasACompactar(){
+    int MandarInstanciasACompactar(parametrosConexion * instancia){
 		t_list * listaFiltrada;
 		listaFiltrada = list_filter(colaInstancias,(void*)EstaConectada);
 
-		list_iterate(listaFiltrada,(void *)MandarInstanciaACompactar);
+		void MandarInstanciaACompactarSemPost(parametrosConexion * instanciaX){
+			sem_post(instanciaX->semaforoCompactacion);
+		}
 
+		list_iterate(listaFiltrada,(void *)MandarInstanciaACompactarSemPost);
+
+		list_iterate(listaFiltrada,(void *)RecibirFinalizacionDeCompactacion);
+
+		sem_post(instancia->semaforo);
+
+		return OK;
+    }
+
+    int RecibirFinalizacionDeCompactacion(parametrosConexion * instancia){
+		tEntradasUsadas *buffer = malloc(sizeof(tEntradasUsadas));
+		if ((recv(instancia->new_fd, buffer, sizeof(tEntradasUsadas), 0)) <= 0) {
+			perror("recv");
+			instancia->conectada = 0;
+			free(instancia);
+			//sem_destroy(parametros->semaforo);
+			free(buffer);
+			return OK;
+		}
 		return OK;
     }
 
@@ -1217,40 +1277,53 @@
 					return OK;
 				}
 
-				printf("Instancia: recibi el resultado de la instancia y tiene %d entradas usadas\n",
-						buffer->entradasUsadas);
-
-				parametros->entradasUsadas = buffer->entradasUsadas;
-
-				free(buffer);
-
-				puts("Preparamos el resultado");
-				tResultado * resultadoCompleto = malloc(sizeof(tResultado));
-				resultadoCompleto->resultado = OK;
-				strcpy(resultadoCompleto->clave,operacion->clave);
-
-				/*
-				if(operacion->tipo == OPERACION_STORE){ // Si es STORE la instancia no tiene mas la clave
-					bool CompararClaves(char * claveAComprar){
-						return string_equals_ignore_case(operacion->clave,claveAComprar);
-					}
-					void DestruirClaveDeInstancia(char * clave){
-						free(clave);
-					}
-					list_remove_and_destroy_by_condition(parametros->claves,
-					(void *)CompararClaves,(void *)DestruirClaveDeInstancia);
+				if(buffer->entradasUsadas == 500){
+					free(buffer);
+					MandarInstanciasACompactar(parametros);
+					sem_wait(parametros->semaforo);
+					list_add(colaMensajes,operacion);
+					sem_post(parametros->semaforo);
 				}
-				*/
-				void ImprimirTodasMisClaves(char * clave){
-					printf("Instancia: Una de mis claves es %s \n",clave);
-				}
-				puts("Instancia: Voy a revisar mi lista de claves");
-				list_iterate(parametros->claves, (void *)ImprimirTodasMisClaves);
+				else
+				{
+					printf("Instancia: recibi el resultado de la instancia y tiene %d entradas usadas\n",
+							buffer->entradasUsadas);
 
-				//Debo avisarle al ESI que me invoco el resultado
-				pthread_mutex_lock(&mutex);
-				list_add(colaResultados,(void*)resultadoCompleto);
-				pthread_mutex_unlock(&mutex);
+					parametros->entradasUsadas = buffer->entradasUsadas;
+
+					free(buffer);
+
+					puts("Preparamos el resultado");
+					tResultado * resultadoCompleto = malloc(sizeof(tResultado));
+					resultadoCompleto->resultado = OK;
+					strcpy(resultadoCompleto->clave,operacion->clave);
+
+					/*
+					if(operacion->tipo == OPERACION_STORE){ // Si es STORE la instancia no tiene mas la clave
+						bool CompararClaves(char * claveAComprar){
+							return string_equals_ignore_case(operacion->clave,claveAComprar);
+						}
+						void DestruirClaveDeInstancia(char * clave){
+							free(clave);
+						}
+						list_remove_and_destroy_by_condition(parametros->claves,
+						(void *)CompararClaves,(void *)DestruirClaveDeInstancia);
+					}
+					*/
+					void ImprimirTodasMisClaves(char * clave){
+						printf("Instancia: Una de mis claves es %s \n",clave);
+					}
+					puts("Instancia: Voy a revisar mi lista de claves");
+					list_iterate(parametros->claves, (void *)ImprimirTodasMisClaves);
+
+					//Debo avisarle al ESI que me invoco el resultado
+					pthread_mutex_lock(&mutex);
+					list_add(colaResultados,(void*)resultadoCompleto);
+					pthread_mutex_unlock(&mutex);
+
+					puts("Instancia: Aviso al ESI que puede seguir operando");
+					sem_post(ESIActual->semaforo); // SE HACE AFUERA PORQUE EL GET TAMBIEN DEBE TENER SU POST
+					}
 
 			}
 			else{
@@ -1274,10 +1347,10 @@
 					close(parametros->new_fd);
 					return 2;
 				}
+				puts("Instancia: Aviso al ESI que puede seguir operando");
+				sem_post(ESIActual->semaforo); // SE HACE AFUERA PORQUE EL GET TAMBIEN DEBE TENER SU POST
 			}
 
-			puts("Instancia: Aviso al ESI que puede seguir operando");
-			sem_post(ESIActual->semaforo); // SE HACE AFUERA PORQUE EL GET TAMBIEN DEBE TENER SU POST
 			puts("Instancia: Salgo de la region critica");
 			sem_post(&semaforoInstancia);
 		}

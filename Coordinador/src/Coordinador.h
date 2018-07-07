@@ -304,7 +304,7 @@ static void destruirBloqueo(tBloqueo *bloqueo);
 static void destruirInstancia(parametrosConexion * parametros);
 static void borrarClave(char * clave);
 
-int MandarInstanciasACompactar();
+int MandarInstanciasACompactar(parametrosConexion * instancia);
 int MandarInstanciaACompactar(parametrosConexion * parametros);
 int EliminarClaveDeInstancia(parametrosConexion * instancia, char * clave);
 bool TieneLaClave(parametrosConexion * esi, char * clave);
@@ -313,5 +313,6 @@ int EliminarClaveDeBloqueos(char * claveABorrar);
 parametrosConexion* BuscarInstanciaMenosUsadaSimulacion();
 int VerificarSiLaInstanciaSigueViva(parametrosConexion * instancia);
 int STATUSParaInstanciaConectada(parametrosConexion * instancia, char * clave);
+int RecibirFinalizacionDeCompactacion(parametrosConexion * instancia);
 
 

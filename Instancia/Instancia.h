@@ -151,6 +151,7 @@ typedef struct{
 	    tAlgoritmoReemplazo algoritmoReemplazo;
 	    int cantidadClavesEnTabla = 0;
 	    sem_t *semaforo;
+	    int entradaProxima = 0;
 
 
 // Prototipos de las funciones
@@ -198,3 +199,9 @@ t_list *obtenerTablaParaBSU(t_list *tablaEntradas, int cantidadEntradasPendiente
 int EnviarAvisoDeQueEstoyViva(int socketCoordinador);
 int RecibirClavesPrevias(int socketCoordinador);
 FILE *leerArchivo(char *archivo);
+bool identificarFragmentacion();
+
+tEntrada *obtenerNodoPorIndexstorage(t_list *tablaEntradas, int index);
+bool validarEspacioDisponible(int tamanioValorRecibido);
+bool validarEspacioReal(int tamanioValorRecibido);
+

@@ -1,0 +1,22 @@
+GET futbol:messi
+SET futbol:messi TraemeLaCopa
+STORE futbol:messi
+GET futbol:pavon
+SET futbol:pavon ElMasCraDeLaSeleccion
+STORE futbol:pavon
+GET futbol:sampaoli
+SET futbol:sampaoli PeladoDeMierda
+STORE futbol:sampaoli
+GET futbol:messi
+SET futbol:messi Messi
+STORE futbol:messi
+GET futbol:pavon
+SET futbol:pavon ElMasCraDeBoca
+STORE futbol:pavon
+GET futbol:masche
+SET futbol:masche MascheranoHijoDeReMilRePuta
+STORE futbol:masche
+
+
+
+
