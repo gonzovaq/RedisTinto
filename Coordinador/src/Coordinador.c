@@ -2215,9 +2215,15 @@
 
 			printf("ESI: El rango es %d  con un resto de %d \n",rango,restoRango);
 
+			// ---------- ASIGNO LA CANTIDAD DE CLAVES QUE ENTRAN EN LA ULTIMA INSTANCIA -------
 			if (restoRango !=0){
-				entradasUltimaInstancia = KEYS_POSIBLES - ((cantidadInstancias-1) * (rango + 1));
-			}else
+				rango +=1;
+				entradasUltimaInstancia = KEYS_POSIBLES;
+				for(int n = 1; n<cantidadInstancias; n++){
+					entradasUltimaInstancia -= (rango); // CASO RESTO != 0, LE RESTO CLAVES A LA ULTIMA INSTANCIA
+				}
+			}
+			else
 			{
 				entradasUltimaInstancia = KEYS_POSIBLES- ((cantidadInstancias-1) * (rango));
 			}
