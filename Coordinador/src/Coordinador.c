@@ -9,7 +9,7 @@
 
 	void intHandler(int dummy) { // para atajar ctrl c
 		keepRunning = 0;
-		sleep(4);
+		sleep(1);
 		exit_gracefully(EXIT_SUCCESS);
 	}
 

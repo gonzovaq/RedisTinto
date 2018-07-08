@@ -298,7 +298,7 @@
     		perror("Fallo al recibir la clave");
     	}
 
-    	// TODO: BUSCO VALOR!
+    	printf("STATUS: Recibi la clave %s, voy a buscar su valor \n", clave);
 
     	char* valor;
     	int tamanioValorBuscado;
@@ -307,81 +307,82 @@
     	tamanioValorBuscado = entradasUsadasPorClave(clave, tablaEntradas);
 
     	valor = obtenerValor(tamanioValorBuscado, tablaEntradas, clave, arrayEntradas, tamanioValor);
-    	puts("YA BUSQUÉ EL VALOR");
-    	printf("El valor es: %s\n", valor);
+    	printf("STATUS: El valor es: %s\n", valor);
     	tamanio->entradasUsadas = strlen(valor);
-    	printf("COORDINADOR: El tamanio de valor es: %d\n", tamanio->entradasUsadas);
-	    if (send(socketCoordinador, tamanio, sizeof(tEntradasUsadas), 0) <= 0){
 
-	    	puts("Error al enviar el el tamanio valor");
-		   perror("Send");
-	    }
+    	printf("STATUS: El tamanio de valor es: %d\n", tamanio->entradasUsadas);
+ 	    if (send(socketCoordinador, tamanio, sizeof(tEntradasUsadas), 0) <= 0){
+
+ 	    	puts("Error al enviar el el tamanio valor");
+ 		   perror("Send");
+ 	    }
+
+	    if (send(socketCoordinador, valor, tamanio->entradasUsadas, 0) <= 0){
+	     		   puts("Error al enviar el valor");
+	     		   perror("Send");
+	     	    }
 	    free(tamanio);
-
-	    if (send(socketCoordinador, valor, tamanioValor, 0) <= 0){
-		   puts("Error al enviar el valor");
-		   perror("Send");
-	    }
     }
 
     int recibirConfiguracion(int sockeCoordinador){
-    	tInformacionParaLaInstancia * informacion = malloc(sizeof(tInformacionParaLaInstancia));
+         	tInformacionParaLaInstancia * informacion = malloc(sizeof(tInformacionParaLaInstancia));
 
-    	claves = list_create();
+         	claves = list_create();
 
-    	if((recv(sockeCoordinador, informacion, sizeof(tInformacionParaLaInstancia), 0)) <= 0){
-    		perror("Fallo al recibir la configuracion");
-    	}
+         	if((recv(sockeCoordinador, informacion, sizeof(tInformacionParaLaInstancia), 0)) <= 0){
+         		perror("Fallo al recibir la configuracion");
+         	}
 
-    	cantidadEntradas = informacion->entradas;
-    	tamanioValor = informacion->tamanioEntradas;
-    	int clavesPrevias = informacion->cantidadClaves;
-    	free(informacion);
+         	cantidadEntradas = informacion->entradas;
+         	tamanioValor = informacion->tamanioEntradas;
+         	int clavesPrevias = informacion->cantidadClaves;
+         	free(informacion);
 
-    	printf("La cantidad de entradas que manejo es %d y tienen un tamanio de %d \n", cantidadEntradas,tamanioValor);
+         	printf("La cantidad de entradas que manejo es %d y tienen un tamanio de %d \n", cantidadEntradas,tamanioValor);
 
-    	 arrayEntradas = malloc(cantidadEntradas * sizeof(char*)); //Declaro e inicializo el storage para los valores (n entradas con m tamaño)
+         	 arrayEntradas = malloc(cantidadEntradas * sizeof(char*)); //Declaro e inicializo el storage para los valores (n entradas con m tamaño)
 
-    	    	for (int i= 0; i < cantidadEntradas; i++){
-    	    		arrayEntradas[i] = calloc(tamanioValor, sizeof(char));
-    	    	}
+         	    	for (int i= 0; i < cantidadEntradas; i++){
+         	    		arrayEntradas[i] = calloc(tamanioValor, sizeof(char));
+         	    	}
 
-        char * line = NULL;
-        size_t len = 0;
-        FILE * archivo;
+             char * line = NULL;
+             size_t len = 0;
+             FILE * archivo;
 
-    	for(int i = 0; i < clavesPrevias; i++){
-    		char bufferClave[TAMANIO_CLAVE];
-    		operacionRecibida *operacion;
-        	if((recv(sockeCoordinador, bufferClave, TAMANIO_CLAVE, 0)) <= 0){
-        		perror("Fallo al recibir la configuracion");
-        	}
-        	printf("Lo que recibí del coordinador: %s\n", bufferClave);
-        	strcpy(operacion->clave, bufferClave);
-        	printf("Recibi la clave %s \n",operacion->clave);
+             operacionRecibida *operacion = malloc(sizeof(operacionRecibida));
 
-    		char nombreArchivo[strlen(PuntoMontaje)+strlen(operacion->clave)+5];
-    		strcpy(nombreArchivo,PuntoMontaje);
-    		strcat(nombreArchivo,operacion->clave);
-    		strcat(nombreArchivo,".txt\0");
-    		printf("El archivo a abrir esta en %s \n",nombreArchivo);
-    		archivo = leerArchivo(&nombreArchivo);
-    		puts("Voy a leer la linea del archivo");
-        	if(getline(&line, &len, archivo) == -1){
-        		puts("No habia nada dentro del archivo");
-        	}else{
-        		puts("Pruebo el operacion->valor");
+         	for(int i = 0; i < clavesPrevias; i++){
+         		char bufferClave[TAMANIO_CLAVE];
 
-        		operacion->valor = line;
-        		int tamanio = strlen(operacion->valor);
-        		printf("El valor de la clave %s es %s \n",operacion->clave,operacion->valor);
-        		printf("Tamanio del valor: %d\n", tamanio);
-        		agregarEntrada(operacion, tamanio);
-        		cantidadClavesEnTabla++;
-        		//list_add(claves,operacion->clave);
-        	} // TODO: Ale te dejo aca para que veas que hacer con esto!
-    	}
+             	if((recv(sockeCoordinador, bufferClave, TAMANIO_CLAVE, 0)) <= 0){
+             		perror("Fallo al recibir la configuracion");
+             	}
+             	printf("Lo que recibí del coordinador: %s\n", bufferClave);
+             	strcpy(operacion->clave, bufferClave);
+             	printf("Recibi la clave %s \n",operacion->clave);
 
+         		char nombreArchivo[strlen(PuntoMontaje)+strlen(operacion->clave)+5];
+         		strcpy(nombreArchivo,PuntoMontaje);
+         		strcat(nombreArchivo,operacion->clave);
+         		strcat(nombreArchivo,".txt\0");
+         		printf("El archivo a abrir esta en %s \n",nombreArchivo);
+         		archivo = leerArchivo(&nombreArchivo);
+         		puts("Voy a leer la linea del archivo");
+             	if(getline(&line, &len, archivo) == -1){
+             		puts("No habia nada dentro del archivo");
+             	}else{
+             		puts("Pruebo el operacion->valor");
+
+             		operacion->valor = line;
+             		int tamanio = strlen(operacion->valor);
+             		printf("El valor de la clave %s es %s \n",operacion->clave,operacion->valor);
+             		printf("Tamanio del valor: %d\n", tamanio);
+             		agregarEntrada(operacion, tamanio);
+             		cantidadClavesEnTabla++;
+             		//list_add(claves,operacion->clave);
+             	} // TODO: Ale te dejo aca para que veas que hacer con esto!
+         	}
 
     	return EXIT_SUCCESS;
     }
