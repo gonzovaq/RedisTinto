@@ -457,13 +457,16 @@
 			resultadoOperacion = AnalizarOperacion(tamanioValor, header, parametros, operacion);
 			printf("ESI: El resultado de analizar operacion fue: %d \n",resultadoOperacion);
 			printf("ESI: El socket del ESI es: %d \n",parametros->new_fd);
+			if (RETARDO != 0){
+				sleep(RETARDO/100);
+			}
+
 			switch (resultadoOperacion){
 			case OK:
 				puts("ESI: El analizar operacion anduvo");
 
 				free(header);
-				if (RETARDO != 0)
-					sleep(RETARDO/100);
+
 
 				//Debo avisar a una Instancia cuando recibo una operacion (QUE NO SEA UN GET)
 				//Agregamos el mensaje a una cola en memoria
@@ -1865,7 +1868,8 @@
     }
 
     parametrosConexion* BuscarInstanciaQuePoseeLaClave(char * clave){
-    	bool tieneLaClave(char * claveAComparar){
+    	bool tieneLaClave2(char * claveAComparar){
+    		puts("ESI: Voy a comparar la clave");
     		printf("ESI: Buscando instancia, comparando la clave %s con %s \n", clave, claveAComparar);
     		if(string_equals_ignore_case(clave,claveAComparar) == true){
     			puts("ESI: Las claves coincidieron");
@@ -1875,8 +1879,13 @@
     		return false;
     	}
     	bool lePerteneceLaClave(parametrosConexion * parametros){
-    		printf("ESI: Busco una instancia que tenga la clave: %s \n", clave);
-    		if(list_any_satisfy(parametros->claves,tieneLaClave) == true){
+    		printf("ESI: Reviso si la instancia %s tiene la clave: %s \n",parametros->nombreProceso, clave);
+    		if(list_is_empty(parametros->claves) == true){
+    			puts("ESI: Esta instancia no tiene claves");
+    			return false;
+    		}
+    		puts("ESI: La lista NO esta vacia");
+    		if((list_any_satisfy(parametros->claves,(void*)tieneLaClave2)) == true){
     			printf("ESI: Encontre la instancia que posee la clave: %d \n",parametros->pid);
     			return true;
     		}

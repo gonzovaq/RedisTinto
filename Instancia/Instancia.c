@@ -97,6 +97,7 @@
 								puts("ENTRO A UN SET");
 								printf("INDEX PUNTERO: %d\n", indexInicialPunteroCircular);
 								cantidadClavesEnTabla++;
+								int indicePuntero = indexInicialPunteroCircular;
 								if(validarClaveExistente(bufferClave, tablaEntradas) == true){
 									if(esClaveAtomica(bufferClave)){
 										eliminarNodos(bufferClave, colaLRU);
@@ -108,6 +109,7 @@
 								tamanioValorRecibido = headerRecibido->tamanioValor;
 								memcpy(operacion->clave, bufferClave, strlen(bufferClave) + 1);
 								operacion->valor = bufferValor;
+								indexInicialPunteroCircular = indicePuntero;
 								if(validarEspacioDisponible(tamanioValorRecibido) == true){
 									puts("AVISO - Hay espacio contiguo disponible, guardo valor");
 									agregarEntrada(operacion, tamanioValorRecibido);
@@ -133,8 +135,8 @@
 										int entradasABorrar = entradasNecesarias - calcularEntradasVacias();//Calcula cuantas entradas hacen falta borrar
 
 										if(entradasABorrar > cantidadEntradasAtomicas()){
-											//HAY QUE ABORTAR PORQUE NO HAY NI ENTRADAS ATOMICAS PARA BORRAR
-											puts("ENTRO EN CUALUIER LADODODODODO");
+											//TODO - HAY QUE ABORTAR PORQUE NO HAY NI ENTRADAS ATOMICAS PARA BORRAR
+											puts("NO HAY ENTRADAS ATOMICAS PARA REEMPLAZAR");
 										}
 										else{
 											puts("por entrar a aplicar algoritmo");
