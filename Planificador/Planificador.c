@@ -6,6 +6,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 		puts("CHAU ME VOY!");
 		exit(1);
 	}
+
     int main(int argc, char *argv[])
     {
 		signal(SIGINT, intHandler);

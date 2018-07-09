@@ -519,6 +519,13 @@
 
     	printf("ESI: El ESI tiene %d claves para eliminar \n", claves);
 
+    	puts("ESI: Vamos a remover las claves de las Instancias");
+
+    	for(int i = 0; i< claves; i++){
+
+    		RemoverClaveDeLaInstancia(list_get(parametros->claves,i));
+    	}
+
     	for(int i = 0; i< claves; i++){
 
     		EliminarClaveDeBloqueos(list_get(parametros->claves,i));
@@ -537,6 +544,27 @@
     	puts("ESI: Libere mis claves");
 
     	return EXIT_SUCCESS;
+    }
+
+    int RemoverClaveDeLaInstancia(char * claveARemover){
+    	printf("ESI: Voy a buscar la instancia que tenia la clave %s para sacarsela \n", claveARemover);
+    	parametrosConexion * instancia = BuscarInstanciaQuePoseeLaClave(claveARemover);
+    	printf("ESI: Encontre la Instancia - Es la Instancia %s \n", instancia->nombreProceso);
+
+    	bool EsLaClaveARemover(char * claveAComparar){
+    		printf("ESI: Comparando la clave %s con %s \n", claveARemover, claveAComparar);
+    		if(string_equals_ignore_case(claveARemover,claveAComparar) == true){
+    			puts("ESI: Las claves coincidieron");
+    			return true;
+    		}
+    		puts("ESI: Las claves no coincidieron");
+    		return false;
+    	}
+
+    	// Remuevo la clave, no la destruyo
+    	char * clave = list_remove_by_condition(instancia->claves,(void *)EsLaClaveARemover);
+
+    	return OK;
     }
 
     int EliminarClaveDeBloqueos(char * claveABorrar){
