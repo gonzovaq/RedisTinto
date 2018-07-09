@@ -7,6 +7,7 @@
     	//cantidadEntradas = 8;
     	//tamanioValor = 3;
     	tablaEntradas = list_create();
+    	colaLRU = list_create();
     	int socketCoordinador;
         int longitudMaximaValorBuscado;
         int tamanioValorRecibido;
@@ -33,7 +34,7 @@
 
 
         while(1){
-        	mostrarArray(arrayEntradas, cantidadEntradas);
+        	//mostrarArray(arrayEntradas, cantidadEntradas);
         	puts("Informo que estoy viva 1");
         	EnviarAvisoDeQueEstoyViva(socketCoordinador);
         	puts("Recibo operacion");
@@ -61,7 +62,6 @@
 				else{
 					if(operacion->operacion == COMPACTAR){
 						puts("Me pidieron que COMPACTE");
-						// Aca hay que compactar
 						compactar();
 						tEntradasUsadas *tuVieja = malloc(sizeof(tEntradasUsadas));
 						tuVieja->entradasUsadas = 999;
@@ -79,7 +79,7 @@
 						OperaciontHeader *headerRecibido = malloc(sizeof(OperaciontHeader)); // El malloc esta en recibir header
 						puts("Intento recibir header del Coordinador");
 						headerRecibido = recibirHeader(socketCoordinador);
-						puts("Recibi el header!");
+						puts("AVISO - Recibi el header!");
 						if (headerRecibido->tipo != OPERACION_GET){
 							tamanioValorRecibido = headerRecibido->tamanioValor;
 							char *bufferClave;
@@ -93,9 +93,14 @@
 
 							if (headerRecibido->tipo == OPERACION_SET){
 								//pthread_mutex_lock(&mutex);
+								puts("*****************************************************");
 								puts("ENTRO A UN SET");
+								printf("INDEX PUNTERO: %d\n", indexInicialPunteroCircular);
 								cantidadClavesEnTabla++;
 								if(validarClaveExistente(bufferClave, tablaEntradas) == true){
+									if(esClaveAtomica(bufferClave)){
+										eliminarNodos(bufferClave, colaLRU);
+									}
 									eliminarNodosyValores(bufferClave, tablaEntradas, arrayEntradas);
 									cantidadClavesEnTabla--;
 										}
@@ -103,15 +108,13 @@
 								tamanioValorRecibido = headerRecibido->tamanioValor;
 								memcpy(operacion->clave, bufferClave, strlen(bufferClave) + 1);
 								operacion->valor = bufferValor;
-								puts("Antes de validar espacio disponible");
 								if(validarEspacioDisponible(tamanioValorRecibido) == true){
-									puts("Confirme espacio disponibgle");
+									puts("AVISO - Hay espacio contiguo disponible, guardo valor");
 									agregarEntrada(operacion, tamanioValorRecibido);
 								}
 								else{
-										puts("Veo si hay fragmentacion");
 									if(validarEspacioReal(tamanioValorRecibido) == true){
-										puts("Hay fragmentacion externa, por lo tanto compacto");
+										puts("AVISO - Hay fragmentacion externa, por lo tanto compacto");
 										tEntradasUsadas *tuVieja = malloc(sizeof(tEntradasUsadas));
 										tuVieja->entradasUsadas = 500;
 
@@ -125,18 +128,37 @@
 										cantidadClavesEnTabla--;
 									}
 									else{
-										puts("No hay fragmentacion, Hay que aplicar algoritmo de reemplazo");
+										puts("AVISO - No hay fragmentacion, Hay que aplicar algoritmo de reemplazo");
 										int entradasNecesarias = calcularEntradasNecesarias(tamanioValorRecibido, tamanioValor);
 										int entradasABorrar = entradasNecesarias - calcularEntradasVacias();//Calcula cuantas entradas hacen falta borrar
-										//aplicarAlgoritmoReemplazo(entradasABorrar);
 
-										//Borra las entradas
+										if(entradasABorrar > cantidadEntradasAtomicas()){
+											//HAY QUE ABORTAR PORQUE NO HAY NI ENTRADAS ATOMICAS PARA BORRAR
+											puts("ENTRO EN CUALUIER LADODODODODO");
+										}
+										else{
+											puts("por entrar a aplicar algoritmo");
+										  	printf("Canttidad de claves atomicas: %d\n", list_size(colaLRU));
+											aplicarAlgoritmoReemplazo(entradasABorrar);
+											cantidadClavesEnTabla = cantidadClavesEnTabla - entradasABorrar;
+										}
+
 										if(validarEspacioDisponible(tamanioValorRecibido) == true){
 											agregarEntrada(operacion, tamanioValorRecibido);
 										}
 										else{
-											//compacta
-											agregarEntrada(operacion, tamanioValorRecibido);
+											puts("AVISO - Hay fragmentacion externa luego de reemplazar entradas, solicito compactacion");
+											tEntradasUsadas *tuVieja = malloc(sizeof(tEntradasUsadas));
+											tuVieja->entradasUsadas = 500;
+
+											if (send(socketCoordinador, tuVieja, sizeof(tEntradasUsadas), 0) <= 0){
+												puts("Error al enviar solicitud de compactacion");
+												perror("Send");
+												free(tuVieja);
+												exit(1);
+											 }
+											free(tuVieja);
+											cantidadClavesEnTabla--;
 										}
 									}
 								}
@@ -148,12 +170,10 @@
 								free(bufferClave);
 								free(bufferValor);
 								puts("HICE UN SET");
+								mostrarArray(arrayEntradas, cantidadEntradas);
 								printf("Cantidad de elementos en mi tabla de entradas: %d\n", list_size(tablaEntradas));
-								printf("LO QUE ME MUSTRA EL PUNTERO CIRCULAR %s\n", arrayEntradas[posicionPunteroCirc]);
-	//							printf("POSICION PUNTERO CIRCULAR: %d\n", posicionPunteroCirc);
-	//							if (identificarFragmentacion() == true){
-	//								puts("HAY FRAGMENTACION EXTERNA");
-	//							}
+								puts("*****************************************************");
+
 								//sem_post(semaforo);
 								//pthread_mutex_unlock(&mutex);
 								}
@@ -161,18 +181,26 @@
 
 							if (headerRecibido->tipo == OPERACION_STORE){
 								//pthread_mutex_lock(&mutex);
+								puts("*****************************************************");
 								puts("ENTRO A UN STORE");
+								tEntrada *bufferStore = malloc(sizeof(bufferStore));
 								longitudMaximaValorBuscado = entradasUsadasPorClave(bufferClave, tablaEntradas);
 								valorGet = obtenerValor(longitudMaximaValorBuscado, tablaEntradas, bufferClave, arrayEntradas, tamanioValor);
 								guardarUnArchivo(bufferClave, valorGet);
 								puts("Guarde un archivo");
 								enviarEntradasUsadas(socketCoordinador, tablaEntradas, bufferClave);
+								if (esClaveAtomica(bufferClave)){
+									bufferStore = obtenerNodoPorClave(bufferClave);
+									agregarNodoAtabla(colaLRU, bufferStore->numeroEntrada, bufferStore->tamanioAlmacenado, bufferClave);
+									eliminarPrimerNodoEncontradoConClave(bufferClave, colaLRU);
+								}
 
 
 								free(valorGet);
 								free(headerRecibido);
 								free(bufferClave);
 								puts("TERMINE UN STORE");
+								puts("*****************************************************");
 								//sem_post(semaforo);
 								//pthread_mutex_unlock(&mutex);
 							}
@@ -570,6 +598,9 @@
     			contadorEntradasGuardadas++;
 
     		}
+    		if(entradasNecesarias == 1){
+    			agregarNodoAtabla(colaLRU, numeroEntradaAGuardar, bytesRestantes, claveRecibida);
+    		}
 
     	}
 
@@ -671,21 +702,21 @@
 
         }
 
-    int entradasUsadasPorClave(char *unaClave,t_list *tablaEntradas){
+    int entradasUsadasPorClave(char *unaClave,t_list *unaTabla){
      	int coincidir(tEntrada *unaEntrada){
      	    		return string_equals_ignore_case(unaEntrada->clave, unaClave);
      	    	}
-     	return list_count_satisfying(tablaEntradas, (void*) coincidir);
+     	return list_count_satisfying(unaTabla, (void*) coincidir);
      }
 
-    void agregarNodoAtabla(t_list *tablaEntradas, int nroEntradaStorage, int tamanioAlmacenado, char *nombreClave){
+    void agregarNodoAtabla(t_list *unaTabla, int nroEntradaStorage, int tamanioAlmacenado, char *nombreClave){
      	tEntrada *buffer = malloc(sizeof(tEntrada));
      	buffer->numeroEntrada = nroEntradaStorage;
      	buffer->tamanioAlmacenado = tamanioAlmacenado;
      	strcpy(buffer->clave, nombreClave);
 
 
-     	list_add(tablaEntradas, (tEntrada *) buffer);
+     	list_add(unaTabla, (tEntrada *) buffer);
 
     	return;
      }
@@ -736,15 +767,15 @@
     	return duplicated;
     }
 
-    bool validarClaveExistente(char *unaClave, t_list *tablaEntradas){
+    bool validarClaveExistente(char *unaClave, t_list *unaTabla){
 
        	bool coincidir(tEntrada *unaEntrada){
        	    		return string_equals_ignore_case(unaEntrada->clave, unaClave);
        	    	}
 
-       	if(tablaEntradas->head){
+       	if(unaTabla->head){
 
-       		return list_any_satisfy(tablaEntradas, (void*) coincidir);;
+       		return list_any_satisfy(unaTabla, (void*) coincidir);;
        	}
        	else{
        		return false;
@@ -753,21 +784,21 @@
        }
 
        t_list *filtrarLista(char *unaClave, t_list *tabla){
-       	t_list *tablaFiltrada = malloc(sizeof(t_list));
-       	int coincidir(tEntrada *unaEntrada){
-           		return string_equals_ignore_case(unaEntrada->clave, unaClave);
-           	}
-       	tablaFiltrada = list_filter(tabla, (void*) coincidir);
-       	return tablaFiltrada;
+    	   t_list *tablaFiltrada = malloc(sizeof(t_list));
+    	   int coincidir(tEntrada *unaEntrada){
+    		   return string_equals_ignore_case(unaEntrada->clave, unaClave);
+    	   }
+    	   tablaFiltrada = list_filter(tabla, (void*) coincidir);
+    	   return tablaFiltrada;
 
        }
 
-       void eliminarNodosyValores(char *nombreClave, t_list *tablaEntradas, char **arrayEntradas, int tamanioValor){
+       void eliminarNodosyValores(char *nombreClave, t_list *unaTabla, char **arrayEntradas, int tamanioValor){
        	t_list *tablaDuplicada = malloc(sizeof(t_list));
        	t_list *tablaFiltrada = malloc(sizeof(t_list));
        	tEntrada *bufferEntrada;
 
-       	tablaDuplicada = list_duplicate(tablaEntradas);
+       	tablaDuplicada = list_duplicate(unaTabla);
        	tablaFiltrada = filtrarLista(nombreClave, tablaDuplicada);
 
 
@@ -776,7 +807,7 @@
        	    		int index = bufferEntrada->numeroEntrada;
        	    		int bytes = bufferEntrada->tamanioAlmacenado;
        	    		memset(arrayEntradas[index], '\0', bytes);
-       	        	eliminarNodos(nombreClave, tablaEntradas);
+       	        	eliminarNodos(nombreClave, unaTabla);
        	    	}
 
 
@@ -794,12 +825,12 @@
        }
 
 
-       void eliminarNodos(char *nombreClave, t_list *tablaEntradas){
+       void eliminarNodos(char *nombreClave, t_list *unaTabla){
 
        	int coincidir(tEntrada *unaEntrada){
        	    	    		return string_equals_ignore_case(unaEntrada->clave, nombreClave);
        	    	    	}
-       		list_remove_and_destroy_by_condition(tablaEntradas, (void*) coincidir,(void*) destruirNodoDeTabla);
+       		list_remove_and_destroy_by_condition(unaTabla, (void*) coincidir,(void*) destruirNodoDeTabla);
 
        	return;
        }
@@ -823,16 +854,29 @@
        void eliminarEntradasStorageCircular(char **arrayEntradas, int cantidadEntradasABorrar){
 
     	   for (int i = 0; i < cantidadEntradasABorrar; i++){
-    		   memset(arrayEntradas[posicionPunteroCirc], '\0', tamanioValor);
+    		   printf("CONTADOR DE ENTRADAS A BORRAR: %d\n", i);
+    		   for (int j = indexInicialPunteroCircular; j < cantidadEntradas; j++){
+    			   printf("Numero de entrada a evaluar: %d", j);
+    			   printf("Indicide de un puntero: %d\n", indexInicialPunteroCircular);
+    			   if (validarEntradaAtomica(j) == true){
+    				   indexInicialPunteroCircular = j;
+    				   //punteroCircular = arrayEntradas[indexInicialPunteroCircular];
+    				   break;
+    			   }
+    			   else{
+    				   if (j == cantidadEntradas - 1){
+    					   j = -1;//CUIDADO CON LOOP INFINITO SI NO EXISTE NINGUNA ENTRADA ATOMICA
+    				   }
+    			   }
+    		   }
+    		   memset(arrayEntradas[indexInicialPunteroCircular], '\0', tamanioValor);
     		   //memset(punteroCirc + (tamanioValor * i), '\0', tamanioValor);
-    		   eliminarNodoPorIndex(tablaEntradas, posicionPunteroCirc);
-    		   posicionPunteroCirc++;
-        	   if (posicionPunteroCirc >= cantidadEntradas){
-        		   posicionPunteroCirc = 0;
-        	   }
+    		   eliminarNodoPorIndex(tablaEntradas, indexInicialPunteroCircular);
+    		   indexInicialPunteroCircular++;
+    		   if(indexInicialPunteroCircular == cantidadEntradas){
+    			   indexInicialPunteroCircular = 0;
+    		   }
     	   }
-
-
 
     	   return;
        }
@@ -840,15 +884,22 @@
        void eliminarEntradasStorageLRU(char **arrayEntradas, int cantidadEntradasABorrar){
     	   tEntrada *buffer;
     	   char claveGuardada[TAMANIO_CLAVE];
+    	   int nroParaBorrarElNodoDesactualizadoDecolaLRU;
+
+    	   printf("Canttidad de claves atomicas: %d\n", list_size(colaLRU));
 
     	   for (int i = 0; i < cantidadEntradasABorrar; i++){
-    		   buffer = list_get(tablaEntradas, 0);
-    		   strcpy(claveGuardada, buffer->clave);
+    		   buffer = list_get(colaLRU, 0);
+    		   puts("despues de hacer el get");
+    		   //nroParaBorrarElNodoDesactualizadoDecolaLRU = buffer->numeroEntrada;
+    		   puts("despues de la iguakldad rara");
+    		   buffer = obtenerNodoPorClave(buffer->clave);
+    		   puts("Antes de hacer el memset");
     		   memset(arrayEntradas[buffer->numeroEntrada], '\0', buffer->tamanioAlmacenado);
+    		   puts("Despues de hacer el memset");
     		   eliminarNodoPorIndex(tablaEntradas, buffer->numeroEntrada);
-    		   if(validarClaveExistente(claveGuardada, tablaEntradas) == false){
-    			   cantidadClavesEnTabla--;
-    		   }
+    		   list_remove_and_destroy_element(colaLRU, 0, destruirNodoDeTabla);
+    		   //eliminarNodoPorIndex(colaLRU, nroParaBorrarElNodoDesactualizadoDecolaLRU);
     	   }
 
     	   return;
@@ -857,9 +908,18 @@
 
        void eliminarEntradasStorageBSU(char **arrayEntradas, t_list *entradasABorrar){ //Paso una tabla filtrada solo con las entradas que se tienen que borrar
     	   tEntrada *buffer;
+    	   t_list *duplicada;
+    	   t_list *filtrada;
+
+    	   duplicada= list_duplicate(tablaEntradas);
+    	   filtrada = list_filter(duplicada, (void*) esClaveAtomica);
+    	   ordenarTablaPorTamanioAlmacenado(filtrada);
+
+
 
     	   for (int i = 0; i < list_size(entradasABorrar);i++){
     		   buffer = list_get(entradasABorrar, i); //Tomo de a uno los nodos con el numero de entrada referenciado a borrar
+    		   //Hacer el desempate
     		   memset(arrayEntradas[buffer->numeroEntrada], '\0', buffer->tamanioAlmacenado); //Borro el valor de la entrada con el numero referenciado y el tamanio que tenía
     		   eliminarNodoPorIndex(tablaEntradas, buffer->numeroEntrada); //Elimino los nodos de la tabla original ya que no tendrán mas una entrada referenciada para el valor borrado
     	   }
@@ -883,12 +943,12 @@
     	   }
        }
 
-       void eliminarNodoPorIndex(t_list *tablaEntradas, int index){
+       void eliminarNodoPorIndex(t_list *unaTabla, int index){
           	int coincidir(tEntrada *unaEntrada)
           	{
           	    	    		return unaEntrada->numeroEntrada == index;
 			}
-			list_remove_and_destroy_by_condition(tablaEntradas, (void*) coincidir,(void*) destruirNodoDeTabla);
+			list_remove_and_destroy_by_condition(unaTabla, (void*) coincidir,(void*) destruirNodoDeTabla);
           	return;
        }
 
@@ -929,9 +989,9 @@
     	   return;
        }
 
-       void guardarTodasMisClaves(t_list *tablaEntradas, char **arrayEntradas){
+       void guardarTodasMisClaves(t_list *unaTabla, char **arrayEntradas){
     	   t_list *duplicada = malloc(sizeof(t_list));
-    	   duplicada = list_duplicate(tablaEntradas);
+    	   duplicada = list_duplicate(unaTabla);
     	   char *bufferClave;
     	   tEntrada *bufferEntrada;
     	   int index = 0;
@@ -1028,14 +1088,24 @@
     	   return;
 
        }
-       tEntrada *obtenerNodoPorIndexstorage(t_list *tablaEntradas, int index){
+       tEntrada *obtenerNodoPorIndexstorage(t_list *unaTabla, int index){
           	tEntrada *nodo;
     	   int coincidir(tEntrada *unaEntrada)
           	{
           	    	    		return unaEntrada->numeroEntrada == index;
 			}
-			nodo = list_find(tablaEntradas, (void*) coincidir);
+			nodo = list_find(unaTabla, (void*) coincidir);
           	return nodo;
+       }
+
+       tEntrada *obtenerNodoPorClave(char *unaClave){
+    	   tEntrada *nodo;
+    	   int coincidir(tEntrada *unaEntrada){
+    		   return string_equals_ignore_case(unaEntrada->clave, unaClave);
+    	   }
+
+    	   nodo = list_find(tablaEntradas, (void*) coincidir);
+    	   return nodo;
        }
 
        int calcularEntradasContiguas(int entradasNecesarias){
@@ -1130,22 +1200,75 @@
     	   return cantidadEntradas - calcularEntradasUsadasEnStorage();
        }
 
-//       void aplicarAlgoritmoReemplazo(int entradasABorrar){
-//
-//
-//    	   switch (algoritmoReemplazo){
-//    	   case 1:
-//    		   eliminarEntradasStorageCircular(arrayEntradas, entradasABorrar); //Borro las entradas necesarias para guardar el resto del valor
-//    		   i = contadorEntradasGuardadas - 1; //Guardo a partir del ultimo pedazo gguardado en alguna entrada vacia
-//    		   break;
-//    	   case 2:
-//    		   eliminarEntradasStorageLRU(arrayEntradas, entradasABorrar);
-//    		   i--;
-//    		   break;
-//    	   case 3:
+       void aplicarAlgoritmoReemplazo(int entradasABorrar){
+
+
+    	   switch (algoritmoReemplazo){
+    	   case 1:
+    		   eliminarEntradasStorageCircular(arrayEntradas, entradasABorrar); //Borro las entradas necesarias para guardar el resto del valor
+    		   break;
+    	   case 2:
+    		   eliminarEntradasStorageLRU(arrayEntradas, entradasABorrar);
+
+    		   break;
+    	   case 3:
 //    		   tablaAuxiliar = obtenerTablaParaBSU(tablaEntradas, entradasABorrar);//Obtengo una tabla con la cantidad de nodos igual a las entradas necesarias que faltan borrar para el nuevo valor
 //    	   																														// y ordenada por el tamanio almacenado en las entradas (De mayor a menor) HAY REEMPLAZAR LAS QUE MAS ESPACIO OCUPAN.
 //    		   eliminarEntradasStorageBSU(arrayEntradas, tablaAuxiliar); //Borro las entradas referenciadas a la tabla que obtuve antes.
-//    		   break;
-//    	   }
-//       }
+    		   break;
+    	   }
+       }
+
+       void ordenarTablaPorNroEntrada(t_list *unaTabla){
+
+       			bool compare(tEntrada *nodo1,tEntrada *nodo2)
+       			{
+       				return nodo1->numeroEntrada <= nodo2->numeroEntrada;
+       			}
+       			list_sort(unaTabla,(void *)compare);
+
+       		}
+
+
+       bool esClaveAtomica(char *unaClave){
+    	   int coincidir(tEntrada *unaEntrada){
+    		   return string_equals_ignore_case(unaEntrada->clave, unaClave);
+    	   }
+
+    	   return list_count_satisfying(tablaEntradas, (void*) coincidir) == 1;
+       }
+
+
+
+       validarEntradaAtomica(int nroEntrada){
+    	   tEntrada *buffer;
+
+    	   buffer = obtenerNodoPorIndexstorage(tablaEntradas, nroEntrada);
+
+    	   return esClaveAtomica(buffer->clave);
+       }
+
+       int cantidadEntradasAtomicas(){
+    	   t_list *duplicada;
+    	   t_list *filtrada;
+
+    	   duplicada= list_duplicate(tablaEntradas);
+    	   filtrada = list_filter(duplicada, (void*) esClaveAtomica);
+
+    	   return list_size(filtrada);
+
+       }
+
+       void eliminarPrimerNodoEncontradoConClave(char *unaClave, t_list *unaTabla){
+    	   tEntrada *buffer;
+
+    	   int coincidir(tEntrada *unaEntrada){
+    		   return string_equals_ignore_case(unaEntrada->clave, unaClave);
+    	   }
+
+    	   buffer = list_find(unaTabla, (void*) coincidir);
+
+    	   list_remove_and_destroy_by_condition(unaTabla, (void*) coincidir, (void*) destruirNodoDeTabla);
+
+
+       }

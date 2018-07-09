@@ -143,15 +143,19 @@ typedef struct{
 
 	//Otras
     	char **arrayEntradas;
+    	char *punteroCircular;
+    	int indexInicialPunteroCircular = 0;
     	int cantidadEntradas = 0;
 	    int tamanioValor = 0;
 	    int posicionPunteroCirc = 0;
 	    t_list *tablaEntradas;
 	    t_list *claves;
+	    t_list *colaLRU;
 	    tAlgoritmoReemplazo algoritmoReemplazo;
 	    int cantidadClavesEnTabla = 0;
 	    sem_t *semaforo;
 	    int entradaProxima = 0;
+
 
 
 // Prototipos de las funciones
@@ -205,3 +209,6 @@ tEntrada *obtenerNodoPorIndexstorage(t_list *tablaEntradas, int index);
 bool validarEspacioDisponible(int tamanioValorRecibido);
 bool validarEspacioReal(int tamanioValorRecibido);
 
+void aplicarAlgoritmoReemplazo(int entradasABorrar);
+bool esClaveAtomica(char *unaClave);
+tEntrada *obtenerNodoPorClave(char *unaClave);
