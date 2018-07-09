@@ -194,6 +194,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 									if ((numbytes=recv(i, notificacion, sizeof(tNotificacionPlanificador), 0)) <= 0) {
 										//perror("Fallo el recibir Notificacion. Probablemente el Coordiandor la quedo");
 
+										puts("PINTO SUICIDIOOOO");
 										killEsi(getpid());
 										// MATAMOS AL PLANI - MATAMOS AL PLANI !
 
@@ -852,7 +853,7 @@ void ordenarEsis(t_queue *cola)
 			   perror("Send");
 		   }
 		   printf("Se envió header de KILL  %d \n",solicitud->solicitud);
-		char idS[4];//=malloc(sizeof(int));
+		char idS[5];//=malloc(sizeof(int));
 		sprintf(idS,"%d",id);
 		 if (send(sockCord,idS,sizeof(idS), 0) == -1){
 			   printf("Error al enviar el id: %d \n",id);
