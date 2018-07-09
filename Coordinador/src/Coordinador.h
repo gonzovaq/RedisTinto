@@ -314,5 +314,6 @@ parametrosConexion* BuscarInstanciaMenosUsadaSimulacion();
 int VerificarSiLaInstanciaSigueViva(parametrosConexion * instancia);
 int STATUSParaInstanciaConectada(parametrosConexion * instancia, char * clave);
 int RecibirFinalizacionDeCompactacion(parametrosConexion * instancia);
+parametrosConexion* BuscarInstanciaQuePoseeLaClave(char * clave);
 
 
