@@ -408,8 +408,37 @@
              		int tamanio = strlen(operacion->valor);
              		printf("El valor de la clave %s es %s \n",operacion->clave,operacion->valor);
              		printf("Tamanio del valor: %d\n", tamanio);
-             		agregarEntrada(operacion, tamanio);
-             		cantidadClavesEnTabla++;
+             		if(tamanio > 0){
+                 		if(tamanio > calcularEntradasVacias()){
+                 			int entradasNecesarias = calcularEntradasNecesarias(tamanio, tamanioValor);
+                 			int entradasABorrar = entradasNecesarias - calcularEntradasVacias();
+                 			aplicarAlgoritmoReemplazo(entradasABorrar);
+                 			cantidadClavesEnTabla = cantidadClavesEnTabla - entradasABorrar;
+                     		agregarEntrada(operacion, tamanio);
+                     		cantidadClavesEnTabla++;
+    //						if(validarEspacioDisponible(tamanio) == true){
+    //							agregarEntrada(operacion, tamanio);
+    //						}
+    //						else{
+    //							puts("AVISO - Hay fragmentacion externa luego de reemplazar entradas, solicito compactacion");
+    //							tEntradasUsadas *tuVieja = malloc(sizeof(tEntradasUsadas));
+    //							tuVieja->entradasUsadas = 500;
+    //
+    //							if (send(sockeCoordinador, tuVieja, sizeof(tEntradasUsadas), 0) <= 0){
+    //								puts("Error al enviar solicitud de compactacion");
+    //								perror("Send");
+    //								free(tuVieja);
+    //								exit(1);
+    //							 }
+    //							free(tuVieja);
+                 		}
+                 		else{
+                     		agregarEntrada(operacion, tamanio);
+                     		cantidadClavesEnTabla++;
+                 		}
+             		}
+
+
              		//list_add(claves,operacion->clave);
              	} // TODO: Ale te dejo aca para que veas que hacer con esto!
          	}
@@ -425,10 +454,11 @@
     	printf("El archivo a abrir esta en %s \n",archivo);
 
     	FILE * file;
-        file = fopen(archivo, "w");
+        file = fopen(archivo, "r");
         if (file == NULL){
-            perror("Error al abrir el archivo: ");
-            exit(EXIT_FAILURE);
+            perror("No existe el archivo");
+            file = fopen(archivo, "w");
+            //exit(EXIT_FAILURE);
         }
 
 
