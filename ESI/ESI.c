@@ -173,6 +173,7 @@
 
     int manejarArchivoConScripts(FILE * file, int socket_coordinador, int socket_planificador){
         char * line = NULL;
+        char * copiaLine = NULL;
         size_t len = 0;
         ssize_t read;
 
@@ -202,9 +203,12 @@
                 puts("Chau!");
                 return EXIT_SUCCESS;
         	}
+        	copiaLine = malloc(strlen(line));
+        	strcpy(copiaLine,line);
         }
             while (!recibirOrdenDeEjecucion(socket_planificador));
-                t_esi_operacion parsed = parse(line);
+
+                t_esi_operacion parsed = parse(copiaLine);
 
 				tResultado * resultado = malloc(sizeof(tResultado));
                 if(parsed.valido){
