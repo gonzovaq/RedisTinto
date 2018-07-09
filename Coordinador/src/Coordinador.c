@@ -896,7 +896,10 @@
 					exit_gracefully(1);
 				}
 
-				printf("Planificador: La Instancia que tendria la clave %s es %s \n",clave,nombreInstancia);
+				if(nombreInstancia == NULL)
+					puts("Planificador: El valor de la instancia que encontre es nulo");
+				else
+					printf("Planificador: La Instancia que tendria la clave %s es %s \n",clave,nombreInstancia);
 
 				tNotificacionPlanificador * notif = malloc(sizeof(tNotificacionPlanificador));
 
@@ -2185,7 +2188,7 @@
 	int SeleccionarPorKeyExplicit(char* clave){
 		parametrosConexion * instancia;
 		if(OPERACION_ACTUAL == OPERACION_GET){
-			// TODO: Debo filtrar las instancias que no esten conectadas para no contar con ellas!
+
 			t_list * listaFiltrada;
 			listaFiltrada = list_filter(colaInstancias,(void*)EstaConectada);
 
@@ -2553,9 +2556,15 @@
 
 			printf("ESI: El rango es %d  con un resto de %d \n",rango,restoRango);
 
+			// ---------- ASIGNO LA CANTIDAD DE CLAVES QUE ENTRAN EN LA ULTIMA INSTANCIA -------
 			if (restoRango !=0){
-				entradasUltimaInstancia = KEYS_POSIBLES - ((cantidadInstancias-1) * (rango + 1));
-			}else
+				rango +=1;
+				entradasUltimaInstancia = KEYS_POSIBLES;
+				for(int n = 1; n<cantidadInstancias; n++){
+					entradasUltimaInstancia -= (rango); // CASO RESTO != 0, LE RESTO CLAVES A LA ULTIMA INSTANCIA
+				}
+			}
+			else
 			{
 				entradasUltimaInstancia = KEYS_POSIBLES- ((cantidadInstancias-1) * (rango));
 			}
@@ -2614,6 +2623,7 @@
 						// -------------- ULTIMA INSTANCIA ----------------
 						else{
 								puts("ESI: Entre en el caso de que sea la ultimna instancia con resto distinto de 0");
+								printf("ESI: Va de letra %d a %d \n", (i * (rango+1)),((i * rango) + entradasUltimaInstancia));
 								if(posicionLetraEnASCII >= (i * rango) &&
 										posicionLetraEnASCII <= ((i * (rango+1)) + entradasUltimaInstancia)){
 									instancia = list_get(listaFiltrada, i);
@@ -2627,6 +2637,8 @@
 					}
 				// -------------- SE TERMINA CASO RESTO DISTINTO 0  -------------
 				}
+
+			puts("Planificador: Termine de buscar Instancia");
 
 			if(instancia == NULL)
 				return NULL;

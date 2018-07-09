@@ -192,7 +192,9 @@ void intHandler(int dummy) { // para atajar ctrl c
 									 int numbytes;
 									if ((numbytes=recv(i, notificacion, sizeof(tNotificacionPlanificador), 0)) <= 0) {
 										//perror("Fallo el recibir Notificacion. Probablemente el Coordiandor la quedo");
+
 										killEsi(getpid());
+										// MATAMOS AL PLANI - MATAMOS AL PLANI !
 
 										//exit(1);
 									}else{
