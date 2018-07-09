@@ -188,7 +188,7 @@
         	volverALeer=0;
         }
         else{
-        	puts("Leo nueva linea");
+        	puts("Leo una linea nueva");
         	if(getline(&line, &len, file) == -1){
         		tResultado * resultado = malloc(sizeof(tResultado));
         		resultado->tipoResultado=CHAU;
