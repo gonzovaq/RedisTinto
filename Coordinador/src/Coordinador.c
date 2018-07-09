@@ -549,6 +549,13 @@
     int RemoverClaveDeLaInstancia(char * claveARemover){
     	printf("ESI: Voy a buscar la instancia que tenia la clave %s para sacarsela \n", claveARemover);
     	parametrosConexion * instancia = BuscarInstanciaQuePoseeLaClave(claveARemover);
+
+    	if(list_is_empty(colaInstancias))
+    		return OK;
+
+    	if(instancia == NULL)
+    		return OK;
+
     	printf("ESI: Encontre la Instancia - Es la Instancia %s \n", instancia->nombreProceso);
 
     	bool EsLaClaveARemover(char * claveAComparar){
