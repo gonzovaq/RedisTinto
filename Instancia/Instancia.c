@@ -272,7 +272,7 @@
 						if (strcmp(Algoritmo, "LRU") == 0)
 							algoritmoReemplazo = LRU;
 						else {
-							if (strcmp(Algoritmo, "LSU") == 0)
+							if (strcmp(Algoritmo, "BSU") == 0)
 								algoritmoReemplazo = BSU;
 							else {
 								puts("Error al cargar el algoritmo de distribucion");
@@ -408,8 +408,37 @@
              		int tamanio = strlen(operacion->valor);
              		printf("El valor de la clave %s es %s \n",operacion->clave,operacion->valor);
              		printf("Tamanio del valor: %d\n", tamanio);
-             		agregarEntrada(operacion, tamanio);
-             		cantidadClavesEnTabla++;
+             		if(tamanio > 0){
+                 		if(tamanio > calcularEntradasVacias()){
+                 			int entradasNecesarias = calcularEntradasNecesarias(tamanio, tamanioValor);
+                 			int entradasABorrar = entradasNecesarias - calcularEntradasVacias();
+                 			aplicarAlgoritmoReemplazo(entradasABorrar);
+                 			cantidadClavesEnTabla = cantidadClavesEnTabla - entradasABorrar;
+                     		agregarEntrada(operacion, tamanio);
+                     		cantidadClavesEnTabla++;
+    //						if(validarEspacioDisponible(tamanio) == true){
+    //							agregarEntrada(operacion, tamanio);
+    //						}
+    //						else{
+    //							puts("AVISO - Hay fragmentacion externa luego de reemplazar entradas, solicito compactacion");
+    //							tEntradasUsadas *tuVieja = malloc(sizeof(tEntradasUsadas));
+    //							tuVieja->entradasUsadas = 500;
+    //
+    //							if (send(sockeCoordinador, tuVieja, sizeof(tEntradasUsadas), 0) <= 0){
+    //								puts("Error al enviar solicitud de compactacion");
+    //								perror("Send");
+    //								free(tuVieja);
+    //								exit(1);
+    //							 }
+    //							free(tuVieja);
+                 		}
+                 		else{
+                     		agregarEntrada(operacion, tamanio);
+                     		cantidadClavesEnTabla++;
+                 		}
+             		}
+
+
              		//list_add(claves,operacion->clave);
              	} // TODO: Ale te dejo aca para que veas que hacer con esto!
          	}
@@ -425,10 +454,11 @@
     	printf("El archivo a abrir esta en %s \n",archivo);
 
     	FILE * file;
-        file = fopen(archivo, "w");
+        file = fopen(archivo, "r");
         if (file == NULL){
-            perror("Error al abrir el archivo: ");
-            exit(EXIT_FAILURE);
+            perror("No existe el archivo");
+            file = fopen(archivo, "w");
+            //exit(EXIT_FAILURE);
         }
 
 
@@ -908,21 +938,68 @@
 
        }
 
-       void eliminarEntradasStorageBSU(char **arrayEntradas, t_list *entradasABorrar){ //Paso una tabla filtrada solo con las entradas que se tienen que borrar
+       void eliminarEntradasStorageBSU(char **arrayEntradas, int entradasABorrar){ //Paso una tabla filtrada solo con las entradas que se tienen que borrar
     	   tEntrada *buffer;
     	   t_list *duplicada;
     	   t_list *filtrada;
+    	   int cantidadEntradasEmpatadas;
+    	   t_list *tablaDeEmpate;
+    	   int contadorEntradasBorradas = 0;
+
+    	   //Si las entradas que tienen el mismo tamanio > entradasABorrar
 
     	   duplicada= list_duplicate(tablaEntradas);
     	   filtrada = list_filter(duplicada, (void*) esClaveAtomica);
     	   ordenarTablaPorTamanioAlmacenado(filtrada);
 
+    	   puts("DESPUES DE DECLARAR TODO");
 
+//    	   for (int i = 0; i < entradasABorrar;i++){
+//    		   buffer = list_get(entradasABorrar, i); //Tomo de a uno los nodos con el numero de entrada referenciado a borrar
+//    		   if(validarSiHayEmpate(filtrada, buffer->tamanioAlmacenado) == true){
+//    			   cantidadEntradasEmpatadas = calcularEntradasEmpatadas(filtrada, buffer->tamanioAlmacenado);
+//    			   tablaDeEmpate = list_take(filtrada, cantidadEntradasEmpatadas);
+//    			   ordenarTablaPorNroEntrada(tablaDeEmpate);
+//    			   for(int j = 0; j < cantidadEntradasEmpatadas; j++){
+//    				   buffer = list_get(tablaDeEmpate, j);
+//    				   for(int h = indexInicialPunteroCircular; h < cantidadEntradas; h++){
+//    					   if(buffer->numeroEntrada == indexInicialPunteroCircular){
+//
+//    					   }
+//    				   }
+//
+//    			   }
+//    		   }
+//    		   //Hacer el desempate
+//    		   memset(arrayEntradas[buffer->numeroEntrada], '\0', buffer->tamanioAlmacenado); //Borro el valor de la entrada con el numero referenciado y el tamanio que tenía
+//    		   eliminarNodoPorIndex(tablaEntradas, buffer->numeroEntrada); //Elimino los nodos de la tabla original ya que no tendrán mas una entrada referenciada para el valor borrado
+//    	   }
 
-    	   for (int i = 0; i < list_size(entradasABorrar);i++){
-    		   buffer = list_get(entradasABorrar, i); //Tomo de a uno los nodos con el numero de entrada referenciado a borrar
+    	   for (int i = 0; i < entradasABorrar;i++){
+    		   buffer = list_get(filtrada, i); //Tomo de a uno los nodos con el numero de entrada referenciado a borrar
+    		   if(validarSiHayEmpate(filtrada, buffer->tamanioAlmacenado) == true){
+    			   cantidadEntradasEmpatadas = calcularEntradasEmpatadas(filtrada, buffer->tamanioAlmacenado);
+    			   tablaDeEmpate = list_take(filtrada, cantidadEntradasEmpatadas);
+    			   ordenarTablaPorNroEntrada(tablaDeEmpate);
+    			   for(int j = 0; j < cantidadEntradas; j++){
+    				   tEntrada *entrada = list_find(tablaDeEmpate, (void*) esEntradaAReemplazar);
+    				   if(entrada != NULL){
+    					   indexInicialPunteroCircular++;
+    					   if(indexInicialPunteroCircular == cantidadEntradas){
+    						   indexInicialPunteroCircular = 0;
+    					   }
+    					   break;
+    				   }
+    				   else{
+    					   indexInicialPunteroCircular++;
+    					   if(indexInicialPunteroCircular == cantidadEntradas){
+    						   indexInicialPunteroCircular = 0;
+    					   }
+    				   }
+    			   }
+    		   }
     		   //Hacer el desempate
-    		   memset(arrayEntradas[buffer->numeroEntrada], '\0', buffer->tamanioAlmacenado); //Borro el valor de la entrada con el numero referenciado y el tamanio que tenía
+    		   memset(arrayEntradas[indexInicialPunteroCircular - 1], '\0', tamanioValor); //Borro el valor de la entrada con el numero referenciado y el tamanio que tenía
     		   eliminarNodoPorIndex(tablaEntradas, buffer->numeroEntrada); //Elimino los nodos de la tabla original ya que no tendrán mas una entrada referenciada para el valor borrado
     	   }
     	   return;
@@ -1207,16 +1284,13 @@
 
     	   switch (algoritmoReemplazo){
     	   case 1:
-    		   eliminarEntradasStorageCircular(arrayEntradas, entradasABorrar); //Borro las entradas necesarias para guardar el resto del valor
+    		   eliminarEntradasStorageCircular(arrayEntradas, entradasABorrar);
     		   break;
     	   case 2:
     		   eliminarEntradasStorageLRU(arrayEntradas, entradasABorrar);
-
     		   break;
     	   case 3:
-//    		   tablaAuxiliar = obtenerTablaParaBSU(tablaEntradas, entradasABorrar);//Obtengo una tabla con la cantidad de nodos igual a las entradas necesarias que faltan borrar para el nuevo valor
-//    	   																														// y ordenada por el tamanio almacenado en las entradas (De mayor a menor) HAY REEMPLAZAR LAS QUE MAS ESPACIO OCUPAN.
-//    		   eliminarEntradasStorageBSU(arrayEntradas, tablaAuxiliar); //Borro las entradas referenciadas a la tabla que obtuve antes.
+    		   eliminarEntradasStorageBSU(arrayEntradas, entradasABorrar);
     		   break;
     	   }
        }
@@ -1273,4 +1347,36 @@
     	   list_remove_and_destroy_by_condition(unaTabla, (void*) coincidir, (void*) destruirNodoDeTabla);
 
 
+       }
+
+       bool validarSiHayEmpate(t_list *listaOrdenada, int tamanio){
+
+
+    	   int coincidir(tEntrada *unaEntrada){
+    		   return unaEntrada->tamanioAlmacenado == tamanio;
+    	   }
+
+    	   return list_any_satisfy(listaOrdenada, (void *) coincidir);
+       }
+
+       int calcularEntradasEmpatadas(t_list *lista, int unTamanio){
+
+    	   int coincidir(tEntrada *unaEntrada){
+    		   return unaEntrada->tamanioAlmacenado == unTamanio;
+    	   }
+
+    	   return list_count_satisfying(lista, (void *) coincidir);
+
+       }
+
+       bool validarExistenciaNodoPorIndex(t_list *tabla, int index){
+   	   int coincidir(tEntrada *unaEntrada)
+         	{
+         	    	    		return unaEntrada->numeroEntrada == index;
+			}
+         	return list_find(tabla, (void*) coincidir);;
+       }
+
+       bool esEntradaAReemplazar(tEntrada *unaEntrada){
+    	   return unaEntrada->numeroEntrada == indexInicialPunteroCircular;
        }

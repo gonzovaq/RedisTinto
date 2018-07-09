@@ -197,7 +197,7 @@ void guardarUnArchivo(char *unaClave, char *valorArchivo);
 void guardarTodasMisClaves(t_list *tablaEntradas, char **arrayEntradas);
 int enviarEntradasUsadas(int socketCoordinador,t_list *tablaEntradas, char *bufferClave);
 void eliminarEntradasStorageLRU(char **arrayEntradas, int cantidadEntradasABorrar);
-void eliminarEntradasStorageBSU(char **arrayEntradas, t_list *entradasABorrar);
+void eliminarEntradasStorageBSU(char **arrayEntradas, int entradasABorrar);
 t_list *obtenerTablaParaBSU(t_list *tablaEntradas, int cantidadEntradasPendientes);
 
 int EnviarAvisoDeQueEstoyViva(int socketCoordinador);
@@ -212,3 +212,5 @@ bool validarEspacioReal(int tamanioValorRecibido);
 void aplicarAlgoritmoReemplazo(int entradasABorrar);
 bool esClaveAtomica(char *unaClave);
 tEntrada *obtenerNodoPorClave(char *unaClave);
+bool validarSiHayEmpate(t_list *listaOrdenada, int tamanio);
+bool esEntradaAReemplazar(tEntrada *unaEntrada);
