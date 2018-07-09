@@ -517,9 +517,6 @@
 
     	int claves = list_size(parametros->claves);
 
-    	printf("ESI: El ESI tiene %d claves para eliminar \n", claves);
-
-    	puts("ESI: Vamos a remover las claves de las Instancias");
 
     	for(int i = 0; i< claves; i++){
 
@@ -535,7 +532,6 @@
     	estoyBorrando = 0;
 
     	void LiberarClave(char * clave){
-    		printf("ESI: Se va a eliminar la clave %s del ESI de id %d \n",clave,parametros->pid);
     		free(clave);
     	}
 
@@ -547,7 +543,7 @@
     }
 
     int RemoverClaveDeLaInstancia(char * claveARemover){
-    	printf("ESI: Voy a buscar la instancia que tenia la clave %s para sacarsela \n", claveARemover);
+
     	parametrosConexion * instancia = BuscarInstanciaQuePoseeLaClave(claveARemover);
 
     	if(list_is_empty(colaInstancias))
@@ -556,15 +552,10 @@
     	if(instancia == NULL)
     		return OK;
 
-    	printf("ESI: Encontre la Instancia - Es la Instancia %s \n", instancia->nombreProceso);
-
     	bool EsLaClaveARemover(char * claveAComparar){
-    		printf("ESI: Comparando la clave %s con %s \n", claveARemover, claveAComparar);
     		if(string_equals_ignore_case(claveARemover,claveAComparar) == true){
-    			puts("ESI: Las claves coincidieron");
     			return true;
     		}
-    		puts("ESI: Las claves no coincidieron");
     		return false;
     	}
 
@@ -729,7 +720,7 @@
 			}
 			printf("Planificador: Recibi una solicitud de tipo %d \n", *solicitud);
 			char clave[TAMANIO_CLAVE];
-			char idS[4];
+			char idS[5];
 			switch(solicitud->solicitud){
 			case BLOQUEAR:
 				if ( (recv(parametros->new_fd, clave, TAMANIO_CLAVE, 0)) <= 0) {
@@ -740,11 +731,7 @@
 
 				}
 				else{
-					/*
-					tBloqueo *bloqueo = malloc(sizeof(tBloqueo));
-					strcpy(bloqueo->clave,clave);
-					bloqueo->pid = parametros->pid;
-					*/
+
 					char* claveCopia = malloc(strlen(clave)+1);
 					strcpy(claveCopia,clave);
 					printf("Planificador: voy a agregar a las bloqueadas a la clave %s \n",claveCopia);
@@ -1521,10 +1508,8 @@
 		operacion->valor = NULL;
 		char GetALoguear[4+strlen(clave)+1];
 		strcpy(GetALoguear, "GET ");
-		puts(GetALoguear);
 		strcat(GetALoguear, clave);
 		GetALoguear[4+strlen(clave)]='\0';
-		puts(GetALoguear);
 
 		// No le aviso al planificador que este ESI logro tomar x clave, se lo va a avisar el ESI, aunque guardo esta informacion en una lista
 
@@ -1592,13 +1577,10 @@
 		printf("ESI: El valor dentro de operacion es %s \n",operacion->valor);
 		char SetALoguear[5+strlen(clave)+strlen(valor)+1]; // SET jugador TraemeLaCopa da 24
 		strcpy(SetALoguear, "SET ");
-		puts(SetALoguear);
 		strcat(SetALoguear, clave);
-		puts(SetALoguear);
 		strcat(SetALoguear, " ");
 		strcat(SetALoguear, valor);
 		SetALoguear[5+strlen(clave)+strlen(valor)]='\0';
-		puts(SetALoguear);
 
 		log_info(logger, SetALoguear);
 
@@ -1679,10 +1661,8 @@
 
 		char StoreALoguear[6+strlen(clave)+1];
 		strcpy(StoreALoguear, "STORE ");
-		puts(StoreALoguear);
 		strcat(StoreALoguear, clave);
 		StoreALoguear[6+strlen(clave)]='\0';
-		puts(StoreALoguear);
 
 		log_info(logger, StoreALoguear);
 
@@ -1904,30 +1884,21 @@
 
     parametrosConexion* BuscarInstanciaQuePoseeLaClave(char * clave){
     	bool tieneLaClave2(char * claveAComparar){
-    		puts("ESI: Voy a comparar la clave");
-    		printf("ESI: Buscando instancia, comparando la clave %s con %s \n", clave, claveAComparar);
     		if(string_equals_ignore_case(clave,claveAComparar) == true){
-    			puts("ESI: Las claves coincidieron");
     			return true;
     		}
-    		puts("ESI: Las claves no coincidieron");
+
     		return false;
     	}
     	bool lePerteneceLaClave(parametrosConexion * parametros){
-    		printf("ESI: Reviso si la instancia %s tiene la clave: %s \n",parametros->nombreProceso, clave);
     		if(list_is_empty(parametros->claves) == true){
-    			puts("ESI: Esta instancia no tiene claves");
     			return false;
     		}
-    		puts("ESI: La lista NO esta vacia");
     		if((list_any_satisfy(parametros->claves,(void*)tieneLaClave2)) == true){
-    			printf("ESI: Encontre la instancia que posee la clave: %d \n",parametros->pid);
     			return true;
     		}
-    		printf("ESI: La instancia %d no posee la clave \n",parametros->pid);
     		return false;
     	}
-		puts("DEBUG: Voy a retornar la instancia buscada en la lista");
     	return list_find(colaInstancias,(void*) lePerteneceLaClave);
 		
     }
