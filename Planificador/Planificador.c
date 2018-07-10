@@ -879,9 +879,7 @@ void ordenarEsis(t_queue *cola)
 		}
 		else
 		{
-			puts("No hay ningun esi bloqueado con esa clave");
-			free(desbloqueado);
-			return;
+			puts("No hay ningun esi bloqueado con esa clave pero la liberamos igualmente");
 		}
 		free(desbloqueado);
 		

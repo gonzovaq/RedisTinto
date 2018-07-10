@@ -193,17 +193,18 @@
         	if(getline(&line, &len, file) == -1){
         		tResultado * resultado = malloc(sizeof(tResultado));
         		resultado->tipoResultado=CHAU;
+
         		enviarResultado(socket_planificador,resultado);
                 free(resultado);
                 fclose(file);
                 if (line){
                     free(line);
                 }
-                free(validez);
+                //free(validez);
                 puts("Chau!");
                 return EXIT_SUCCESS;
         	}
-        	copiaLine = malloc(strlen(line));
+        	copiaLine = malloc(strlen(line) + 1);
         	strcpy(copiaLine,line);
         }
             while (!recibirOrdenDeEjecucion(socket_planificador));
