@@ -1216,6 +1216,23 @@
 
 			sem_wait(&semaforoInstancia);
 
+			// ---- ENTRAMOS EN LA REGION DE TRABAJO, NADIE NOS MOLESTA -----
+
+        	if (parametros->DeboRecibir){
+				puts("Instancia: Recibo un aviso de que la Instancia sigue viva");
+				tEntradasUsadas *estasConecatadaDeSeguridad = malloc(sizeof(tEntradasUsadas));
+				if ((recv(parametros->new_fd, estasConecatadaDeSeguridad, sizeof(tEntradasUsadas), 0)) <= 0) {
+					perror("Instancia: se desconecto!!!");
+					parametros->conectada = 0;
+					//sem_destroy(parametros->semaforo);
+					return OK;
+				}
+				puts("Instancia: La Instancia sigue viva");
+				parametros->DeboRecibir = 0;
+
+				free(estasConecatadaDeSeguridad);
+        	}
+
 			parametros->DeboRecibir = 1;
 
 			printf("Instancia: Accedi a la seccion de operacion con id %d \n",parametros->pid);
