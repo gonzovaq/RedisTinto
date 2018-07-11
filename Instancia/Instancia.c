@@ -44,7 +44,7 @@
         	    		perror("recv");
         	    		exit(1);
         	    	}
-        	puts("Informo que estoy viva 2");
+        	printf("Informo que estoy viva 2 tras recibir operacion de tipo %d \n",operacion);
         	EnviarAvisoDeQueEstoyViva(socketCoordinador);
 
         	puts("Verifico que tipo de operacion me pidieron");

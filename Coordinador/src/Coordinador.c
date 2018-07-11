@@ -324,10 +324,26 @@
     		return EXIT_SUCCESS;
     	}
 
+    	sem_destroy(instancia->semaforo);
+
+		sem_t * semaforo = malloc(sizeof(sem_t));
+		parametros->semaforo = semaforo;
+
+        int ret;
+        int value;
+        int pshared;
+        /* initialize a private semaphore */
+        pshared = 0;
+        value = 0;
+        if ((ret = sem_init(parametros->semaforo,pshared,value)) != 0){
+			perror("semaforo nuevo");
+        	exit_gracefully(1);
+		} // Inicializo el semaforo en 0
+		printf("Instancia: Semaforo en direccion: %p\n", (void*)&(parametros->semaforo));
+
     	puts("Instancia: Voy a actualizar la informacion de la Instancia");
     	parametros->entradasUsadas = instancia->entradasUsadas;
     	parametros->conectada = 1;
-    	parametros->semaforo = instancia->semaforo;
     	list_add_all(parametros->claves,instancia->claves);
     	puts("Instancia: Actualice la informacion de la Instancia");
 
