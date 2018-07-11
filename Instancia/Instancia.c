@@ -1057,14 +1057,10 @@
 
     	   printf("Nombre de la clave a guardar: %s\n", unaClave);
 
-    	   FILE * file;
-    	   FILE *archivo;
+    	   FILE *archivo = fopen (rutaAGuardar, "w");
 
-		   file = fopen(archivo, "r");
-
-		   if (file == NULL){
+		   if (archivo == NULL){
 			   perror("No existe el archivo");
-			   file = fopen(archivo, "w");
 		   }
 
     	   fprintf(archivo, "%s", valorArchivo);
