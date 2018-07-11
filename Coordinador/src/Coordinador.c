@@ -1186,20 +1186,19 @@
 
         while(keepRunning){ // Debo atajar cuando una instancia se me desconecta
 
-        	if (parametros->DeboRecibir){
-				puts("Instancia: Recibo un aviso de que la Instancia sigue viva");
-				tEntradasUsadas *estasConecatada1 = malloc(sizeof(tEntradasUsadas));
-				if ((recv(parametros->new_fd, estasConecatada1, sizeof(tEntradasUsadas), 0)) <= 0) {
-					perror("Instancia: se desconecto!!!");
-					parametros->conectada = 0;
-					//sem_destroy(parametros->semaforo);
-					return OK;
-				}
-				puts("Instancia: La Instancia sigue viva");
-				parametros->DeboRecibir = 0;
+			puts("Instancia: Recibo un aviso de que la Instancia sigue viva");
+			tEntradasUsadas *estasConecatada1 = malloc(sizeof(tEntradasUsadas));
+			if ((recv(parametros->new_fd, estasConecatada1, sizeof(tEntradasUsadas), 0)) <= 0) {
+				perror("Instancia: se desconecto!!!");
+				parametros->conectada = 0;
+				//sem_destroy(parametros->semaforo);
+				return OK;
+			}
+			puts("Instancia: La Instancia sigue viva");
+			parametros->DeboRecibir = 0;
 
-				free(estasConecatada1);
-        	}
+			free(estasConecatada1);
+
 
 			puts("Instancia: Hago un sem_wait");
 
@@ -1218,7 +1217,8 @@
 
 			// ---- ENTRAMOS EN LA REGION DE TRABAJO, NADIE NOS MOLESTA -----
 
-        	if (parametros->DeboRecibir){
+        	/*Esto fue un arreglo para el broken pipe 10/07. Se arregló en la linea mas 1189
+        	 * if (parametros->DeboRecibir){
 				puts("Instancia: Recibo un aviso de que la Instancia sigue viva");
 				tEntradasUsadas *estasConecatadaDeSeguridad = malloc(sizeof(tEntradasUsadas));
 				if ((recv(parametros->new_fd, estasConecatadaDeSeguridad, sizeof(tEntradasUsadas), 0)) <= 0) {
@@ -1231,7 +1231,7 @@
 				parametros->DeboRecibir = 0;
 
 				free(estasConecatadaDeSeguridad);
-        	}
+        	}*/
 
 			parametros->DeboRecibir = 1;
 
