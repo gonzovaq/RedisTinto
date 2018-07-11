@@ -15,6 +15,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 
     	verificarParametrosAlEjecutar(argc, argv);
     	LeerArchivoDeConfiguracion(argv);
+				int desalojar=0;
     	   		t_queue *colaX;
     	        fd_set master;   // conjunto maestro de descriptores de fichero
     	        fd_set read_fds; // conjunto temporal de descriptores de fichero para select()
@@ -85,7 +86,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 	            int stat = pthread_create(&tid, NULL, (void*)ejecutarConsola, NULL);
 				if (stat != 0){
 					puts("error al generar el hilo");
-					perror("thread");
+					perror("thread");	
 					//continue;
 				}
 				pthread_detach(tid); //Con esto decis que cuando el hilo termine libere sus recursos
@@ -146,10 +147,13 @@ void intHandler(int dummy) { // para atajar ctrl c
 									int idEsi=obtenerEsi(newfd);
 									if(algoritmo==SJF || algoritmo==SJFD)
 									{
+
 										queue_push(ready,new_ESI_nuevo(idEsi,newfd,estimacionIni,0,0,"\0"));
 										ordenarEsis(ready);
 										if(algoritmo==SJFD)
 												{
+													desalojar=1;
+													/*
 													t_esi* esi1 = malloc(sizeof(t_esi));
 													if(queue_is_empty(ejecucion)==0){
 													esi1=queue_pop(ejecucion);
@@ -157,6 +161,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 													ordenarEsis(ready);
 													}
 													free(esi1);
+													*/
 												}		
 									}
 									if(algoritmo==HRRN)
@@ -263,13 +268,19 @@ void intHandler(int dummy) { // para atajar ctrl c
 													ordenarEsis(ready);
 													if(algoritmo==SJFD)
 													{
+														desalojar=1;
+														/*
 														if(queue_is_empty(ejecucion)==0){
 															t_esi* esi1 = malloc(sizeof(t_esi));
 															esi1=queue_pop(ejecucion);
+															printf("Saco de ejecucion a %d \n",esi1->id);
 															queue_push(ready,new_ESI(esi1->id,esi1->fd,esi1->estimacion,esi1->responseRatio,esi1->espera,esi1->clave,esi1->clavesTomadas));
 															ordenarEsis(ready);
+															puts("Ordene los esis");
 															free(esi1);
-														}
+
+															
+														}*/
 													}
 													
 												}
@@ -476,6 +487,21 @@ void intHandler(int dummy) { // para atajar ctrl c
 								f_ejecutar=1;
 								enviarConfirmacion=0;
 							    re=0;
+							}
+							if(desalojar==1)
+							{
+								t_esi* esi1 = malloc(sizeof(t_esi));
+								if(queue_is_empty(ejecucion)==0){
+								esi1=queue_pop(ejecucion);
+								queue_push(ready,new_ESI(esi1->id,esi1->fd,esi1->estimacion,esi1->responseRatio,esi1->espera,esi1->clave,esi->clavesTomadas));
+								ordenarEsis(ready);
+								}
+								free(esi1);
+								enviarConfirmacion=0;
+								puts("Entre a desalojo");
+								re=0;
+								desalojar=0;
+								f_ejecutar=1;					
 							}
 							if(enviarConfirmacion==1)
 							{
