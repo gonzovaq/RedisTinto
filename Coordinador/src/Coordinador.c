@@ -283,6 +283,8 @@
     		pthread_detach(tid); //Con esto decis que cuando el hilo termine libere sus recursos
 
     		conexionInstancia(parametros);
+    		printf("Instancia: Adios %s, volve pronto (este mensaje puede aparecer en un lugar raro, saludos)\n",
+    				parametros->nombreProceso);
     		free(semaforoCompactacion);
     		break;
     	default:
@@ -324,7 +326,9 @@
     		return EXIT_SUCCESS;
     	}
 
-    	sem_destroy(instancia->semaforo);
+    	//sem_destroy(instancia->semaforo);
+    	instancia->conectada = 0;
+    	sem_post(instancia->semaforo); // Le vamos a avisar que siga (va a saber matarse)
 
 		sem_t * semaforo = malloc(sizeof(sem_t));
 		parametros->semaforo = semaforo;
@@ -1229,6 +1233,11 @@
 
 			printf("Instancia: Me hicieron un sem_post y tengo de id %d \n",parametros->pid);
 
+			if(parametros->conectada == 0){
+				puts("Instancia: UY, parece que hubo una desconexion en este hilo, me voy!");
+				return OK;
+			}
+
 			sem_wait(&semaforoInstancia);
 
 			// ---- ENTRAMOS EN LA REGION DE TRABAJO, NADIE NOS MOLESTA -----
@@ -1248,6 +1257,7 @@
 
 				free(estasConecatadaDeSeguridad);
         	}*/
+
 
 			parametros->DeboRecibir = 1;
 
@@ -1839,7 +1849,7 @@
 
     int exit_gracefully(int return_nr) {
 
-    	puts("ENTRE AL EXIT GRACEFULLY ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR ERROR");
+    	puts("ADIOS");
        log_destroy(logger);
        // list_clean_and_destroy_elements(colaInstancias,(void *)destruirInstancia); // TIRA DOUBLE FREE CORRUPTION
        puts("Destruyo operacion a enviar");
