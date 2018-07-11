@@ -95,7 +95,7 @@ typedef struct{
 	char proceso[TAMANIO_NOMBREPROCESO];
 }tStatusParaPlanificador;
 
-static t_esi * new_ESI_nuevo(int id,int fd,int esti,float tasa,int espera,char clave[TAMANIO_CLAVE]){
+static t_esi * new_ESI_nuevo(int id,int fd,float esti,float tasa,int espera,char clave[TAMANIO_CLAVE]){
 	t_esi *new = malloc(sizeof(t_esi));
 	new->id = id;
 	new->fd = fd;
@@ -111,20 +111,17 @@ static t_esi * new_ESI_nuevo(int id,int fd,int esti,float tasa,int espera,char c
 
 static char* newClave(char clave[TAMANIO_CLAVE])
 {
-	/*printf("DEBUG la clave en .h  es %s\n",clave);
-	printf("DEBUG con un tamaño de %d\n",strlen(clave));
-	printf("DEBUG pero el size of da %d\n",sizeof(clave));// +1 */
-	char * new = malloc(strlen(clave)+1);
+	char * new = malloc(sizeof(TAMANIO_CLAVE));
 	return strcpy(new,clave);
 }
 
-static t_esi * new_ESI(int id,int fd,int esti,float tasa,int espera,char clave[TAMANIO_CLAVE],t_list * claves){
+static t_esi * new_ESI(int id,int fd,float esti,float tasa,int espera,char clave[TAMANIO_CLAVE],t_list * claves){
 	t_esi *new = malloc(sizeof(t_esi));
 	new->id = id;
 	new->fd = fd;
 	new->cont = 0;
 	new->estimacion=esti;
-	new->responseRatio=tasa;
+	new->responseRatio=tasa;//STATUS_RECV
 	new->espera=espera;
 	strcpy(new->clave,clave);	
 	new->exe=0;
@@ -132,7 +129,7 @@ static t_esi * new_ESI(int id,int fd,int esti,float tasa,int espera,char clave[T
 	return new;
 }
 
-static t_esi * new_ESI_hrrn(int id,int fd,int esti,float tasa,int espera,char clave[TAMANIO_CLAVE],int f,t_list * claves){
+static t_esi * new_ESI_hrrn(int id,int fd,float esti,float tasa,int espera,char clave[TAMANIO_CLAVE],int f,t_list * claves){
 	t_esi *new = malloc(sizeof(t_esi));
 	new->id = id;
 	new->fd = fd;

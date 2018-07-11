@@ -448,6 +448,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 									printf("No hay nada en Ready, asi que seguro me quedo esperando que desbloqueen la clave %s \n",esi->clave);
 								else
 									puts("Hay algo en ready");
+									re=0;
 							}
 							if (re==1){
 								esi->cont++;
@@ -456,7 +457,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 									sumarEspera(ready);
 								}
 								printf("Contador De ESI %d  estimacion %f espera %d\n",esi->cont, esi->estimacion,esi->espera);
-								
+								re=0;
 							}
 							if(re==-5)
 							{
@@ -474,7 +475,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 								puts("Dame otro esi");
 								f_ejecutar=1;
 								enviarConfirmacion=0;
-							    
+							    re=0;
 							}
 							if(enviarConfirmacion==1)
 							{
@@ -491,6 +492,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 								printf("ejecuta el esi:%d \n",esi->id);
 								enviarConfirmacion=0;
 								recibi=1;
+								re=0;
 							}
 						}
 						else
@@ -556,7 +558,6 @@ void ordenarEsis(t_queue *cola)
 				return esi1->estimacion <= esi2->estimacion;
 			}
 			list_sort(cola->elements,(void *)compare);
-
 		}
 		if(algoritmo==HRRN)
 		{
@@ -582,7 +583,6 @@ void ordenarEsis(t_queue *cola)
 				//return esi1->responseRatio>=esi2->responseRatio;
 			}
 			list_sort(cola->elements,(void *)HrrnComp);
-
 		}
 		return cola;
 	}
