@@ -699,7 +699,8 @@
     char *obtenerValor(int longitudMaximaValorBuscado, t_list *tablaEntradas, char *claveBuscada,char **arrayEntradas,int tamanioValor){
     	char *valor = malloc(longitudMaximaValorBuscado * tamanioValor + 1);
     	int tamanioTotalValor = 0;
-    	t_list *tablaDuplicada = malloc(sizeof(t_list));
+    	t_list *tablaDuplicada;
+    	tablaDuplicada = list_create();
     	tEntrada *bufferEntrada; //= malloc(sizeof(tEntrada));
 
 
@@ -722,6 +723,7 @@
     	}
 
     	valor[tamanioTotalValor] = '\0';
+    	//list_destroy_and_destroy_elements(tablaDuplicada,(void *)DestruirEntrada);
     	list_destroy(tablaDuplicada);
     	//free(bufferEntrada);
     	return valor;
@@ -754,7 +756,7 @@
        }
 
        t_list *filtrarLista(char *unaClave, t_list *tabla){
-    	   t_list *tablaFiltrada = malloc(sizeof(t_list));
+    	   t_list *tablaFiltrada = list_create();
     	   int coincidir(tEntrada *unaEntrada){
     		   return string_equals_ignore_case(unaEntrada->clave, unaClave);
     	   }
@@ -764,8 +766,8 @@
        }
 
        void eliminarNodosyValores(char *nombreClave, t_list *unaTabla, char **arrayEntradas, int tamanioValor){
-       	t_list *tablaDuplicada = malloc(sizeof(t_list));
-       	t_list *tablaFiltrada = malloc(sizeof(t_list));
+       	t_list *tablaDuplicada = list_create();
+       	t_list *tablaFiltrada = list_create();
        	tEntrada *bufferEntrada;
 
        	tablaDuplicada = list_duplicate(unaTabla);
@@ -782,7 +784,8 @@
 
 
 
-       	list_destroy(tablaDuplicada);
+       	list_destroy_and_destroy_elements(tablaDuplicada,(void *)DestruirEntrada);
+       	//list_destroy(tablaDuplicada);
        	list_destroy(tablaFiltrada);
        	//free(bufferEntrada);
 
@@ -1011,7 +1014,7 @@
        }
 
        void guardarTodasMisClaves(t_list *unaTabla, char **arrayEntradas){
-    	   t_list *duplicada = malloc(sizeof(t_list));
+    	   t_list *duplicada = list_create();
     	   duplicada = list_duplicate(unaTabla);
     	   char *bufferClave;
     	   tEntrada *bufferEntrada;
