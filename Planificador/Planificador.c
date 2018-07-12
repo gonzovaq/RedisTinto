@@ -493,8 +493,9 @@ void intHandler(int dummy) { // para atajar ctrl c
 								t_esi* esi1 = malloc(sizeof(t_esi));
 								if(queue_is_empty(ejecucion)==0){
 									esi1=queue_pop(ejecucion);
+									printf("EL CONTADOR DEL ESI ESSSSS %d \n",esi1->cont);
 									//estimacionEsi(esi1);
-									queue_push(ready,new_ESI(esi1->id,esi1->fd,esi1->estimacion,esi1->responseRatio,esi1->espera,esi1->clave,esi->clavesTomadas));
+									queue_push(ready,new_ESI_desalojo(esi1->id,esi1->fd,esi1->estimacion,esi1->responseRatio,esi1->espera,esi1->clave,esi->clavesTomadas,esi1->cont));
 									ordenarEsis(ready);
 								}
 								free(esi1);
@@ -516,7 +517,8 @@ void intHandler(int dummy) { // para atajar ctrl c
 									//fallo el send por lo tanto desconectamos el esi.
 									//queue_pop(ejecucion);
 								}
-								printf("ejecuta el esi:%d \n",esi->id);
+								printf("ejecuta el esi:%d de contador %d\n",esi->id,esi->cont);
+								
 								enviarConfirmacion=0;
 								recibi=1;
 								re=0;
@@ -542,7 +544,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 								printf("Id del esi a buscar:%d \n",esi->id);
 								printf("esi de id %d cambiado de cola con espera de: %d \n",esi->id,esi->espera);
 								estimacionHRRN(esi);
-								queue_push(ejecucion,new_ESI(esi->id,esi->fd,esi->estimacion,esi->responseRatio,0,esi->clave,esi->clavesTomadas));
+								queue_push(ejecucion,new_ESI_desalojo(esi->id,esi->fd,esi->estimacion,esi->responseRatio,0,esi->clave,esi->clavesTomadas,esi->cont));
 							}
 							//puts("Ready no vacia");
 						}
