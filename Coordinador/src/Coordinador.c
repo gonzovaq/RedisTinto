@@ -945,13 +945,13 @@
 				char * nombreInstancia;
 				switch (ALGORITMO){
 				case EL: ; // Si no se deja un statement vacio rompe
-					nombreInstancia = SimulacionSeleccionarPorEquitativeLoad(&clave);
+					nombreInstancia = SimulacionSeleccionarPorEquitativeLoad(clave);
 					break;
 				case LSU:
-					nombreInstancia = SimulacionSeleccionarPorLeastSpaceUsed(&clave);
+					nombreInstancia = SimulacionSeleccionarPorLeastSpaceUsed(clave);
 					break;
 				case KE:
-					nombreInstancia = SimulacionSeleccionarPorKeyExplicit(&clave);
+					nombreInstancia = SimulacionSeleccionarPorKeyExplicit(clave);
 					break;
 				default:
 					puts("Planificador: Hubo un problema al seleccionar la instancia correcta");
@@ -2274,7 +2274,7 @@
 				return ERROR;
 			}
 
-			printf("ESI: Tengo %d instancias para distribuir con KE \n",cantidadInstancias);
+			printf("ESI: Tengo %d instancias para distribuir con KE para clave: %s \n",cantidadInstancias,clave);
 			char primerCaracter = clave[0];
 			int x = 0;
 			while ((clave[x] < 97 && clave[x] > 122) && (clave[x] < 65 && clave[x] > 90)){
@@ -2287,6 +2287,9 @@
 				posicionLetraEnASCII = primerCaracter - 97;
 			else
 				posicionLetraEnASCII = primerCaracter - 65;
+
+			printf("ESI: El primer caracter es %c con posicionLetraEnASCII: %d \n",primerCaracter,posicionLetraEnASCII);
+
 			int rango = KEYS_POSIBLES/cantidadInstancias;
 			int restoRango = KEYS_POSIBLES%cantidadInstancias;
 			int entradasUltimaInstancia;
@@ -2612,7 +2615,7 @@
 				return ERROR;
 			}
 
-			printf("ESI: Tengo %d instancias para distribuir con KE \n",cantidadInstancias);
+			printf("ESI: Tengo %d instancias para distribuir con KE para clave: %s \n",cantidadInstancias,clave);
 			char primerCaracter = clave[0];
 			int x = 0;
 			while ((clave[x] < 97 && clave[x] > 122) && (clave[x] < 65 && clave[x] > 90)){
@@ -2620,11 +2623,15 @@
 				primerCaracter = clave[x];
 				x++;
 			}
+
 			int posicionLetraEnASCII;
 			if (primerCaracter >= 97)
 				posicionLetraEnASCII = primerCaracter - 97;
 			else
 				posicionLetraEnASCII = primerCaracter - 65;
+
+			printf("ESI: El primer caracter es %c con posicionLetraEnASCII: %d \n",primerCaracter,posicionLetraEnASCII);
+
 			int rango = KEYS_POSIBLES/cantidadInstancias;
 			int restoRango = KEYS_POSIBLES%cantidadInstancias;
 			int entradasUltimaInstancia;
@@ -2677,7 +2684,6 @@
 					// -------------- HASTA ACA ---------------------
 
 				}
-				// -------------- CASO RESTO 1 -------------
 				else{
 
 					// -------------- TODAS LAS INSTANCIAS MENOS LA ULTIMA ----------------
@@ -2713,10 +2719,12 @@
 				// -------------- SE TERMINA CASO RESTO DISTINTO 0  -------------
 				}
 
-			puts("Planificador: Termine de buscar Instancia");
+			puts("ESI: Termine de buscar Instancia");
 
-			if(instancia == NULL)
+			if(instancia == NULL){
+				puts("ESI: La busqueda devolvio nulo");
 				return NULL;
+			}
 
 
 			// ------ COMPROBAMOS QUE LA INSTANCIA SIGA CONECTADA

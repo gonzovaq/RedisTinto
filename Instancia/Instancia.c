@@ -366,7 +366,7 @@
  		   perror("Send");
  	    }
 
-	    if (send(socketCoordinador, valor, tamanio->entradasUsadas, 0) <= 0){
+	    if (send(socketCoordinador, valor, tamanio->entradasUsadas + 1, 0) <= 0){
 	     		   puts("Error al enviar el valor");
 	     		   perror("Send");
 	     	    }
