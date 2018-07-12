@@ -19,12 +19,15 @@
 #include <commons/collections/queue.h>
 #include <commons/config.h>
 #include <semaphore.h>
+#include <signal.h>
 
 #define ARCHIVO_CONFIGURACION "Instancia.config"
 #define MAXDATASIZE 100 // máximo número de bytes que se pueden leer de una vez
 #define TAMANIO_NOMBREPROCESO 40
 #define TAMANIO_CLAVE 41
 #define SLEEP_DUMP 5 //Le puse 5, no tengo idea cada cuanto tiene que ejecutar el Dump
+
+static volatile int keepRunning = 1;
 
 // Enums
 
@@ -214,3 +217,4 @@ bool esClaveAtomica(char *unaClave);
 tEntrada *obtenerNodoPorClave(char *unaClave);
 bool validarSiHayEmpate(t_list *listaOrdenada, int tamanio);
 bool esEntradaAReemplazar(tEntrada *unaEntrada);
+int entradasUsadasPorClave(char *unaClave,t_list *unaTabla);
