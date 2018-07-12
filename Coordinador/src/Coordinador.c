@@ -276,7 +276,7 @@
 				perror("semaforo nuevo");
 	        	exit_gracefully(1);
 			} // Inicializo el semaforo en 0
-			printf("Instancia: Semaforo en direccion: %p\n", (void*)&(parametros->semaforoCompactacion));
+			printf("Instancia: Semaforo compactacion en direccion: %p\n", (void*)&(parametros->semaforoCompactacion));
 
     		parametros->claves = list_create();
 			//TODO: Debo revisar si la instancia se esta reincorporando !!!!
@@ -298,6 +298,8 @@
     		conexionInstancia(parametros);
     		printf("Instancia: Adios %s, volve pronto (este mensaje puede aparecer en un lugar raro, saludos)\n",
     				parametros->nombreProceso);
+
+    		pthread_cancel(tid);
     		free(semaforoCompactacion);
     		break;
     	default:
@@ -339,7 +341,7 @@
     		return EXIT_SUCCESS;
     	}
 
-    	//sem_destroy(instancia->semaforo);
+    	sem_destroy(instancia->semaforoCompactacion);
     	instancia->conectada = 0;
     	sem_post(instancia->semaforo); // Le vamos a avisar que siga (va a saber matarse)
 
@@ -372,8 +374,8 @@
     		printf("COMPACTACION: Espero que me pidan que compacte, soy la instancia %d con nombre: %s",
 					parametros->pid,parametros->nombreProceso);
 			sem_wait(parametros->semaforoCompactacion);
-			printf("COMPACTACION: Le voy a avisar que compacte a la instancia %d con nombre: %s",
-					parametros->pid,parametros->nombreProceso);
+			printf("COMPACTACION: Le voy a avisar que compacte a la instancia %d con nombre: %s y semaforo %p\n",
+					parametros->pid,parametros->nombreProceso,(void*)&(parametros->semaforo));
 
 			printf("COMPACTACION: Manejo Compactacion p/ Instancia conectada con DeboRecibir = %d \n",parametros->DeboRecibir);
 			if (parametros->DeboRecibir){
@@ -1418,7 +1420,7 @@
 					list_add(colaResultados,(void*)resultadoCompleto);
 					pthread_mutex_unlock(&mutex);
 
-					puts("Instancia: Aviso al ESI que puede seguir operando");
+					printf("Instancia: Aviso al ESI que puede seguir operando al semaforo %p\n", (void*)&(ESIActual->semaforo));
 					sem_post(ESIActual->semaforo); // SE HACE AFUERA PORQUE EL GET TAMBIEN DEBE TENER SU POST
 					}
 
@@ -1749,6 +1751,7 @@
 		//}
 
 		ESIActual = parametros;
+		printf("ESI: semaforo esiActual: %p y semaforo parametros: %p\n",(void*)&(ESIActual->semaforo), (void*)&(parametros->semaforo));
 
 		puts("ESI: Voy a seleccionar la Instancia");
 		int seleccionInstancia = SeleccionarInstancia(&CLAVE);
@@ -1776,7 +1779,7 @@
 			printf("ESI: valor de la operacion: %s \n", operacion->valor);
 
 			//esperamos el resultado para devolver
-			puts("ESI: Vamos a ver si hay algun resultado en la cola");
+			printf("ESI: Vamos a ver si hay algun resultado en la cola con semaforo %p\n", (void*)&(parametros->semaforo));
 
 			// ---------------------------------
 			// while (list_is_empty(colaResultados)); // TODO ESO ES UNA ESPERA ACTIVA
