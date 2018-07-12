@@ -2,16 +2,15 @@
 
 	pthread_mutex_t mutex;
 
-//		void intHandler(int dummy) { // para atajar ctrl c
-//			keepRunning = 0;
-//			sleep(1);
-//			liberarMemoria();
-//			//exit(1);
-//		}
+	void intHandler(int dummy) { // para atajar ctrl c
+		puts("ADIOS");
+		free(arrayEntradas);
+		exit(1);
+	}
 
     int main(int argc, char *argv[])
     {
-//    	signal(SIGINT, intHandler);
+    	signal(SIGINT, intHandler);
 //    	while(keepRunning){
     	puts("Iniciando");
     	tablaEntradas = list_create();
@@ -50,7 +49,7 @@
         	if ((recv(socketCoordinador, operacion, sizeof(tOperacionInstanciaStruct), 0)) <= 0){
         	    		puts("Fallo al recibir el tipo de operacion");
         	    		perror("recv");
-        	    		exit(1);
+        	    		intHandler(1);
         	    	}
         	printf("Informo que estoy viva 2 tras recibir operacion de tipo %d \n",operacion);
         	EnviarAvisoDeQueEstoyViva(socketCoordinador);
@@ -79,7 +78,7 @@
 							puts("Error al enviar solicitud de compactqacion");
 							perror("Send");
 							free(tuVieja);
-							exit(1);
+							intHandler(1);
 						}
 						free(tuVieja);
 					}
@@ -133,7 +132,7 @@
 												 puts("Error al enviar solicitud de compactqacion");
 												 perror("Send");
 												 free(tuVieja);
-												 exit(1);
+												 intHandler(1);
 										 }
 										free(tuVieja);
 										cantidadClavesEnTabla--;
@@ -166,7 +165,7 @@
 												puts("Error al enviar solicitud de compactacion");
 												perror("Send");
 												free(tuVieja);
-												exit(1);
+												intHandler(1);
 											 }
 											free(tuVieja);
 											cantidadClavesEnTabla--;
@@ -239,7 +238,7 @@
     int verificarParametrosAlEjecutar(int argc, char *argv[]){
     	if (argc != 2) {
     	    puts("Falta el nombre del archivo");
-    	    exit(1);
+    	    intHandler(1);
     	 }
 
     	 return 1;
@@ -296,7 +295,7 @@
 								algoritmoReemplazo = BSU;
 							else {
 								puts("Error al cargar el algoritmo de distribucion");
-								exit(1);
+								intHandler(1);
 							}
 						}
 					}
@@ -312,7 +311,7 @@
     	if ((socketCoordinador = socket(AF_INET, SOCK_STREAM, 0)) <= 0) {
     		puts("Error al crear el socket");
     		perror("socket");
-    		exit(1);
+    		intHandler(1);
     	}
 
     	puts("El socket se creo correctamente\n");
@@ -326,7 +325,7 @@
     	                                              sizeof(struct sockaddr)) == -1) {
     		puts("Error al conectarme al servidor.");
     		perror("connect");
-    		exit(1);
+    		intHandler(1);
     	}
 
     	puts("Instancia conectada!\n");
@@ -448,7 +447,7 @@
     //								puts("Error al enviar solicitud de compactacion");
     //								perror("Send");
     //								free(tuVieja);
-    //								exit(1);
+    //								intHandler(1);
     //							 }
     //							free(tuVieja);
                  		}
@@ -497,7 +496,7 @@
 				   puts("Error al enviar mi identificador");
 				   perror("Send");
 				   free(header);
-				   exit(1);
+				   intHandler(1);
 			   }
 			   puts("Se envió mi identificador");
 			   free(header);
@@ -543,7 +542,7 @@
 
         if (recv(socketCoordinador, buf, bytesARecibir, 0) <= 0) {
             perror("recv");
-            exit(1);
+            intHandler(1);
         }
 
 
@@ -557,7 +556,7 @@
         	puts("Error al enviar el mensaje.");
         	perror("send");
         	free(entradas);
-            exit(1);
+            intHandler(1);
         }
 
         free(entradas);
@@ -571,7 +570,7 @@
     	if ((recv(socketCoordinador, unHeader, sizeof(OperaciontHeader), 0)) <= 0){
     		puts("Fallo al recibir el header");
     		perror("recv");
-    		exit(1);
+    		intHandler(1);
     	}
     	return unHeader;
     }
@@ -583,7 +582,7 @@
         if ((bytes_enviados=send(socketCoordinador, mensaje, longitud_mensaje , 0)) <= 0) {
         	puts("Error al enviar el mensaje.");
         	perror("send");
-            exit(1);
+            intHandler(1);
         }
 
         printf("El mensaje: \"%s\", se ha enviado correctamente! \n\n",mensaje);
@@ -595,7 +594,7 @@
 		if ((send(socket, resul, sizeof(tResultadoInstancia), 0)) <= 0) {
         	puts("Error al enviar resultado al Coordinador");
         	perror("send");
-            exit(1);
+            intHandler(1);
         }
 		printf("Resultado es: %d \n",resul->resultado);//Envio bien el resultado
 		printf("Resultado tamanioValor: %d \n",resul->tamanioValor);
@@ -610,7 +609,7 @@
 
     	if ((numBytes = recv(socketCoordinador, operacion, sizeof(operacionRecibida) + tamanioValor, 0)) <= 0 ){
     		perror("Recv");
-    		exit(1);
+    		intHandler(1);
     	}
     	return operacion;
     }
@@ -723,10 +722,14 @@
     	}
 
     	valor[tamanioTotalValor] = '\0';
-    	list_destroy(tablaDuplicada);
+    	list_destroy_and_destroy_elements(tablaDuplicada,(void *)DestruirEntrada);
     	//free(bufferEntrada);
     	return valor;
     }
+
+	static void DestruirEntrada(tEntrada *unaEntrada) {
+	    free(unaEntrada);
+	}
 
     t_list* list_duplicate(t_list* self) {
     	t_list* duplicated = list_create();
@@ -779,8 +782,8 @@
 
 
 
-       	list_destroy(tablaDuplicada);
-       	list_destroy(tablaFiltrada);
+       	list_destroy_and_destroy_elements(tablaDuplicada,(void *)DestruirEntrada);
+       	list_destroy_and_destroy_elements(tablaFiltrada,(void *)DestruirEntrada);
        	//free(bufferEntrada);
 
        	return;
@@ -1034,7 +1037,7 @@
     	   ordenarTablaPorTamanioAlmacenado(duplicada);
 
     	   t_list *tablaABorrar = list_take(duplicada, cantidadEntradasPendientes);
-    	   list_destroy(duplicada); //Ver si va destroy elements también
+    	   list_destroy_and_destroy_elements(duplicada,(void *)DestruirEntrada); //Ver si va destroy elements también
     	   return tablaABorrar;
        }
 

@@ -218,3 +218,4 @@ tEntrada *obtenerNodoPorClave(char *unaClave);
 bool validarSiHayEmpate(t_list *listaOrdenada, int tamanio);
 bool esEntradaAReemplazar(tEntrada *unaEntrada);
 int entradasUsadasPorClave(char *unaClave,t_list *unaTabla);
+static void DestruirEntrada(tEntrada *unaEntrada);
