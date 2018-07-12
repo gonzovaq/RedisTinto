@@ -231,6 +231,7 @@ static volatile int keepRunning = 1;
 
 pthread_mutex_t mutex;
 sem_t semaforoInstancia;
+sem_t semaforoESI;
 int estoyBorrando;
 
 

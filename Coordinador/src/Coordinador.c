@@ -86,7 +86,20 @@
         if ((ret = sem_init(&semaforoInstancia,pshared,value)) != 0){
 			perror("Semaforo para instancia");
         	exit_gracefully(1);
-		} // Inicializo el semaforo en 0
+		} // Inicializo el semaforo en 1
+
+
+        // Inicializo un semaforo general para lso ESIS
+        int retESI;
+        int valueESI;
+        int psharedESI;
+        /* initialize a private semaphore */
+        psharedESI = 0;
+        valueESI= 1;
+        if ((retESI = sem_init(&semaforoESI,psharedESI,valueESI)) != 0){
+			perror("Semaforo para ESIs");
+        	exit_gracefully(1);
+		} // Inicializo el semaforo en 1
 
 
         EscucharConexiones(sockfd);
@@ -448,9 +461,15 @@
 
         while(keepRunning){
         	int operacionValida;
+        	printf("ESI: SOY EL ESI %d Y VOY A RECIBIR LA VALIDEZ \n",parametros->pid);
         	operacionValida = verificarValidez(parametros->new_fd);
         	if (operacionValida == 2)
         		return EXIT_SUCCESS;
+
+        	printf("ESI: SOY EL ESI %d Y VOY A EMPEZAR A OPERAR \n",parametros->pid);
+        	sem_wait(&semaforoESI);
+        	printf("ESI: SOY EL ESI %d Y CONFIRMO QUE EMPIEZO A OPERAR \n",parametros->pid);
+
 			OperaciontHeader * header = malloc(sizeof(OperaciontHeader));
 
 			int recvHeader;
@@ -461,6 +480,7 @@
 				LiberarLasClavesDelESI(parametros);
 				close(parametros->new_fd);
 				free(header);
+				sem_post(&semaforoESI);
 				return EXIT_SUCCESS;
 
 			}
@@ -487,11 +507,9 @@
 
 				free(header);
 
-
 				//Debo avisar a una Instancia cuando recibo una operacion (QUE NO SEA UN GET)
 				//Agregamos el mensaje a una cola en memoria
 				ConexionESISinBloqueo(operacion,parametros);
-
 				break;
 			case BLOQUEO: ;// Que hacemos si hay bloqueo? Debemos avisarle al planificador
 
@@ -503,7 +521,6 @@
 					perror("send");
 				}
 				free(header);
-
 				break;
 			case ERROR:
 				puts("ESI: Error en la soliciud");
@@ -514,18 +531,18 @@
 
 				//LiberarLasClavesDelESI(parametros);
 				free(header);
-
 				break;
 			default:
 				puts("ESI Fallo al ver el resultado de la operacion");
 				close(parametros->new_fd);
-				return EXIT_SUCCESS;
 				free(header);
+				return EXIT_SUCCESS;
 				break;
 			}
 			if(operacion->tipo==OPERACION_SET)
 				free(operacion->valor);
 			free(operacion);
+			sem_post(&semaforoESI);
         }
 		close(parametros->new_fd);
 		return EXIT_SUCCESS;
