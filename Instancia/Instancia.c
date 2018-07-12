@@ -1027,6 +1027,8 @@
     		   index += longitud;
     	   }
 
+    	   list_destroy_and_destroy_elements(duplicada,(void *)DestruirEntrada);
+
     	   return;
 
        }

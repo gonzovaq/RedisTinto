@@ -492,9 +492,10 @@ void intHandler(int dummy) { // para atajar ctrl c
 							{
 								t_esi* esi1 = malloc(sizeof(t_esi));
 								if(queue_is_empty(ejecucion)==0){
-								esi1=queue_pop(ejecucion);
-								queue_push(ready,new_ESI(esi1->id,esi1->fd,esi1->estimacion,esi1->responseRatio,esi1->espera,esi1->clave,esi->clavesTomadas));
-								ordenarEsis(ready);
+									esi1=queue_pop(ejecucion);
+									//estimacionEsi(esi1);
+									queue_push(ready,new_ESI(esi1->id,esi1->fd,esi1->estimacion,esi1->responseRatio,esi1->espera,esi1->clave,esi->clavesTomadas));
+									ordenarEsis(ready);
 								}
 								free(esi1);
 								enviarConfirmacion=0;
