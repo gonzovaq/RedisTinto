@@ -722,7 +722,7 @@
     	}
 
     	valor[tamanioTotalValor] = '\0';
-    	list_destroy_and_destroy_elements(tablaDuplicada,(void *)DestruirEntrada);
+    	list_destroy(tablaDuplicada);
     	//free(bufferEntrada);
     	return valor;
     }
@@ -782,8 +782,8 @@
 
 
 
-       	list_destroy_and_destroy_elements(tablaDuplicada,(void *)DestruirEntrada);
-       	list_destroy_and_destroy_elements(tablaFiltrada,(void *)DestruirEntrada);
+       	list_destroy(tablaDuplicada);
+       	list_destroy(tablaFiltrada);
        	//free(bufferEntrada);
 
        	return;
@@ -1027,7 +1027,7 @@
     		   index += longitud;
     	   }
 
-    	   list_destroy_and_destroy_elements(duplicada,(void *)DestruirEntrada);
+
 
     	   return;
 
@@ -1039,7 +1039,7 @@
     	   ordenarTablaPorTamanioAlmacenado(duplicada);
 
     	   t_list *tablaABorrar = list_take(duplicada, cantidadEntradasPendientes);
-    	   list_destroy_and_destroy_elements(duplicada,(void *)DestruirEntrada); //Ver si va destroy elements también
+    	   list_destroy(duplicada); //Ver si va destroy elements también
     	   return tablaABorrar;
        }
 
