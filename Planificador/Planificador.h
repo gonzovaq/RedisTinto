@@ -143,11 +143,11 @@ static t_esi * new_ESI_desalojo(int id,int fd,float esti,float tasa,int espera,c
 	return new;
 }
 
-static t_esi * new_ESI_hrrn(int id,int fd,float esti,float tasa,int espera,char clave[TAMANIO_CLAVE],int f,t_list * claves){
+static t_esi * new_ESI_hrrn(int id,int fd,float esti,float tasa,int espera,char clave[TAMANIO_CLAVE],int f,t_list * claves,int cont){
 	t_esi *new = malloc(sizeof(t_esi));
 	new->id = id;
 	new->fd = fd;
-	new->cont = 0;
+	new->cont = cont;
 	new->estimacion=esti;
 	new->responseRatio=tasa;
 	new->espera=espera;

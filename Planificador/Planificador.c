@@ -166,22 +166,22 @@ void intHandler(int dummy) { // para atajar ctrl c
 									}
 									if(algoritmo==HRRN)
 									{
+										
 										t_esi * esi = malloc(sizeof(t_esi));
 										esi->id=idEsi;esi->fd=newfd;esi->estimacion=estimacionIni;
 										esi->espera=0;
 										estimacionHRRN(esi);
-										//	puts("entro al algoritmo");
-										//EstimarHRRN(ready);
-										//puts("Salio de ESTIMAR HHRRN");
 										queue_push(ready,new_ESI_nuevo(esi->id,esi->fd,esi->estimacion,esi->responseRatio,esi->espera,esi->clave));
+										desalojar=1;
+										/*
 										t_esi* esi1 = malloc(sizeof(t_esi));//Esi de ejecucion
 										if(queue_is_empty(ejecucion)==0)
 										{
 											esi1=queue_pop(ejecucion);
-											queue_push(ready,new_ESI_hrrn(esi1->id,esi1->fd,esi1->estimacion,esi1->responseRatio,esi1->espera,esi1->clave,1,esi1->clavesTomadas));
-											//ordenarEsis(ready);
+											queue_push(ready,new_ESI_hrrn(esi1->id,esi1->fd,esi1->estimacion,esi1->responseRatio,esi1->espera,esi1->clave,1,esi1->clavesTomadas,esi1->cont));
 										}
 										free(esi1);
+										*/
 										free(esi);
 
 										ordenarEsis(ready);
@@ -260,7 +260,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 											if(desbloqueado!=NULL)
 											{
 												puts("desbloqueado no es nulo");
-												queue_push(ready,new_ESI_hrrn(desbloqueado->id,desbloqueado->fd,desbloqueado->estimacion,desbloqueado->responseRatio,desbloqueado->espera,desbloqueado->clave,1,desbloqueado->clavesTomadas));
+												queue_push(ready,new_ESI_hrrn(desbloqueado->id,desbloqueado->fd,desbloqueado->estimacion,desbloqueado->responseRatio,desbloqueado->espera,desbloqueado->clave,1,desbloqueado->clavesTomadas,desbloqueado->cont));
 												eliminarEsiPorId(bloqueados,desbloqueado->id);
 
 												if(algoritmo==SJF || algoritmo==SJFD)
@@ -286,8 +286,9 @@ void intHandler(int dummy) { // para atajar ctrl c
 												}
 												if(algoritmo==HRRN)
 												{
-													//EstimarHRRN(ready);
 													ordenarEsis(ready);
+													desalojar=1;
+													/*
 													if(queue_is_empty(ejecucion)==0)
 													{
 														t_esi* esi1 = malloc(sizeof(t_esi));
@@ -296,6 +297,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 														ordenarEsis(ready);
 														free(esi1);
 													}
+													*/
 
 												}
 											}
@@ -479,9 +481,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 								puts("____________________________FIN ESI_________________________");
 
 								puts("DEBUG: Vamos a ver las claves tomadas que tiene antes de irse");
-								
-								
-								
+
 								f_ejecutar=1;
 								puts("Dame otro esi");
 								f_ejecutar=1;
@@ -490,26 +490,25 @@ void intHandler(int dummy) { // para atajar ctrl c
 							}
 							if(desalojar==1)
 							{
-								t_esi* esi1 = malloc(sizeof(t_esi));
-								if(queue_is_empty(ejecucion)==0){
-									esi1=queue_pop(ejecucion);
-									printf("EL CONTADOR DEL ESI ESSSSS %d \n",esi1->cont);
-									//estimacionEsi(esi1);
-									queue_push(ready,new_ESI_desalojo(esi1->id,esi1->fd,esi1->estimacion,esi1->responseRatio,esi1->espera,esi1->clave,esi->clavesTomadas,esi1->cont));
-									ordenarEsis(ready);
-								}
-								free(esi1);
-								enviarConfirmacion=0;
-								puts("Entre a desalojo");
-								re=0;
-								desalojar=0;
-								f_ejecutar=1;					
+									t_esi* esi1 = malloc(sizeof(t_esi));
+									if(queue_is_empty(ejecucion)==0){
+										esi1=queue_pop(ejecucion);
+										//printf("EL CONTADOR DEL ESI ESSSSS %d \n",esi1->cont);
+										//No se reestima el esi al desalojarse, solo se guarda ese contador para reestimar luego.
+										queue_push(ready,new_ESI_desalojo(esi1->id,esi1->fd,esi1->estimacion,esi1->responseRatio,esi1->espera,esi1->clave,esi->clavesTomadas,esi1->cont));
+										ordenarEsis(ready);
+									}
+									free(esi1);
+									enviarConfirmacion=0;
+									puts("Entre a desalojo");
+									re=0;
+									desalojar=0;
+									f_ejecutar=1;				
 							}
 							if(enviarConfirmacion==1)
 							{
 								puts("Le voy a decir que ejecute al ESI");
 								esi = queue_peek(ejecucion);
-								printf("Id del esi a ejecutar: %d \n",esi->id);
 								int re=EnviarConfirmacion(esi);
 								if(re==-1)
 								{
@@ -954,7 +953,7 @@ void ordenarEsis(t_queue *cola)
 			{
 				t_esi* esi1 = malloc(sizeof(t_esi));
 				esi1=queue_pop(ejecucion);//(int id,int fd,int esti,char clave[TAMANIO_CLAVE])
-				queue_push(ready,new_ESI_hrrn(esi1->id,esi1->fd,esi1->estimacion,esi1->responseRatio,esi1->espera,esi1->clave,1,esi1->clavesTomadas));
+				queue_push(ready,new_ESI_hrrn(esi1->id,esi1->fd,esi1->estimacion,esi1->responseRatio,esi1->espera,esi1->clave,1,esi1->clavesTomadas,esi1->cont));
 				ordenarEsis(ready);
 				free(esi1);
 			}
