@@ -19,6 +19,8 @@
 
     int main(int argc, char *argv[])
     {
+		int pid = getpid();
+		printf("Mi ID es %d \n",pid);
     	signal(SIGINT, intHandler);
     	signal(SIGPIPE, errorSIGPIPEHandler);
 

@@ -10,6 +10,8 @@
 
     int main(int argc, char *argv[])
     {
+		int pid = getpid();
+		printf("Mi ID es %d \n",pid);
     	signal(SIGINT, intHandler);
 //    	while(keepRunning){
     	puts("Iniciando");
@@ -784,8 +786,8 @@
 
 
 
-       	list_destroy_and_destroy_elements(tablaDuplicada,(void *)DestruirEntrada);
-       	//list_destroy(tablaDuplicada);
+       	//list_destroy_and_destroy_elements(tablaDuplicada,(void *)DestruirEntrada);
+       	list_destroy(tablaDuplicada);
        	list_destroy(tablaFiltrada);
        	//free(bufferEntrada);
 
