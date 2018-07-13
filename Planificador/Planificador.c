@@ -281,7 +281,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 							//printf("fd del esi es: %d",esi->fd);
 							if(i==esi->fd)
 							{
-								puts("voy a recibir el resultado o bloquearme, quien sabe?");
+								puts("Recibiendo el resultado...");
 								int numbytes;
 									if ((numbytes=recv(i, resultado, sizeof(tResultado), 0)) <= 0) {
 										puts("esi desconectado");
@@ -320,41 +320,44 @@ void intHandler(int dummy) { // para atajar ctrl c
 										{
 											puts("El esi hizo un GET");
 											int size=list_size(esi->clavesTomadas);
-											void verClavesTomadas(char * claveArevisar){
+											/*
+												void verClavesTomadas(char * claveArevisar){
 													printf("Una de mis claves antes de agregar es:%s\n",claveArevisar);
 												}
 												list_iterate(esi->clavesTomadas,(void *)verClavesTomadas);
+												*/
 											if(!tieneLaClaveTomada(resultado->clave,esi))
 											{
-												puts("Agregue la clave");
+												printf("Agregue la clave tomada %s al esi %d\n",resultado->clave,esi->id);
 
 												char * claveCopia = malloc(TAMANIO_CLAVE+1);
 												strcpy(claveCopia,resultado->clave);
 												//list_add(esi->clavesTomadas,newClave(resultado->clave));
 												list_add(esi->clavesTomadas,claveCopia);
+												/*
 												void verClavesTomadas(char * claveArevisar){
 													printf("Una de mis claves es:%s\n",claveArevisar);
 												}
 												list_iterate(esi->clavesTomadas,(void *)verClavesTomadas);
-													
+												*/	
 											}
 											else{
 												puts("Ya tenia la clave");
 											}
 										
 											size=list_size(esi->clavesTomadas);
-											printf("DEBUG: el size es %d \n",size);
+											//printf("DEBUG: el size es %d \n",size);
 										}
 										if(resultado->tipoOperacion==OPERACION_STORE)
 										{
-											puts("El esi hizo un STORE");
+											printf("El esi %d hizo un STORE de la clave %s\n",esi->id,resultado->clave);
 											int coincidir(char clave[TAMANIO_CLAVE]){
 																return (string_equals_ignore_case(clave,resultado->clave));
 															}
 																						
 										list_remove_by_condition(esi->clavesTomadas, (void*) coincidir);
 										int size=list_size(esi->clavesTomadas);
-											printf("DEBUG: el size es %d \n",size);
+											//printf("DEBUG: el size es %d \n",size);
 										}
 										if(resultado->tipoOperacion==OPERACION_SET)
 										{
@@ -372,10 +375,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 						//puts("entre ");
 						if(queue_is_empty(ejecucion)==0)
 						{
-							//recibi=0;
-							
-							//puts("Entre a ejecucion");
-							//printf("Tamanio cola %d \n",queue_size(ejecucion));
+						
 							f_ejecutar=0;
 							
 							if(re==2)
@@ -449,7 +449,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 								printf("Estimacion final del ESI %d es %f\n", esi->id, esi->estimacion);
 								puts("____________________________FIN ESI_________________________");
 
-								puts("DEBUG: Vamos a ver las claves tomadas que tiene antes de irse");
+								//puts("DEBUG: Vamos a ver las claves tomadas que tiene antes de irse");
 								
 								if (FD_ISSET(i, &master)) {
 										 //flagEjecutar=0;
@@ -484,7 +484,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 							}
 							if(enviarConfirmacion==1)
 							{
-								puts("Le voy a decir que ejecute al ESI");
+								//puts("Le voy a decir que ejecute al ESI");
 								esi = queue_peek(ejecucion);
 								int re=EnviarConfirmacion(esi);
 								if(re==-1)
@@ -554,7 +554,7 @@ bool tieneLaClaveTomada (char clave[TAMANIO_CLAVE],t_esi * esi)
 		}
 		i++;
 	}
-	puts("Debug Error malloc Pruebo free en claveaux");
+	//puts("Debug Error malloc Pruebo free en claveaux");
 	return b;
 
 }
@@ -1080,7 +1080,7 @@ void ordenarEsis(t_queue *cola)
 
 	 	 puts("recalculamos la estimacion");
 		esi->estimacion= ((0.01*Alfa*esi->cont)+((1-(Alfa*0.01))*(esi->estimacion)));
-		printf("La estimacion ahora es %f : \n",esi->estimacion);
+		printf("La estimacion ahora del esi %d es %f : \n",esi->id,esi->estimacion);
 		//return (esi);
 	}
 
@@ -1165,9 +1165,14 @@ int recibirResultadoDelEsi(int sockfd, tResultado * resultado){
             //exit(1);
         }
         puts("Recibi el resultado");
+		if(resultado->tipoResultado==CHAU)
+		{
+			puts("El esi se finalizo correctamente");
+		}else{
 		printf("Resultado: %d \n",resultado->tipoResultado);
         printf("Resultado: %s \n",resultado->clave);
 		printf("La operacion fue un %d \n",resultado->tipoOperacion);
+		}
 		return EXIT_SUCCESS;
     }
 
@@ -1245,16 +1250,16 @@ int recibirResultadoDelEsi(int sockfd, tResultado * resultado){
 			printf("Esi de id: %d con espera actual de: %d \n",esi->id,esi->espera);
 			return esi;
 		}
-		puts("Voy a mapear ready");
+		//puts("Voy a mapear ready");
 		if(queue_is_empty(cola)==0){
-			puts("ready no vacia");
+			//puts("ready no vacia");
 		cola->elements=list_map(cola->elements,SumarEspera);
-		puts("mapie ready");
+		//puts("mapie ready");
 		}	
 	}
 
 	void estimacionHRRN(t_esi* esi){    //Calcula la tasa de Transferencia de los esis
-			puts("estimamos TASA de trans");
+			//puts("estimamos TASA de trans");
 			//estimacionEsi(esi);
 			esi->responseRatio = ((esi->espera + esi->estimacion)/(esi->estimacion));
 			printf("El RR del esi: %d es : %f \n",esi->id,esi->responseRatio);
