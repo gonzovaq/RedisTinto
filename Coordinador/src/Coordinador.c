@@ -302,6 +302,15 @@
     				parametros->nombreProceso);
 
     		pthread_cancel(tid);
+
+    		bool SacarLaInstancia(parametrosConexion * instancia){
+    			if(string_equals_ignore_case(parametros->nombreProceso,instancia->nombreProceso) == true)
+    				return true;
+    			else
+    				return false;
+    		}
+
+    		list_remove_by_condition(colaInstancias,(void *)SacarLaInstancia);
     		free(semaforoCompactacion);
     		break;
     	default:
@@ -343,10 +352,6 @@
     		return EXIT_SUCCESS;
     	}
 
-    	sem_destroy(instancia->semaforoCompactacion);
-    	instancia->conectada = 0;
-    	sem_post(instancia->semaforo); // Le vamos a avisar que siga (va a saber matarse)
-
 		sem_t * semaforo = malloc(sizeof(sem_t));
 		parametros->semaforo = semaforo;
 
@@ -367,6 +372,10 @@
     	parametros->conectada = 1;
     	list_add_all(parametros->claves,instancia->claves);
     	puts("Instancia: Actualice la informacion de la Instancia");
+
+    	sem_destroy(instancia->semaforoCompactacion);
+    	instancia->conectada = 0;
+    	sem_post(instancia->semaforo); // Le vamos a avisar que siga (va a saber matarse)
 
     	return EXIT_SUCCESS;
     }
@@ -1252,9 +1261,9 @@
 			sem_wait(parametros->semaforo);
 			// Caundo me avisen que hay una operacion para enviar, la voy a levantar de la cola
 
-			printf("Instancia: Me hicieron un sem_post y tengo de id %d \n",parametros->pid);
+			printf("Instancia: Me hicieron un sem_post y tengo de id %d con conectada = %d \n",parametros->pid,parametros->conectada);
 
-			if(parametros->conectada == 0){
+			if(parametros->conectada != 0){
 				puts("Instancia: UY, parece que hubo una desconexion en este hilo, me voy!");
 				return OK;
 			}
@@ -1952,7 +1961,6 @@
     		if(string_equals_ignore_case(clave,claveAComparar) == true){
     			return true;
     		}
-
     		return false;
     	}
     	bool lePerteneceLaClave(parametrosConexion * parametros){
@@ -2162,7 +2170,7 @@
 			}
 		}
 		else{
-			puts("DEBUG: Voy a buscar la instnacia");
+			puts("DEBUG: Voy a buscar la instancia");
 			instancia = BuscarInstanciaQuePoseeLaClave(clave);
 			puts("DEBUG: Encontre la instancia");
 			//printf("ESI: La Instancia %s tiene el flag conectada en %d \n",instancia->nombreProceso,instancia->conectada);
