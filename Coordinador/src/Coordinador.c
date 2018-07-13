@@ -2507,6 +2507,7 @@
     }
 
     bool EstaConectada(parametrosConexion * instancia){
+
     	if (instancia->conectada == 1)
     		return true;
     	else
@@ -2630,12 +2631,12 @@
         		parametrosConexion* instanciaAComparar = malloc(sizeof(parametrosConexion));
         		instanciaAComparar = list_get(colaInstancias,i);
             	if (instancia->conectada == 0){
-            		printf("ESI: La Instancia %s con pid %d se encuentra desconectada \n", instancia->nombreProceso,instancia->pid);
+            		//printf("ESI: La Instancia %s con pid %d se encuentra desconectada \n", instancia->nombreProceso,instancia->pid);
             		instancia = instanciaAComparar;
             	}
             	if (instancia->entradasUsadas > instanciaAComparar->entradasUsadas && instanciaAComparar->conectada == 1)
             		instancia = instanciaAComparar;
-        		free(instanciaAComparar);
+        		//free(instanciaAComparar);
         	}
         	if (instancia->conectada == 0)
         		return NULL;
