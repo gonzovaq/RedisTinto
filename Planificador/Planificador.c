@@ -171,7 +171,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 										esi->espera=0;
 										estimacionHRRN(esi);
 										queue_push(ready,new_ESI_nuevo(esi->id,esi->fd,esi->estimacion,esi->responseRatio,esi->espera,esi->clave));
-										desalojar=1;
+										//desalojar=1;
 										free(esi);
 
 										ordenarEsis(ready);
@@ -438,7 +438,8 @@ void intHandler(int dummy) { // para atajar ctrl c
 									sumarEspera(ready);
 								}
 								printf("Contador De ESI %d  estimacion %f espera %d\n",esi->cont, esi->estimacion,esi->espera);
-								re=0;
+								if (desalojar != 1)
+									re=0;
 							}
 							if(re==-5)
 							{
@@ -463,8 +464,9 @@ void intHandler(int dummy) { // para atajar ctrl c
 								enviarConfirmacion=0;
 							    re=0;
 							}
-							if(desalojar==1)
+							if(desalojar==1 && re !=0)
 							{
+								puts("ENTRE A DESALOJO -- ENTRE A DESALOJO -- ENTRE A DESALOJO -- ENTRE A DESALOJO-- ENTRE A DESALOJO");
 									t_esi* esi1 = malloc(sizeof(t_esi));
 									if(queue_is_empty(ejecucion)==0){
 										esi1=queue_pop(ejecucion);
