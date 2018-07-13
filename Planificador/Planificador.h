@@ -112,7 +112,8 @@ static t_esi * new_ESI_nuevo(int id,int fd,float esti,float tasa,int espera,char
 static char* newClave(char clave[TAMANIO_CLAVE])
 {
 	char * new = malloc(strlen(clave)+1);
-	return strcpy(new,clave);
+	strcpy(new,clave);
+	return new;
 }
 
 static t_esi * new_ESI(int id,int fd,float esti,float tasa,int espera,char clave[TAMANIO_CLAVE],t_list * claves){
