@@ -429,7 +429,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 									printf("No hay nada en Ready, asi que seguro me quedo esperando que desbloqueen la clave %s \n",esi->clave);
 								else
 									puts("Hay algo en ready");
-									re=0;
+								re=0;
 							}
 							if (re==1){
 								esi->cont++;
@@ -513,13 +513,14 @@ void intHandler(int dummy) { // para atajar ctrl c
 							{
 								puts("Voy a seleccionar alguno para ejecutar de la cola de ready");
 								//if(algoritmo==SJF || algoritmo==SJFD)
-									ordenarEsis(ready);
+								list_map(ready->elements,(void *)estimacionHRRN);
+								//estimacionHRRN(esi);
+								ordenarEsis(ready);
 								esi = queue_pop(ready);
 								re=0;
 								enviarConfirmacion=1;	
 								printf("Id del esi a buscar:%d \n",esi->id);
 								printf("esi de id %d cambiado de cola con espera de: %d \n",esi->id,esi->espera);
-								estimacionHRRN(esi);
 								queue_push(ejecucion,new_ESI_desalojo(esi->id,esi->fd,esi->estimacion,esi->responseRatio,0,esi->clave,esi->clavesTomadas,esi->cont));
 							}
 							//puts("Ready no vacia");
@@ -1245,6 +1246,7 @@ int recibirResultadoDelEsi(int sockfd, tResultado * resultado){
 		puts("mapie ready");
 		}	
 	}
+
 	void estimacionHRRN(t_esi* esi){    //Calcula la tasa de Transferencia de los esis
 			puts("estimamos TASA de trans");
 			//estimacionEsi(esi);
