@@ -86,7 +86,8 @@ typedef enum{
 	ERROR = 3,
 	DESBLOQUEO = 4,
 	STATUSDORRPUTO = 5,
-	BORRANDO = 6
+	BORRANDO = 6,
+	DESCONEXION = 7
 }tResultadoOperacion;
 
 typedef enum{
@@ -234,7 +235,7 @@ sem_t semaforoInstancia;
 sem_t semaforoESI;
 int estoyBorrando;
 
-
+tResultadoOperacion estadoConexion;
 
 // FUNCIONES
 

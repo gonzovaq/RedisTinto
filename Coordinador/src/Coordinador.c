@@ -19,6 +19,7 @@
 
     int main(int argc, char *argv[])
     {
+    	estadoConexion = OK;
 		int pid = getpid();
 		printf("Mi ID es %d \n",pid);
     	signal(SIGINT, intHandler);
@@ -310,7 +311,10 @@
     				return false;
     		}
 
+    		printf("DEBUG LA CANTIDAD DE ISNTANCIAS EN COLAISNTANCIAS ANTES DE REMOVER ES %d \n", list_size(colaInstancias));
+
     		list_remove_by_condition(colaInstancias,(void *)SacarLaInstancia);
+    		printf("DEBUG LA CANTIDAD DE ISNTANCIAS EN COLAISNTANCIAS DESPUES DE REMOVER ES %d \n", list_size(colaInstancias));
     		free(semaforoCompactacion);
     		break;
     	default:
@@ -1263,7 +1267,7 @@
 
 			printf("Instancia: Me hicieron un sem_post y tengo de id %d con conectada = %d \n",parametros->pid,parametros->conectada);
 
-			if(parametros->conectada != 0){
+			if(parametros->conectada == 0){
 				puts("Instancia: UY, parece que hubo una desconexion en este hilo, me voy!");
 				return OK;
 			}
@@ -1314,9 +1318,17 @@
 
 			tEntradasUsadas *estasConecatada2 = malloc(sizeof(tEntradasUsadas));
 			if ((recv(parametros->new_fd, estasConecatada2, sizeof(tEntradasUsadas), 0)) <= 0) {
+
 				perror("Instancia: se desconecto!!!");
 				sem_post(&semaforoInstancia);
 				parametros->conectada = 0;
+
+				if (operacion->tipo == OPERACION_GET){
+					estadoConexion = DESCONEXION;
+					sem_post(ESIActual->semaforo);
+					return OK;
+				}
+
 				tResultado * resultadoCompleto = malloc(sizeof(tResultado));
 				resultadoCompleto->resultado = ERROR;
 				//sem_destroy(parametros->semaforo);
@@ -1423,7 +1435,7 @@
 					void ImprimirTodasMisClaves(char * clave){
 						printf("Instancia: Una de mis claves es %s \n",clave);
 					}
-					puts("Instancia: Voy a revisar mi lista de claves");
+					puts("Instancia: Voy a revisar mi lista de claves en conexionInstancia");
 					list_iterate(parametros->claves, (void *)ImprimirTodasMisClaves);
 
 					//Debo avisarle al ESI que me invoco el resultado
@@ -1816,7 +1828,17 @@
 			free(resultado);
 		}
 		else {
+			puts("Debug: sem wait esi");
 			sem_wait(ESIActual->semaforo);
+			while (estadoConexion == DESCONEXION){
+				puts("ESI: Hubo una desconexion de Instancia asi que debo buscar otra para distribuir la clave");
+				estadoConexion = OK;
+				RemoverClaveDeLaInstancia(&CLAVE);
+				puts("DEBUG: Ya removi la clave de la instancia y voy a buscar otra");
+				list_add(colaMensajes,operacion);
+				seleccionInstancia = SeleccionarInstancia(&CLAVE);
+				sem_wait(ESIActual->semaforo);
+			}
 			if(seleccionInstancia==2){
 				tResultado* resultado = malloc(sizeof(tResultado));
 
@@ -1964,6 +1986,10 @@
     		return false;
     	}
     	bool lePerteneceLaClave(parametrosConexion * parametros){
+    		if (parametros->conectada != 1){
+    			// TODO hay basura en la cola, comparar el conectada fue la mejor idea que tuve, pero hay que ver porque queda basura
+    			return false;
+    		}
     		if(list_is_empty(parametros->claves) == true){
     			return false;
     		}
@@ -1972,6 +1998,7 @@
     		}
     		return false;
     	}
+    	printf("DEBUG: Tengo %d instancias en colaInstancias \n",list_size(colaInstancias));
     	return list_find(colaInstancias,(void*) lePerteneceLaClave);
 		
     }
@@ -2140,33 +2167,34 @@
 		if(OPERACION_ACTUAL == OPERACION_GET){
 				while(conectada){
 
-				bool NoEstaConectada(parametrosConexion * parametros){
-					printf("ESI: La instancia %s con pid %d tiene el flag conectada en %d \n",parametros->nombreProceso,parametros->pid,parametros->conectada);
-					return parametros->conectada != 1;
-				}
+					printf("Debug: Voy a buscar una instancia para distribuir la clave %s \n",clave);
+					bool NoEstaConectada(parametrosConexion * parametros){
+						printf("ESI: La instancia %s con pid %d tiene el flag conectada en %d \n",parametros->nombreProceso,parametros->pid,parametros->conectada);
+						return parametros->conectada != 1;
+					}
 
-				if (list_all_satisfy(colaInstancias,(void*)NoEstaConectada) == true){
-					puts("ESI: No hay Instancias conectadas para operar, se debe abortar");
-					return ERROR;
-				}
+					if (list_all_satisfy(colaInstancias,(void*)NoEstaConectada) == true){
+						puts("ESI: No hay Instancias conectadas para operar, se debe abortar");
+						return ERROR;
+					}
 
-				instancia = list_remove(colaInstancias,0);
-				if(instancia == NULL){
-					puts("ESI: No hay Instancia para operar, se debe abortar");
-					return ERROR;
-				}
-				if (instancia->conectada == 1){
-					printf("ESI: Agrego la clave %s a la instancia %d \n",clave,instancia->pid);
-					char * claveCopia = malloc(TAMANIO_CLAVE);
-					strcpy(claveCopia,clave);
-					printf("ESI: Agrego la copia clave %s a la instancia %d \n",claveCopia,instancia->pid);
-					list_add(instancia->claves,claveCopia);
-					//MandarAlFinalDeLaLista(colaInstancias,instancia);
-					printf("ESI: Le hago el sem_post al semaforo en direccion %p \n",(void *)&(instancia->semaforo));
-					sem_post(instancia->semaforo);
-					conectada = 0;
-				}
-				list_add(colaInstancias, instancia);
+					instancia = list_remove(colaInstancias,0);
+					if(instancia == NULL){
+						puts("ESI: No hay Instancia para operar, se debe abortar");
+						return ERROR;
+					}
+					if (instancia->conectada == 1){
+						printf("ESI: Agrego la clave %s a la instancia %d \n",clave,instancia->pid);
+						char * claveCopia = malloc(TAMANIO_CLAVE);
+						strcpy(claveCopia,clave);
+						printf("ESI: Agrego la copia clave %s a la instancia %d \n",claveCopia,instancia->pid);
+						list_add(instancia->claves,claveCopia);
+						//MandarAlFinalDeLaLista(colaInstancias,instancia);
+						printf("ESI: Le hago el sem_post al semaforo en direccion %p \n",(void *)&(instancia->semaforo));
+						sem_post(instancia->semaforo);
+						conectada = 0;
+					}
+					list_add(colaInstancias, instancia);
 			}
 		}
 		else{
@@ -2199,7 +2227,7 @@
 		void ImprimirTodasMisClavesTrasDistribuir(char * clave){
 			printf("Instancia: Una de mis claves es %s \n",clave);
 		}
-		puts("Instancia: Voy a revisar mi lista de claves");
+		puts("Instancia: Voy a revisar mi lista de claves - EL");
 		list_iterate(instancia->claves, (void *)ImprimirTodasMisClavesTrasDistribuir);
 
 		//free(instancia);
