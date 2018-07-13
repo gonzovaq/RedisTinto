@@ -92,9 +92,9 @@ void intHandler(int dummy) { // para atajar ctrl c
 				pthread_detach(tid); //Con esto decis que cuando el hilo termine libere sus recursos
 				
 				struct timeval timeout;
-				timeout.tv_sec=SOCKET_READ_TIMEOUT_SEC;
-				timeout.tv_usec=0;
-
+			//	timeout.tv_sec=SOCKET_READ_TIMEOUT_SEC;
+			//	timeout.tv_usec=0;
+//
     	        // seguir la pista del descriptor de fichero mayor
     	        fdmax = listener; // por ahora es éste
     	        // bucle principal
@@ -102,8 +102,13 @@ void intHandler(int dummy) { // para atajar ctrl c
 						int enviarConfirmacion=1;
 						t_esi *esi=malloc(sizeof(t_esi));
 						char clave[TAMANIO_CLAVE];
-    	        
-				for(;;) {
+    	        		//timeout.tv_sec=2;
+						//timeout.tv_usec=50000;
+				for(;;) {	
+					
+					timeout.tv_sec=2;
+					timeout.tv_usec=50000;
+					//puts("DEBUGGG");		
     	        	/*
     	        	dos conjuntos de descriptores de fichero: master y read_fds.
     	        	El primero, master, contiene todos los descriptores de fichero que están actualmente conectados,
@@ -114,20 +119,22 @@ void intHandler(int dummy) { // para atajar ctrl c
     	        	necesito almacenar ese conjunto en algún lugar seguro.
     	        	En el último momento copio master sobre read_fs y entonces llamo a select().
     	        	*/
-					timeout.tv_sec=2;
-					timeout.tv_usec=50000;
+				
+					
+
+
     	            read_fds = master; // cópialo
     	            if (select(fdmax+1, &read_fds, NULL, NULL, &timeout) == -1) {
     	                perror("select");
     	                exit(1);
     	            }
     	            // explorar conexiones existentes en busca de datos que leer
-					int re=0;
+						int re=0;
 						int f_ejecutar=0;//Flag para mandar de ready a ejecucion.
 						int recibi=0;
-						
+					
     	            for(i = 0; i <= fdmax; i++) {
-						
+						//printf("SOCKET: %d\n",i);
     	                if (FD_ISSET(i, &read_fds)) { // ¡¡tenemos datos!!
     	                    if (i == listener) {
     	                        // gestionar nuevas conexiones
@@ -137,13 +144,14 @@ void intHandler(int dummy) { // para atajar ctrl c
     	                            perror("accept");
     	                        } else {
     	                            FD_SET(newfd, &master); // añadir al conjunto maestro
-
+									printf("SOCKET: agregado a conjunto%d\n",fdmax);
     	                            if (newfd > fdmax) {    // actualizar el máximo
+										printf("SOCKET: actualizar max %d\n",i);
     	                                fdmax = newfd;
     	                            }
     	                            printf("selectserver: new connection from %s on "
     	                                "socket %d \n", inet_ntoa(remoteaddr.sin_addr), newfd);
-									
+								
 									int idEsi=obtenerEsi(newfd);
 									if(algoritmo==SJF || algoritmo==SJFD)
 									{
@@ -190,8 +198,10 @@ void intHandler(int dummy) { // para atajar ctrl c
 
 									printf("Esi id %d conectado y puesto en cola \n",idEsi);
 									
-    	                        }
-							 }else{
+    	                        //}
+							// }else{
+								}
+								}else{//Gestionar datos de un cliente
 								 if(i==sockCord){
 									tNotificacionPlanificador *notificacion = malloc(sizeof(tNotificacionPlanificador));
 									//notificacion=recibirNotificacionCoordinador(sockCord);
@@ -199,7 +209,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 									if ((numbytes=recv(i, notificacion, sizeof(tNotificacionPlanificador), 0)) <= 0) {
 										//perror("Fallo el recibir Notificacion. Probablemente el Coordiandor la quedo");
 
-										puts("PINTO SUICIDIOOOO");
+										puts("CORDINADOR NO ESTA VIVO, SIN EL... NO SOY NADA... ADIOS");
 										killEsi(getpid());
 										// MATAMOS AL PLANI - MATAMOS AL PLANI !
 
@@ -332,12 +342,21 @@ void intHandler(int dummy) { // para atajar ctrl c
 										eliminarEsiPorId(ready,esi->id);
 										eliminarEsiPorId(ejecucion,esi->id);
 										eliminarEsiPorId(bloqueados,esi->id);
-										puts("Cerramos el socket del ESI y lo borramos del conjunto maestro");
 									 	if (FD_ISSET(i, &master)) {
 										 //flagEjecutar=0;
+										
+										puts("Cerramos el socket del ESI y lo borramos del conjunto maestro");
+
 										 close(i);
 										 FD_CLR(i, &master);
+										 
+										
+									
+										 //fdmax--;
+
+										//puts("Cerramos el socket del ESI y lo borramos del conjunto maestro");
 									 	 }
+										  
 										//perror("esi desconectado");
 										//resultado->tipoResultado=CHAU;
 										//exit(1);
@@ -417,7 +436,6 @@ void intHandler(int dummy) { // para atajar ctrl c
 								{
 									sumarEspera(ready);
 								}
-
 								queue_pop(ejecucion);
 								if(algoritmo==SJF ||algoritmo==SJFD)
 									estimacionEsi(esi);
@@ -481,8 +499,22 @@ void intHandler(int dummy) { // para atajar ctrl c
 								puts("____________________________FIN ESI_________________________");
 
 								puts("DEBUG: Vamos a ver las claves tomadas que tiene antes de irse");
+								
+								if (FD_ISSET(i, &master)) {
+										 //flagEjecutar=0;
+										
+										puts("Cerramos el socket del ESI y lo borramos del conjunto maestro");
 
-								f_ejecutar=1;
+										 close(i);
+										 FD_CLR(i, &master);
+										 
+										
+									
+										 //fdmax--;
+
+										//puts("Cerramos el socket del ESI y lo borramos del conjunto maestro");
+									 	 }
+
 								puts("Dame otro esi");
 								f_ejecutar=1;
 								enviarConfirmacion=0;
@@ -549,8 +581,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 						}
 						
 					}
-
-					}//ciero el for del select
+				}//ciero el for del select
 
 				}//Cierra el for del main
     	        
@@ -1308,27 +1339,27 @@ void deadlock ()
 	int i=0;
 	while(i<size)//for(int i=0;i<size;i++)
 	{
-		//puts("voy a agarrar un esi");
+		puts("voy a agarrar un esi");
 		if(list_size(aux)==0||list_size(aux)==1)
 		{
-			//puts("voy a breakear");
+			puts("voy a breakear");
 			break;
 		}	
 		esiP=list_get(aux,i);
 		
 		if(esiP==NULL)
 		{
-			//puts("breakeo porque es nulo");
+			puts("breakeo porque es nulo");
 			break;
 		}
 		
-		//printf("El esi que agarre es %d \n",esiP->id);
+		printf("El esi que agarre es %d \n",esiP->id);
 		queue_push(colaDeadlock,new_ESI(esiP->id,esiP->fd,esiP->estimacion,esiP->responseRatio,esiP->espera,esiP->clave,esiP->clavesTomadas));
-		//printf("DEBUG: acabo de meter en cola el esi con id %d \n",esiP->id);
+		printf("DEBUG: acabo de meter en cola el esi con id %d \n",esiP->id);
 				
-		//puts("voy a revisar bloqueados");
+		puts("voy a revisar bloqueados");
 		esiClave = revisarBloqueado(esiP->clave,aux,esiClave);
-		//puts("Voy a printear x2");
+		puts("Voy a printear x2");
 		//printf("Primer revisarBloqueado nos da el esi %d \n",esiClave->id);
 		int x=0;
 		//esi=queue_peek(colaDeadlock);
@@ -1339,12 +1370,12 @@ void deadlock ()
 			{
 				//hay deadlock, porque volvimos al esi primero
 				puts("Hay deadlock");
-				//printf("DEBUG: acabo de meter en cola el esi con id %d \n",esiClave->id);
+				printf("DEBUG: acabo de meter en cola el esi con id %d \n",esiClave->id);
 				encontrado=1;
 			}
 			else
 			{
-				//puts("Entre al else (no deadlock)");
+				puts("Entre al else (no deadlock)");
 				queue_push(colaDeadlock,new_ESI(esiClave->id,esiClave->fd,esiClave->estimacion,esiClave->responseRatio,esiClave->espera,esiClave->clave,esiClave->clavesTomadas));
 				esiClave = revisarBloqueado(esiClave->clave,aux,esiClave);//Buscamos quien tiene la clave del que concatenamos
 			}
@@ -1383,7 +1414,7 @@ void deadlock ()
 			queue_clean(colaDeadlock);
 		}else
 		{
-			//puts("he entrado al limpiar colas");
+			puts("he entrado al limpiar colas");
 			//debemos limpiar la cola deadlocks
 			queue_clean(colaDeadlock);
 		}	
@@ -1398,7 +1429,7 @@ t_esi * revisarBloqueado(char clave[TAMANIO_CLAVE],t_list * lista,t_esi* esi)
 	int i=0;
 	int j=0;
 	char * claveAux;
-	//printf("La clave a buscar es: %s \n",clave);
+	printf("La clave a buscar es: %s \n",clave);
 	/*
 	while(i<list_size(lista))
 	{
@@ -1418,34 +1449,34 @@ t_esi * revisarBloqueado(char clave[TAMANIO_CLAVE],t_list * lista,t_esi* esi)
 	int sizel = list_size(lista);
 	while(i<sizel)
 	{
-		//puts("Voy a obtener esi");
+		puts("Voy a obtener esi");
 		esi=list_get(lista,i);
 		//recorrer claves tomadas
-		//printf("DEBUG: esi que agarre es %d \n",esi->id);
+		printf("DEBUG: esi que agarre es %d \n",esi->id);
 
-		//puts("DEBUG: busco size de clave");
+		puts("DEBUG: busco size de clave");
 		int sizec=list_size(esi->clavesTomadas);
-		//puts("DEBUG: salgo size de clave");
+		puts("DEBUG: salgo size de clave");
 		while(j<sizec)
 		{
-			//puts("DEBUG: Voy a obtener clave");
+			puts("DEBUG: Voy a obtener clave");
 			claveAux=list_get(esi->clavesTomadas,j);
-			//printf("El esi %d tiene la claveTomada %s \n",esi->id,claveAux);
+			printf("El esi %d tiene la claveTomada %s \n",esi->id,claveAux);
 			if(string_equals_ignore_case(clave,claveAux)==true && esi->clave!=clave)
 			{
-				//puts("Encontre al esi que tiene la clave");
+				puts("Encontre al esi que tiene la clave");
 				return esi;
 			}
 			else{
-				//puts("No lo encontre (todavia)");
+				puts("No lo encontre (todavia)");
 			}
-			//printf("DEBUG:  J esta en %d \n",j);
+			printf("DEBUG:  J esta en %d \n",j);
 			j++;
 		}
 		j=0;
 		i++;
 	}
-	//puts("Voy a printear");
+	puts("Voy a printear");
 	//printf("DEBUG: El esi que tiene la clave %s es el esi de id %d",clave,esi->id);
 	return NULL;
 }
