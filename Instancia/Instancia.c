@@ -53,7 +53,7 @@
         	    		perror("recv");
         	    		intHandler(1);
         	    	}
-        	printf("Informo que estoy viva 2 tras recibir operacion de tipo %d \n",operacion->operacion);
+        	printf("Informo que estoy viva 2 tras recibir operacion de tipo %d \n",operacion);
         	EnviarAvisoDeQueEstoyViva(socketCoordinador);
 
         	puts("Verifico que tipo de operacion me pidieron");
@@ -147,6 +147,8 @@
 										if(entradasABorrar > cantidadEntradasAtomicas()){
 											//TODO - HAY QUE ABORTAR PORQUE NO HAY NI ENTRADAS ATOMICAS PARA BORRAR
 											puts("NO HAY ENTRADAS ATOMICAS PARA REEMPLAZAR");
+											printf("EENTRADAS NECESARIAS %d \n",entradasNecesarias);
+											printf("CLAVES ATOMICAS %d \n",list_size(colaLRU));
 										}
 										else{
 											puts("por entrar a aplicar algoritmo");
@@ -159,18 +161,21 @@
 											agregarEntrada(operacion, tamanioValorRecibido);
 										}
 										else{
-											puts("AVISO - Hay fragmentacion externa luego de reemplazar entradas, solicito compactacion");
-											tEntradasUsadas *tuVieja = malloc(sizeof(tEntradasUsadas));
-											tuVieja->entradasUsadas = 500;
+											if(validarEspacioReal(tamanioValorRecibido) == true){
+												puts("AVISO - Hay fragmentacion externa luego de reemplazar entradas, solicito compactacion");
+												tEntradasUsadas *tuVieja = malloc(sizeof(tEntradasUsadas));
+												tuVieja->entradasUsadas = 500;
 
-											if (send(socketCoordinador, tuVieja, sizeof(tEntradasUsadas), 0) <= 0){
-												puts("Error al enviar solicitud de compactacion");
-												perror("Send");
+												if (send(socketCoordinador, tuVieja, sizeof(tEntradasUsadas), 0) <= 0){
+													puts("Error al enviar solicitud de compactacion");
+													perror("Send");
+													free(tuVieja);
+													intHandler(1);
+												}
 												free(tuVieja);
-												intHandler(1);
-											 }
-											free(tuVieja);
-											cantidadClavesEnTabla--;
+												cantidadClavesEnTabla--;
+											}
+
 										}
 									}
 								}
@@ -655,7 +660,7 @@
 
     	//free(unaOperacion);
     	free(valorRecibido);
-    	free(claveRecibida);
+    	//free(claveRecibida);
 
     	return;
     }
@@ -1021,9 +1026,22 @@
     	   char *bufferClave;
     	   tEntrada *bufferEntrada;
     	   int index = 0;
-    	   printf("Claves en mi tabla: %d\n",cantidadClavesEnTabla);
+    	   int clavesEnTabla;
+    	   tEntrada *buffer1 = malloc(sizeof(tEntrada));
+    	   int contador = 0;
 
-    	   for (int i = 0; i < cantidadClavesEnTabla;i++){
+
+
+    	   for(int i = 0; i < list_size(tablaEntradas); i++){
+    		   buffer1 = list_get(tablaEntradas, i);
+    		   clavesEnTabla = calcularClaveEnTablaDeEntradas(buffer1->clave);
+    		   i += clavesEnTabla - 1;
+    		   contador++;
+    	   }
+
+    	   printf("Claves en mi tabla: %d\n",contador);
+
+    	   for (int i = 0; i < contador; i++){
         	   bufferEntrada = list_get(duplicada, index);
         	   bufferClave = bufferEntrada->clave;
         	   int longitud = entradasUsadasPorClave(bufferClave, duplicada);
@@ -1080,7 +1098,7 @@
 
        void compactar(){
 
-    	   t_list *nuevaTabla;
+		   t_list *nuevaTabla;
     	   nuevaTabla = list_create();
     	   char *burbuja;
     	   tEntrada *nuevo;
@@ -1091,15 +1109,12 @@
     	   for(int i = 0; i < cantidadEntradas - 1; i++){
     		   if(*(arrayEntradas[i]) != NULL){
 				   nuevo = obtenerNodoPorIndexstorage(tablaEntradas, i);
-				   printf("El nodo que tiene el numero de entrada: %d QUEDA IGUAL\n", nuevo->numeroEntrada);
 				   agregarNodoAtabla(nuevaTabla, i, nuevo->tamanioAlmacenado, nuevo->clave);
 			   }
     		   for(int j = i + 1; j < cantidadEntradas; j++){
     			   if(*(arrayEntradas[i]) == NULL && *(arrayEntradas[j]) != NULL){
     				   nuevo = obtenerNodoPorIndexstorage(tablaEntradas, j);
-    				   printf("El nodo tiene la clave: %s y su numero de entrada viejo es: %d\n", nuevo->clave, nuevo->numeroEntrada);
     				   nuevo->numeroEntrada = i;
-    				   printf("Su nuevo numero de entrada es: %d\n", nuevo->numeroEntrada);
     				   agregarNodoAtabla(nuevaTabla, i, nuevo->tamanioAlmacenado, nuevo->clave);
     				   burbuja = arrayEntradas[j];
     				   arrayEntradas[j] = arrayEntradas[i];
@@ -1109,6 +1124,8 @@
     		   }
 
     	   }
+
+		   puts("__________________________ COMPACTACION __________________________");
 
     	   list_clean_and_destroy_elements(tablaEntradas, (void *)destruirNodoDeTabla);
     	   list_add_all(tablaEntradas, nuevaTabla);
@@ -1242,6 +1259,8 @@
     		   eliminarEntradasStorageBSU(arrayEntradas, entradasABorrar);
     		   break;
     	   }
+
+    	   cantidadClavesEnTabla = cantidadClavesEnTabla - entradasABorrar;
        }
 
        void ordenarTablaPorNroEntrada(t_list *unaTabla){
@@ -1339,3 +1358,15 @@
 //    	   //free(arrayEntradas);
 //    	   return;
 //       }
+
+       int calcularClaveEnTablaDeEntradas(char *unaClave){
+
+    	   bool coincidir(tEntrada *unaEntrada){
+    		   return string_equals_ignore_case(unaEntrada->clave,unaClave);
+    	   }
+
+    	   return list_count_satisfying(tablaEntradas, (void*) coincidir);
+
+       }
+
+
