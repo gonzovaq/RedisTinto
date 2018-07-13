@@ -514,6 +514,12 @@ void intHandler(int dummy) { // para atajar ctrl c
 								puts("Voy a seleccionar alguno para ejecutar de la cola de ready");
 								//if(algoritmo==SJF || algoritmo==SJFD)
 								list_map(ready->elements,(void *)estimacionHRRN);
+
+								void mostrarRR(t_esi * esito){
+													printf("RR: el rr del esi %d es:%f\n",esito->id,esito->responseRatio);
+												}
+								list_iterate(ready->elements,(void *)mostrarRR);
+
 								//estimacionHRRN(esi);
 								ordenarEsis(ready);
 								esi = queue_pop(ready);
@@ -925,14 +931,14 @@ void ordenarEsis(t_queue *cola)
 		{
 			//EstimarHRRN(ready);
 			ordenarEsis(ready);
-			if(queue_is_empty(ejecucion)==0)
+			/*if(queue_is_empty(ejecucion)==0)
 			{
 				t_esi* esi1 = malloc(sizeof(t_esi));
 				esi1=queue_pop(ejecucion);//(int id,int fd,int esti,char clave[TAMANIO_CLAVE])
 				queue_push(ready,new_ESI_hrrn(esi1->id,esi1->fd,esi1->estimacion,esi1->responseRatio,esi1->espera,esi1->clave,1,esi1->clavesTomadas,esi1->cont));
 				ordenarEsis(ready);
 				free(esi1);
-			}
+			}*/
 		}
 		free(solicitud);
 	}
