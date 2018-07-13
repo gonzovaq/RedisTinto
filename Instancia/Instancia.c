@@ -53,7 +53,7 @@
         	    		perror("recv");
         	    		intHandler(1);
         	    	}
-        	printf("Informo que estoy viva 2 tras recibir operacion de tipo %d \n",operacion);
+        	printf("Informo que estoy viva 2 tras recibir operacion de tipo %d \n",operacion->operacion);
         	EnviarAvisoDeQueEstoyViva(socketCoordinador);
 
         	puts("Verifico que tipo de operacion me pidieron");
