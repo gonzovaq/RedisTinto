@@ -406,9 +406,8 @@
              size_t len = 0;
              FILE * archivo;
 
-             operacionRecibida *operacion = malloc(sizeof(operacionRecibida));
-
          	for(int i = 0; i < clavesPrevias; i++){
+         		operacionRecibida *operacion = malloc(sizeof(operacionRecibida));
          		char bufferClave[TAMANIO_CLAVE];
 
              	if((recv(sockeCoordinador, bufferClave, TAMANIO_CLAVE, 0)) <= 0){
