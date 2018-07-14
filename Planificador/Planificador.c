@@ -198,7 +198,7 @@ void intHandler(int dummy) { // para atajar ctrl c
 										}
 										if(notificacion->tipoNotificacion==STATUS_RECV)
 										{
-											printf("TODO: IMPLEMENTAR RCV DE LA INSTANCIA \n");
+											puts("*****************LABURAREMOS UN STATUS*****************");
 											//char instancia[TAMANIO_NOMBREPROCESO];
 											//char * valor = malloc(tamanioValor+1);
 											tStatusParaPlanificador * status = malloc(sizeof(tStatusParaPlanificador));

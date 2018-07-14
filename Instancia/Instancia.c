@@ -1097,6 +1097,8 @@
 
        void compactar(){
 
+    	   puts("__________________________ COMPACTACION __________________________");
+
 		   t_list *nuevaTabla;
     	   nuevaTabla = list_create();
     	   char *burbuja;
@@ -1123,7 +1125,8 @@
     		   }
 
     	   }
-
+    	   puts("Asi queda el storage despues de compactar");
+    	   mostrarArray(arrayEntradas,cantidadEntradas);
 		   puts("__________________________ COMPACTACION __________________________");
 
     	   list_clean_and_destroy_elements(tablaEntradas, (void *)destruirNodoDeTabla);
